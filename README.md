@@ -22,7 +22,7 @@ std_dev_ANN <- sd(predictions_ANN)
 corr_coef_ANN <- cor(predictions_ANN, test.data$WQI)
 
 
-# Les données Observées (observed) et les prédictions pour chaque modèle (pred_*)
+# Les données Observées (observed) et les prédictions pour chaque modèle (pred_)
 observed <- test.data$WQI
 
 # Diagramme de Taylor
