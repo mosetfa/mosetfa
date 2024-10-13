@@ -1,0 +1,368 @@
+print(base)
+head(base)
+model <- lm(CE ~ SA , base)
+plot(model)
+###scatter plot###
+base$cyl <- as.factor(base$cyl)
+ggplot(base, aes(x=WQI, y=VALUE)) + geom_point()+coord_flip()
+ggplot(base, aes(x=Temp, y=Incubation_periode)) +
+  geom_point(size=2, shape=23)
+ggplot(base, aes(x=PH, y=CONDUCTIVITE)) + 
+  geom_point(aes(size=SODIUM))
+ggplot(base, aes(x=PH, y=CONDUCTIVITE)) +
+  geom_point() + 
+  geom_text(label=rownames(base))
+geom_smooth(method="auto", se=TRUE, fullrange=FALSE, level=0.95)
+ggplot(base, aes(x=Laying_dates, y=Clutch_size )) + 
+  geom_point()+
+  geom_smooth(method=lm)
+ggplot(base, aes(x=Laying_dates, y=incubation_period )) + 
+  geom_point()+
+  geom_smooth(method=lm, se=FALSE)
+ggplot(results, aes(x=Observed, y=Predicted )) + 
+  geom_point()+geom_text(x = max(results$Observed), y = max(results$Predicted ), 
+                         label = paste("R2 =", round(r_squared, 2)), 
+                         hjust = 1, vjust = -1, color = "red")+  labs(x = "Actual WQI)", y = "Predicted WQI")+
+geom_smooth()+  # Annotation R²
+  labs(x = "Actual WQI", y = " Predicted WQI ")
+#
+p <- ggplot(base, aes(x = NUMBER, y = NUM)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+lm_model <- lm(NUMBER ~ NUM, data = base)
+r_squared <- summary(lm_model)$r.squared
+
+# Ajout de l'annotation pour le coefficient de détermination R^2
+p <- p + 
+  geom_text(x = max(base$NUMBER), y = max(base$NUM), 
+            label = paste("R² =", round(r_squared, 3)), 
+            hjust = 1, vjust = 1, color = "red")
+
+# Affichage du graphique
+print(p)
+#
+library(ggplot2)
+library(dplyr)
+
+# Création du modèle linéaire
+lm_model <- lm(NO3   ~ PO43, data = base)
+
+# Extrait de la valeur p du modèle linéaire
+p_value <- summary(lm_model)$coefficients["NUMBER", "Pr(>|t|)"]
+p_value
+# Création du graphique en nuage de points avec la ligne de tendance
+p <- ggplot(base, aes(x = NUMBER, y = NUM)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_text(x = max(base$NUMBER), y = max(base$NUM), 
+            label = paste("R² =", round(summary(lm_model)$r.squared, 2), ", p =", round(p_value, 3)), 
+            hjust = 0.9, vjust = -0.7, color = "red") +  # Annotation R² et p-value
+  labs(x = "Digitization", y = "Profits")  # Définition des titres des axes
+
+
+# Affichage du graphique
+print(p)
+
+#
+ggplot(base, aes(x=Laying_dates, y=Clutch_size)) + 
+  geom_point(shape=18, color="blue")+
+  geom_smooth(method=lm, se=FALSE, linetype="dashed",
+              color="darkred")
+# Change the confidence interval fill color
+ggplot(results, aes(x=Observed, y=Predicted)) + 
+  geom_point(shape=18, color="blue")+
+  geom_smooth(method=lm,  linetype="dashed",
+              color="darkred", fill="blue")
+# Change point shapes by the levels of cyl
+ggplot(base, aes(x=PH, y=CONDUCTIVITE, shape=Nitrate)) +
+  geom_point()
+# Change point shapes and colors
+ggplot(base, aes(x=Ph, y=CE, shape=R, color=Nitrate )) +
+  geom_point()
+# Change point shapes, colors and sizes
+ggplot(base, aes(x=Ph, y=CE, shape=R, color=R, size=R)) +
+  geom_point()
+# Add regression lines
+ggplot(base, aes(x=Ph, y=CE, color=R, shape=R)) +
+  geom_point() + 
+  geom_smooth(method=lm)
+# Remove confidence intervals
+# Extend the regression lines
+ggplot(base, aes(x=Ph, y=CE, color=R, shape=R)) +
+  geom_point() + 
+  geom_smooth(method=lm, se=FALSE, fullrange=TRUE)
+ggplot(base, aes(x=Ph, y=CE, color=R, shape=R)) +
+  geom_point() + 
+  geom_smooth(method=lm, aes(fill=R))
+# Change point shapes and colors manually
+ggplot(base, aes(x=Ph, y=CE, color=R, shape=R)) +
+  geom_point() + 
+  geom_smooth(method=lm, se=FALSE, fullrange=TRUE)+
+  scale_shape_manual(values=c(3, 16, 17))+ 
+  scale_color_manual(values=c('#999999','#E69F00', '#56B4E9'))+
+  theme(legend.position="top")
+
+# Change the point sizes manually
+ggplot(base, aes(x=Ph, y=CE, color=R, shape=R))+
+  geom_point(aes(size=R)) + 
+  geom_smooth(method=lm, se=FALSE, fullrange=TRUE)+
+  scale_shape_manual(values=c(3, 16, 17))+ 
+  scale_color_manual(values=c('#999999','#E69F00', '#56B4E9'))+
+  scale_size_manual(values=c(2,3,4))+
+  theme(legend.position="top")
+p <- ggplot(base, aes(x=Ph, y=CE, color=R, shape=R)) +
+  geom_point() + 
+  geom_smooth(method=lm, se=FALSE, fullrange=TRUE)+
+  theme_classic()
+# Use brewer color palettes
+p+scale_color_brewer(palette="Dark2")
+# Use grey scale
+p + scale_color_grey()
+# Add marginal rugs
+ggplot(base, aes(x=Ph, y=CE)) +
+  geom_point() + geom_rug()
+# Change colors
+ggplot(base, aes(x=Ph, y=CE, color=R)) +
+  geom_point() + geom_rug()
+# Add marginal rugs using faithful data
+ggplot(base, aes(x=altitudes, y=ESP1)) +
+  geom_point() + geom_rug()
+sp <- ggplot(base, aes(x=altitudes, y=ESP1)) +
+  geom_point()
+sp + geom_density_2d()
+print(base)
+r2 <- summary(model)$r.squared
+p_value <- summary(model)$coefficients[8]
+b <- round(coef(model)[1],2)
+a <- round(coef(model)[2],2)
+plot(Observed, Predicted, main="Linear Regression", xlab="Actual WQI", ylab="Observed WQI")
+abline(model, col="red")
+legend("topleft", legend=c(paste("R^2 = ", round(r2, 2)), paste("P = ", format(p_value, digits=4)), paste("Y = ", b, "+", a, "x")), col=c("black", "black", "black"), lty=c(1,1,1), cex=0.8)
+
+
+
+plot(X, Y, main="Linear Regression", xlab="CONDUCTIVITE", ylab="SODIUM")
+abline(model, col="red")
+legend("topleft", legend=c(paste("R^2 = ", round(r2, 2)), paste("P = ", format(p_value, digits=4)), paste("Y = ", y_value)), col=c("black", "black", "black"), lty=c(1,1,1), cex=0.8)
+
+
+
+
+plot(X, Y, main="Linear Regression", xlab="conductivite", ylab="SODIUM")
+abline(model, col="red")
+text(x= min(X), y= max(Y), paste("R^2 = ", round(r2, 2), ", P = ", format(p_value, digits=4)), pos=4)
+print(base
+    )
+
+plot(X, Y, main="Linear Regression", xlab="conductivite", ylab="SODIUM  ")
+abline(cor(conductivite,SODIUM), col="blue")
+abline(model, col="red")
+text(x= min(X), y= max(Y), paste("R^2 = ", round(r2, 2), ", P = ", format(p_value, digits=4)), pos=4)
+legend("topleft", legend=c("Correlation Line","Regression Line"), col=c("blue", "red"), lty=c(1,1), cex=0.8)
+
+
+
+plot(X, Y, main="Linear Regression", xlab="CE", ylab="HCO3")
+abline(model, col="red")
+legend("topleft", legend=c(paste("R^2 = ", round(r2, 2)), paste("P = ", format(p_value, digits=4))), col=c("black", "black"), lty=c(1,1), cex=0.8)
+
+
+
+
+
+
+
+
+
+
+
+x <- base$CONDUCTIVITE 
+y <- base$PH
+plot(x, y, main = "Main title",
+     xlab = "CONDUCTIVITE ", ylab = "PH",
+     pch = 19, frame = FALSE)
+plot(x, y, main = "Régression linéaire",
+     xlab = "CONDUCTIVITE ", ylab = "PH",
+     pch = 9, frame = FALSE)
+abline(lm(y ~ x, data = base), col = "blue")
+plot(No3, PO43, main = "Régression linéaire",
+     xlab = "NO3", ylab = "PO43", pch = 19, frame = FALSE)
+
+lines(lowess(x, y), col = "blue")
+library("car")
+scatterplot(Ph ~ CONDUCTIVITE , data = base)
+r2 <- summary(model)$r.squared
+p_value <- summary(model)$coefficients[8]
+
+plot(X, Y, main="Linear Regression", xlab="Ph ", ylab="CONDUCTIVITE")
+abline(model, col="red")
+legend("topleft", legend=c(paste("R^2 = ", round(r2, 2)), paste("P = ", format(p_value, digits=4))), col=c("black", "black"), lty=c(1,1), cex=0.8)
+
+
+
+
+
+pairs(base[,1:3], pch = 19)
+my_cols <- c("#00AFBB", "#E7B800", "#FC4E07")  
+pairs(base[,1:3], pch = 19,  cex = 0.5,
+      col = my_cols[base$oued],
+      lower.panel=NULL)
+library(psych)
+pairs.panels(base[,1:12], 
+             method = "pearson", 
+             hist.col = "#00AFBB",
+             density = TRUE,  
+             ellipses = TRUE )
+r2 <- summary(model)$r.squared
+p_value <- summary(model)$coefficients[8]
+b <- round(coef(model)[1],2)
+a <- round(coef(model)[2],2)
+plot(X, Y, main="Linear Regression", xlab="PH", ylab="CONDUCTIVITE")
+abline(model, col="red")
+legend("topleft", legend=c(paste("R^2 = ", round(r2, 2)), paste("P = ", format(p_value, digits=4)), paste("Y = ", b, "+", a, "x")), col=c("black", "black", "black"), lty=c(1,1,1), cex=0.8)
+
+
+plot(X, Y, main="Linear Regression", xlab="PH", ylab="CE")
+abline(model, col="red")
+legend("topleft", legend=c(paste("R^2 = ", round(r2, 2)), paste("P = ", format(p_value, digits=4))), col=c("black", "black"), lty=c(1,1), cex=0.8)
+*
+
+
+
+
+
+chart.Correlation(base, histogram=TRUE, pch=19)
+decathlon2.active <- base[1:16, 1:24]  
+head(decathlon2.active[, 1:24], 16) 
+PCA(decathlon2.active, scale.unit = TRUE, ncp = 5, graph = TRUE)
+res.pca <- PCA(decathlon2.active, graph = FALSE)
+print(res.pca)
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
+var <- get_pca_var(res.pca)
+ind <- get_pca_var(res.pca)
+
+var
+head(var$coord)
+head(var$coord, 24)
+# Cos2: qualité de répresentation
+head(var$cos2)
+head(var$cos2, 13)
+
+# Contributions aux composantes principales
+head(ind$contrib)
+head(ind$coord)
+library("corrplot")
+corrplot(var$cos2, is.corr=FALSE)
+# Cos2 total des variables sur Dim.1 et Dim.2
+fviz_cos2(res.pca, choice = "var", axes = 1:2)
+# Colorer en fonction du cos2: qualité de représentation
+fviz_pca_var(res.pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Évite le chevauchement de texte
+)
+corrplot(var$contrib, is.corr=FALSE)    
+# Contributions des variables à PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
+# Contributions des variables à PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)
+fviz_pca_var(res.pca, col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+)
+
+
+
+
+fviz_pca_ind (res.pca)
+fviz_pca_ind (res.pca, col.ind = "cos2",
+              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+              repel = TRUE # Évite le chevauchement de texte
+)
+fviz_pca_ind (res.pca, pointsize = "cos2",
+              pointshape = 21, fill = "#E7B800",
+              repel = TRUE 
+)
+
+
+
+
+base.pca <- PCA(base [, - 5], graph = FALSE)
+fviz_pca_ind(base.pca,
+             col.ind = base$ESPECE,
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE,
+             legend.title = "ESPECE"
+)
+fviz_pca_ind(base.pca, col.ind = base$ESPECE, 
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE, ellipse.type = "confidence",
+             legend.title = "Groups"
+)
+
+
+
+
+fviz_pca_biplot (base.pca,
+                 col.ind = base$espece, palette = "jco",
+                 addEllipses = TRUE, label = "var",
+                 col.var = "black", repel = TRUE,
+                 legend.title = "LAND")
+fviz_pca_biplot(base.pca, 
+                # Colueur de remplissage des individdus par groupes
+                geom.ind = "point",
+                pointshape = 21,
+                pointsize = 2.5,
+                fill.ind = base$land,
+                col.ind = "black",
+                # Colorer les variables par groupes
+                col.var = factor(c("sepal", "sepal", "petal", "petal")),
+                
+                legend.title = list(fill = "land", color = "Clusters"),
+                repel = TRUE        # Evite le chévauchement du texte
+)+
+  ggpubr::fill_palette("jco")+      # Couleur des individus
+  ggpubr::color_palette("npg")      # Couleur des variables
+
+
+
+
+library(cluster)
+tree<-agnes(base,diss = FALSE,stand = FALSE)
+pltree(tree)
+rect.hclust(tree,k=3)
+pltree(tree,hang=-1)
+clu<-pam(base,k=3,diss = FALSE,stand = FALSE)
+clusplot(clu,labels=3,lines=0,col.p=clu$clustering)
+plot(silhouette(clu))
+for (i in 2:8) {clu<-pam(base,k=i,diss=FALSE,stand = FALSE);print(i);print(clu$silinfo[3]);}
+clu$medoids
+##regression lineaire###
+base <- read.csv2("D:/MOSTEFA/les images des invertébrées/Sortie 4/RESULTATS PH ET CH SORTIE 4.csv", row.names="Stations", header=TRUE, check.names = FALSE)
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/LAKOUK.csv", header=TRUE, check.names = FALSE)
+print(names(base))
+print(base)
+dim(base)
+base<-base[44:100,]
+head(base)
+theme_set(theme_bw())
+ggplot(base, aes(x = NO3, y = PO43)) +
+  geom_point() +
+  stat_smooth()
+model <- lm(NO3 ~ PO43, data = base)
+model
+summary(model)
+cor(base$PO43, base$NH4)
+library(ggplot2)
+
+# Création du graphique en nuage de points avec la ligne de tendance
+p <- ggplot(base, aes(x = Laying_dates, y = Clutch_size)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_text(x = max(base$Laying_dates), y = max(base$Clutch_size), 
+            label = paste("R² =", round(r_squared, 2)), 
+            hjust = 1, vjust = -1, color = "red") +  # Annotation R²
+  labs(x = "Laying dates (1=1 March)")  # Définition du titre de l'axe des abscisses
+
+# Affichage du graphique
+print(p)
