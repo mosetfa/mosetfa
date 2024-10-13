@@ -1,0 +1,464 @@
+###acp###
+library(FactoMineR)
+library(factoextra)
+library(corrplot)
+library(ggrepel)
+dim(base)
+fix(base)
+base1<-base[1:159,]
+base2<-base[160:318,]
+base3<-base[319:477,]
+base4<-base[478:636,]
+variables<-base
+variables <- base[, 1:8]
+variables
+base
+res.pca <- PCA(variables, graph = FALSE)
+res.pca
+fviz_eig(res.pca)
+data("USArrests")
+res.pca <- PCA(variables, graph = FALSE)
+
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+var <- get_pca_var(res.pca)
+var
+corrplot(var$contrib, is.corr=FALSE) 
+var$contrib
+weight<-var$contrib
+weight
+weight<-weight[,1]
+weight
+var$contrib
+
+fviz_contrib(res.pca, choice = "var", axes = 4)
+fviz_pca_biplot(res.pca, repel = TRUE)
+fviz_pca_var(res.pca, repel = TRUE)
+fviz_pca_var(res.pca, repel = TRUE, axes = c(2, 3))
+S<-1/base4
+S
+sum(S[1, ], na.rm = TRUE)
+K<-1/7.116936
+K
+WI<-K/base4
+WI
+sum(WI[1, ], na.rm = TRUE)
+q1<-base[1:159,1:7]/base[160:318,1:7]
+q1<-q1*100
+q1
+write.xlsx(WQI_WA, file="D:/moste/OneDrive/Bureau/WQI_WA.xlsx")
+qPH<-base[1:159,(9)]-7
+qPH<-qPH/2
+qPH<-qPH*100
+qPH
+qPH<-data.frame(qPH)
+qPH
+qO2<-base[1:159,(8)]-14.6
+qO2<-qO2/-7.6
+qO2<-qO2*100
+qO2<-data.frame(qO2)
+qO2
+WQI<-base3*WI
+WQI
+sum(WQI[1, ], na.rm = TRUE)
+WQI_WA <- rowSums(WQI, na.rm = TRUE)
+WQI_WA
+WQI_WA<-data.frame(WQI_WA)
+WQI_WA
+write.xlsx(WQI_WA, file="D:/moste/OneDrive/Bureau/base1.xlsx")
+###nouveau indice de qualité d'eau ###
+base<-read.csv2("D:/moste/OneDrive/Bureau/NMDS.csv",  header= T, check.names = F)
+dim(base)
+fix(base)
+base1<-base[1:159,]
+base2<-base[160:318,]
+base3<-base[319:477,]
+base4<-base[478:636,]
+variables<-base
+variables <- base[, 1:8]
+variables
+base
+res.pca <- PCA(variables, graph = FALSE)
+res.pca
+fviz_eig(res.pca)
+data("USArrests")
+res.pca <- PCA(variables, graph = FALSE)
+
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+var <- get_pca_var(res.pca)
+var
+corrplot(var$contrib, is.corr=FALSE) 
+var$contrib
+weight<-var$contrib
+weight<-1/weight
+weight<-weight[,1]
+weight
+var$contrib
+
+fviz_contrib(res.pca, choice = "var", axes = 4)
+fviz_pca_biplot(res.pca, repel = TRUE)
+fviz_pca_var(res.pca, repel = TRUE)
+fviz_pca_var(res.pca, repel = TRUE, axes = c(1, 4))
+S<-1/base4
+S
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+K<-1/2.046424
+K
+WI<-K/base4
+WI
+sum(WI[1, ], na.rm = TRUE)
+q1<-base[1:159,1:8]/base[160:318,1:8]
+q1<-q1*100
+q1
+write.xlsx(base_standardized, file="C:/Users/moste/OneDrive/Bureau/base_standardized.xlsx")
+qPH<-base[1:159,(9)]-7
+qPH<-qPH/2
+qPH<-qPH*100
+qPH
+qPH<-data.frame(qPH)
+qPH
+qO2<-base[1:159,(10)]-14.6
+qO2<-qO2/-7.6
+qO2<-qO2*100
+qO2<-data.frame(qO2)
+qO2
+WQI<-base3*WI
+WQI
+sum(WQI[1, ], na.rm = TRUE)
+WQI_WA <- rowSums(WQI, na.rm = TRUE)
+WQI_WA
+WQI_WA<-data.frame(WQI_WA)
+WQI_WA
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/NMDS.csv",  header= T, check.names = F)
+###DECISION TREE###
+library(tidyverse)
+library(caret)
+library(rpart)
+# Inspect the data
+sample_n(base1, 3)
+# Split the data into training andje v test set
+set.seed(123)
+train_control <- trainControl(method = "cv", number = 10)
+base1 <- na.omit(base1)
+training.samples <- base1$WQI %>%
+  createDataPartition(p = 0.7, list = FALSE)
+train.data  <- base1[training.samples, ]
+test.data <- base1[-training.samples, ]
+set.seed(123)
+
+dtmodelWQI<-model <- train(
+  WQI   ~., data = train.data, method = "rpart",
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 10
+)
+print(dtmodelWQI)
+plot(dtmodelWQI)
+# Print the best tuning parameter cp that
+# minimize the model RMSE
+dtmodelWQI$bestTune
+# Plot the final tree model
+par(xpd = NA) # Avoid clipping the text in some device
+plot(dtmodelWQI$finalModel)
+text(dtmodelWQI$finalModel, digits = 3)
+dtmodelWQI$finalModel
+# Make predictions on the test data
+predictions_DT <- dtmodelWQI %>% predict(test.data)
+head(predictions_DT)
+# Compute the prediction error RMSE
+RMSE(predictions_DT, test.data$WQI)
+R2(predictions_DT, test.data$WQI)
+MAE(predictions_DT, test.data$WQI)
+results_DT <- data.frame(
+  Observed = test.data$WQI,
+  Predicted = predictions_DT
+)
+head(results_DT)
+write.xlsx(results_DT, file="C:/Users/moste/OneDrive/Bureau/results_DT.xlsx")
+###randoom forest###
+base1 <- na.omit(base1)
+set.seed(123)
+tune_grid <- expand.grid(
+  mtry = c(2, 3, 4, 5, 6, 7, 8)  # Liste des valeurs à tester pour mtry
+)
+train_control <- trainControl(method = "cv", number = 10)
+rfmodelWQI <- train(
+  WQI ~ ., 
+  data = train.data, 
+  method = "rf",
+  trControl = train_control,
+  tuneGrid = tune_grid
+)
+# Best tuning parameter mtry
+rfmodelWQI$bestTune
+# Make predictions on the test data
+predictions_RF <- rfmodelWQI %>% predict(test.data)
+head(predictions_RF)
+# Compute the average prediction error RMSE
+RMSE(predictions_RF, test.data$WQI)
+MAE(predictions_RF, test.data$WQI)
+R2(predictions_RF, test.data$WQI)
+results_RF <- data.frame(
+  Observed = test.data$WQI,
+  Predicted = predictions_RF
+)
+head(results_RF)
+write.xlsx(results_RF, file="C:/Users/moste/OneDrive/Bureau/results_RF.xlsx")
+####ANN###
+library(tidyverse)
+library(neuralnet)
+base1 <- na.omit(base1)
+# Créer les échantillons d'entraînement et de test
+set.seed(123)  # Fixer la graine pour la reproductibilité
+training.samples <- base1$WQI %>%
+  createDataPartition(p = 0.7, list = FALSE)
+train.data  <- base1[training.samples, ]
+test.data <- base1[-training.samples, ]
+
+# Définir le contrôle d'entraînement pour la validation croisée à 10 plis
+train_control <- trainControl(method = "cv", number = 10)
+
+# Entraîner le modèle ANN
+annmodelWQI <- train(
+  WQI ~ .,  # Modéliser WQI en fonction de toutes les autres variables
+  data = train.data,
+  method = "nnet",  # Utiliser un réseau de neurones artificiel
+  trControl = train_control,  # Validation croisée à 10 plis
+  linout = TRUE,    # Pour la régression (output linéaire)
+  trace = FALSE,    # Pour désactiver les sorties de progression
+  tuneLength = 5    # Essayer 5 combinaisons différentes de paramètres
+)
+
+# Afficher les résultats du modèle entraîné
+print(annmodelWQI)
+annmodelWQI$bestTune
+# Faire des prédictions sur les données de test
+predictions_ANN <- annmodelWQI %>% predict(test.data)
+head(predictions_ANN)
+# Évaluer la performance du modèle sur les données de test
+results_ANN <- data.frame(
+  Observed = test.data$WQI,
+  Predicted = predictions_ANN
+)
+
+# Calculer le RMSE (Root Mean Squared Error) pour évaluer les performances
+rmse <- sqrt(mean((results_ANN$Observed - results_ANN$Predicted)^2))
+# Afficher les résultats
+print(results_ANN)
+print(paste("RMSE:", rmse))
+RMSE(predictions_ANN, test.data$WQI)
+MAE(predictions_ANN, test.data$WQI)
+R2(predictions_ANN, test.data$WQI)
+write.xlsx(results_ANN, file="C:/Users/moste/OneDrive/Bureau/results_ANN.xlsx")
+###XGBOOST
+library(tidyverse)
+library(caret)
+library(xgboost)
+set.seed(123)  # Fixer la graine pour la reproductibilité
+training.samples <- base1$WQI %>%
+  createDataPartition(p = 0.7, list = FALSE)
+train.data  <- base1[training.samples, ]
+test.data <- base1[-training.samples, ]
+train_control <- trainControl(method = "cv", number = 10)
+tune_grid <- expand.grid(
+  nrounds = c(50, 100),          # Nombre d'arbres (réduit à 2 valeurs)
+  max_depth = c(3, 6),           # Profondeur maximale des arbres (réduit à 2 valeurs)
+  eta = c(0.1, 0.3),             # Taux d'apprentissage (réduit à 2 valeurs)
+  gamma = c(0, 1),               # Terme de régularisation pour les branches (réduit à 2 valeurs)
+  colsample_bytree = c(0.7),     # Proportion des colonnes échantillonnées (réduit à 1 valeur)
+  min_child_weight = c(1, 5),    # Poids minimum pour les enfants (réduit à 2 valeurs)
+  subsample = c(0.7)             # Proportion des échantillons utilisés pour construire chaque arbre (réduit à 1 valeur)
+)
+
+# Ajuster le modèle XGBoost avec les hyperparamètres définis dans la grille
+xgbmodelWQI <- train(
+  WQI ~ .,                         # Modéliser WQI en fonction de toutes les autres variables
+  data = train.data,               # Données d'entraînement
+  method = "xgbTree",              # Utiliser XGBoost avec des arbres de décision
+  trControl = train_control,       # Validation croisée à 10 plis
+  tuneGrid = tune_grid             # Grille d'hyperparamètres à tester
+)
+# Best tuning parameter mtry
+xgbmodelWQI$bestTune
+# Make predictions on the test data
+predictions_XGB <- xgbmodelWQI %>% predict(test.data)
+head(predictions_XGB)
+# Compute the average prediction error RMSE
+RMSE(predictions_XGB, test.data$WQI)
+MAE(predictions_XGB, test.data$WQI)
+R2(predictions_XGB, test.data$WQI)
+results_XGB <- data.frame(
+  Observed = test.data$WQI,
+  Predicted = predictions_XGB
+)
+head(results_XGB)
+write.xlsx(results_XGB, file="C:/Users/moste/OneDrive/Bureau/results_XGB.xlsx")
+###KNN NEIGHBORS###
+set.seed(123)
+train_control <- trainControl(method = "cv", number = 10)
+model_KNN<-model <- train(
+  WQI~., data = train.data, method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center","scale"),
+  tuneLength = 10
+)
+# Plot model error RMSE vs different values of k
+plot(model_KNN)
+# Best tuning parameter k that minimize the RMSE
+model_KNN$bestTune
+# Make predictions on the test data
+predictions_KNN <- model_KNN %>% predict(test.data)
+head(predictions_KNN)
+# Compute the prediction error RMSE
+RMSE(predictions_KNN, test.data$WQI)
+MAE(predictions_KNN, test.data$WQI)
+R2(predictions_KNN, test.data$WQI)
+results_KNN <- data.frame(
+  Observed = test.data$WQI,
+  Predicted = predictions_KNN
+)
+head(results_KNN)
+write.xlsx(results_KNN, file="C:/Users/moste/OneDrive/Bureau/results_KNN.xlsx")
+###Predicted and Observed###
+XGBP<-ggplot(results_XGB, aes(y=Predicted, x=Observed))+
+  geom_point()+
+  geom_smooth(colour="red", method="lm", fill="red") +
+  ylab("Predicted WQI")+
+  xlab("Actual WQI") +
+  theme_classic()+
+  annotate("text", x = 30, y = 80, label = "(R²=0.97)")
+ANannresultsWQI  
+R2(predictions_KNN, test.data$WQI)
+R2(predictions_XGB, test.data$WQI)
+R2(predictions_RF, test.data$WQI)
+R2(predictions_DT, test.data$WQI)
+R2(predictions_ANN, test.data$WQI)
+
+
+
+
+###DIAGRAM 
+# Calculer l'écart-type et le coefficient de corrélation pour chaque modèle
+std_dev_DT <- sd(predictions_DT)
+corr_coef_DT <- cor(predictions_DT, test.data$WQI)
+
+std_dev_RF <- sd(predictions_RF)
+corr_coef_RF <- cor(predictions_RF, test.data$WQI)
+
+std_dev_XGB <- sd(predictions_XGB)
+corr_coef_XGB <- cor(predictions_XGB, test.data$WQI)
+
+std_dev_KNN <- sd(predictions_KNN)
+corr_coef_KNN <- cor(predictions_KNN, test.data$WQI)
+
+std_dev_ANN <- sd(predictions_ANN)
+corr_coef_ANN <- cor(predictions_ANN, test.data$WQI)
+# Créer le diagramme de Taylor sans ajuster les limites
+taylor.diagram(
+  c(std_dev_DT, std_dev_RF, std_dev_XGB, std_dev_KNN, std_dev_ANN),
+  c(corr_coef_DT, corr_coef_RF, corr_coef_XGB, corr_coef_KNN, corr_coef_ANN),
+  pch=NA, col=NA,
+  add=FALSE,
+  main="Diagramme de Taylor"
+)
+
+# Ajuster les limites des axes après la création du diagramme
+par(new=TRUE)
+plot(0, 0, type="n", xlim=c(0, 30), ylim=c(0, 30), xlab="", ylab="", axes=FALSE)
+axis(1, at=c(0, 7.5, 15, 22.5, 30))
+axis(2, at=c(0, 7.5, 15, 22.5, 30))
+
+# Ajouter les points pour chaque modèle
+points(std_dev_DT, corr_coef_DT, pch=1, col="red")
+points(std_dev_RF, corr_coef_RF, pch=2, col="blue")
+points(std_dev_XGB, corr_coef_XGB, pch=3, col="green")
+points(std_dev_KNN, corr_coef_KNN, pch=4, col="purple")
+
+# Ajouter une légende
+legend("topright", legend=c("DT", "RF", "XGB", "KNN"), pch=1:4, col=c("red", "blue", "green", "purple"))
+###taylor diagram###
+library(chron)
+library(lattice)
+library(ggplot2)
+library(plotrix)
+library(graphics)
+###SUPER###
+library(openair)
+library(plorix)
+RMSE(predictions_KNN, test.data$WQI)
+RMSE(predictions_DT, test.data$WQI)
+RMSE(predictions_RF, test.data$WQI)
+RMSE(predictions_ANN, test.data$WQI)
+RMSE(predictions_XGB, test.data$WQI)
+
+std_dev_DT <- sd(predictions_DT)
+corr_coef_DT <- cor(predictions_DT, test.data$WQI)
+
+std_dev_RF <- sd(predictions_RF)
+corr_coef_RF <- cor(predictions_RF, test.data$WQI)
+
+std_dev_XGB <- sd(predictions_XGB)
+corr_coef_XGB <- cor(predictions_XGB, test.data$WQI)
+
+std_dev_KNN <- sd(predictions_KNN)
+corr_coef_KNN <- cor(predictions_KNN, test.data$WQI)
+
+std_dev_ANN <- sd(predictions_ANN)
+corr_coef_ANN <- cor(predictions_ANN, test.data$WQI)
+
+
+# Les données Observées (observed) et les prédictions pour chaque modèle (pred_*)
+observed <- test.data$WQI
+
+# Diagramme de Taylor
+taylor.diagram(observed, predictions_DT, add=FALSE, col="red", pch=19, main="Taylor Diagram", pos.cor=TRUE)
+taylor.diagram(observed, predictions_RF, add=TRUE, col="blue", pch=19)
+taylor.diagram(observed, predictions_ANN, add=TRUE, col="green", pch=19)
+taylor.diagram(observed, predictions_XGB, add=TRUE, col="purple", pch=19)
+taylor.diagram(observed, predictions_KNN, add=TRUE, col="orange", pch=19)
+
+# Ajouter une légende
+legend("topright", legend=c("DT", "RF", "ANN", "XGB", "KNN"), col=c("red", "blue", "green", "purple", "orange"), pch=19)
+sd(base1$WQI)
+
+
+###STUCKING###
+# Créer un dataframe avec les prédictions des modèles
+stacking_data <- data.frame(
+  DT = predictions_DT,
+  RF = predictions_RF,
+  ANN = predictions_ANN,
+  XGB = predictions_XGB,
+  KNN = predictions_KNN,
+  Observed = test.data$WQI
+)
+
+# Entraîner le méta-modèle
+meta_model <- lm(Observed ~ ., data = stacking_data)
+
+# Faire des prédictions avec le méta-modèle
+meta_predictions <- predict(meta_model, stacking_data)
+
+# Évaluer la performance
+meta_rmse <- RMSE(meta_predictions, test.data$WQI)
+meta_corr <- cor(meta_predictions, test.data$WQI)
+meta_sd <- sd(meta_predictions)
+
+meta_rmse
+meta_corr
+meta_sd
+###comment créer une équation et puis l'importer sur un fichier doc##
+library(officer)
+library(rmarkdown)
+# Créer un document Word
+doc <- read_docx()
+
+# Ajouter des équations
+doc <- doc %>%
+  body_add_par("RMSE = sqrt(1/n * Σ(yi - ŷi)²)", style = "Normal") %>%
+  body_add_par("MAE = 1/n * Σ |yi - ŷi|", style = "Normal") %>%
+  body_add_par("R² = 1 - Σ(yi - ŷi)² / Σ(yi - ȳ)²", style = "Normal")
+
+# Enregistrer le document
+print(doc, target = "equations.docx")
