@@ -1,0 +1,128 @@
+print(base)
+p <- ggplot(
+  base,
+    aes(annee, Temperature, group = Mois, color = factor(Mois))
+) +
+  geom_line() +
+  scale_color_viridis_d() +
+  labs(x = "annee", y = "Temperature") +
+  theme(legend.position = "top")
+p
+p + geom_point() + transition_reveal(annee)
+
+p + transition_reveal(annee)
+p
+p + 
+  geom_point() +
+  transition_reveal(annee)
+
+head(gapminder)
+p <- ggplot(
+  base, 
+  aes(x = annee, y=Temperature, colour = Mois)
+) +
+  geom_point(
+    
+    show.legend = FALSE, alpha = 0.7) +
+  scale_color_viridis_d() +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  labs(x = "GDP per capita", y = "Life expectancy")
+p
+p + transition_time(annee) +
+  labs(title = "annee: {frame_time}")
+p <- ggplot(
+  base,
+  aes(annee, Temperature, group = Mois, color = factor(Mois))
+) +
+  geom_line() +
+  scale_color_viridis_d() +
+  labs(x = "Day of Month", y = "Temperature") +
+  theme(legend.position = "top")
+p
+p + transition_reveal(annee)
+p + 
+  geom_point(aes(group = seq_along(annee))) +
+  transition_reveal(annee)
+base<- read.csv2("C:/Users/moste/OneDrive/Bureau/YOUCEF.csv", row.names = "PUITS")
+print(base)
+Species <- base[ , 1:21]
+dim(base)
+str(base)
+n <- dim(Species)
+n
+sum(Species[1, ], na.rm = TRUE)
+TA <- vector(length = n[1])
+for (i in 1:n[1]){
+  TA[i] <- sum(Species[i, ], na.rm = TRUE)
+}
+TA
+sum(Species[1, ] > 0, na.rm = TRUE)
+sum(Species[10, ] > 0, na.rm = TRUE)
+Richness <- vector(length = n[1])
+for (i in 1:n[1]){Richness[i] <- sum(Species[i, ] > 0, na.rm = TRUE)
+}
+Richness
+RS <- rowSums(Species, na.rm = TRUE)
+prop <- Species / RS
+H <- -rowSums(prop * log10(prop), na.rm = TRUE)
+H
+library(vegan)
+data(BCI, BCI.env)
+H <- diversity(BCI)
+H
+simp <- diversity(BCI, "simpson")
+simp
+invsimp <- diversity(BCI, "inv")
+invsimp
+unbias.simp <- simpson.unb(Species)
+unbias.simp
+alpha <- fisher.alpha(BCI)
+alpha
+pairs(cbind(H, simp, J, S, invsimp, unbias.simp), pch="+", col="blue")
+J <- H/log(S)
+J
+S <- specnumber(BCI)
+S
+pairs(cbind(S, H), pch="+", col="blue")
+hhhhhhhhhh
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/AYMEN.csv")
+print(base)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(broom)
+ggscatter(
+  base, x = "pre_test", y = "post_tes",
+  color = "station", add = "reg.line"
+)+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = station)
+  )
+base %>% anova_test(post_tes ~ station*pre_test)
+# Calculer le modèle, la covariable passe en premier
+model <- lm(post_tes ~ pre_test + station, data = base)
+# Inspecter les paramètres de diagnostic du modèle
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) # Supprimer les détails
+head(model.metrics, 3)
+model.metrics %>% levene_test(.resid ~ station)
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame()
+res.aov <- base %>% anova_test(post_tes ~ pre_test + station)
+get_anova_table(res.aov)
+pwc <- base %>% 
+  emmeans_test(
+    post_tes ~ station, covariate = pre_test,
+    p.adjust.method = "bonferroni"
+  )
+pwc
+pwc <- pwc %>% add_xy_position(x = "station", fun = "mean_se")
+ggline(get_emmeans(pwc), x = "station", y = "emmean") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) + 
+  stat_pvalue_manual(pwc, hide.ns = TRUE, tip.length = FALSE) +
+  labs(
+    subtitle = get_test_label(res.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
