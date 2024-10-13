@@ -1,0 +1,143 @@
+###violin plot###
+p <- ggplot(base, aes(x=WQI, y=VALUE)) + 
+  geom_violin()
+p
+p + stat_summary(fun.y=mean, geom="point", shape=23, size=2)
+p<-ggplot(base, aes(x=WQI, y=VALUE, color=Stations)) +
+  geom_violin(trim=FALSE, width=0.01)+  labs(x = "Laying dates (1=1 March)", y = "incubation period ")
+
+p+  geom_boxplot(width=0.001) + theme_minimal()
+###qplot
+qplot(Laying_dates , Nestling.period, data = base, size = incubation_period , color=Stations)+ geom_point(size = 4)
+
+
+
+
+##
+print(base)
+library(ggplot2)
+p<- ggplot(base, aes(x=X1, y=Value), color=T) + 
+  geom_boxplot()
+p
+p<-ggplot(base,  aes(x=REGION,  y=EFFECTIFS,  color=ORDRE)) +
+  geom_boxplot()
+p
+ggplot(base, aes(x=WQI, y=VALUE)) + 
+  geom_boxplot(fill="gray")+
+  labs(title="variations mensuelles de la T")
+ggplot(base, aes(x=mois, y=température)) + 
+  geom_boxplot(fill="yellow")+
+  labs(title="variations mensuelles de la T")
+,x="mois (mois)", température = "C")+
+  theme_classic()
+bp<- ggplot(base, aes(x=mois, y=température, fill=mois)) + 
+  geom_boxplot()+
+  labs(title="variations mensuelles de la température ",x="mois", y = "tempéraature (degrée)")
+bp + theme_classic()
+p<-ggplot(base, aes(x=WQI, y=VALUE, color=WQI)) +
+  geom_boxplot()
+p
+p<-ggplot(base,  aes(x=mois,  y=température,  color=mois)) +
+  geom_boxplot()
+
+p + geom_dotplot(binaxis='y', stackdir='center', dotsize=1)
+p + scale_x_discrete(limits=c("Jan", "Fev", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Sept", "Oct", "Nov", "Dec"))
+p + geom_jitter(shape=16, position=position_jitter(0.2))+ scale_x_discrete(limits=c("Jan", "Fev", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Sept", "Oct", "Nov", "Dec"))
+
+
+
+
+
+attach(base)
+names(base)
+clean <- base[,2:9]
+summary(rarefied_dissimilarity)
+summary(data)
+SITE<- base[,1]
+SITE
+ord<- metaMDS(clean, distance="horn")
+ord
+stressplot(ord)
+plot(ord)
+plot(ord, type="t")
+ordiellipse(ord, Site, kind="se", conf=0.95, lwd=1, col= c('Green', 'Orange'))
+ordispider(ord, Site, col=c('Green', 'Orange'), label = F)
+ENV<- base[,10]
+ENV
+fit<- envfit(ord, ENV, pernu=999)
+fit
+plot(ord, type="text")
+plot(fit)
+plot(fit, p.max=0.05)
+plot(ord, type="T")
+plot(fit, p.max=0.05)
+ordiellipse(ord, Site, kind="se", conf=0.95, lwd=1, col= c('Green', 'Orange'))
+ordispider(ord, Site, col=c('Green', 'Orange'), label = F)
+
+
+
+
+
+
+
+ordiplot(ord , type="text")
+data.envfit <- envfit(ord,enviro[,-1])
+plot(data.envfit)
+
+
+plot(ord)
+plot(ord, type="t")
+ordiplot(ord, type="t")
+ordiplot(ord, type="text")
+data.envfit <- envfit(ord,Humidite[,10])
+plot(data.envfit)
+ordiellipse(ord, SITE, kind="se", conf=0.95, lwd=1, col= c('Green', 'Orange'))
+ordispider(ord, SITE, col=c('Green', 'Orange'), label = F)
+ENV<- base[,10]
+ENV
+fit<- envfit(ord, ENV, pernu=999)
+fit
+ordiplot(ord, type="T")
+plot(fit)
+plot(fit, p.max=0.05)
+plot(ord)
+plot(fit, p.max=0.05)
+ordiellipse(ord, SITE, kind="se", conf=0.95, lwd=1, col= c('Green', 'Orange'))
+ordispider(ord, SITE, col=c('Green', 'Orange'), label = F)
+
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/Les parametres physiques.csv", header=TRUE, check.names = FALSE)
+
+library(cluster)
+tree<-agnes(base,diss = FALSE,stand = FALSE)
+pltree(tree)
+rect.hclust(tree,k=3)
+pltree(tree,hang=-1)
+clu<-pam(base,k=3,diss = FALSE,stand = FALSE)
+clusplot(clu,labels=3,lines=0,col.p=clu$clustering)
+
+plot(silhouette(clu))
+for (i in 2:7) {clu<-pam(base,k=i,diss=FALSE,stand = FALSE);print(i);print(clu$silinfo[3]);}
+clu$medoids
+library(dplyr)
+# Filtrer les valeurs manquantes et nulles
+base_filtered <- na.omit(base)  # Supprimer les lignes avec des valeurs manquantes
+base_filtered <- base_filtered[base_filtered$EFFECTIFS != 0, ]  # Supprimer les lignes avec des valeurs nulles
+base
+# Créer le graphique
+ggplot(base, aes(x = Parametres, y = value, colour = SITE)) +
+  geom_jitter(width = 0.15) +
+  geom_boxplot() +
+  scale_color_manual(values = c("red", "dodgerblue", "green")) +
+  scale_y_continuous(breaks = c(10,20, 50,100, 200, 500, 7500, 800, 27000, 27500)) +
+  coord_trans(y = "log") +
+  ggtitle("avec la fonction coord_trans()")
+ggplot(base_filtered2.s, aes(x=Parametres, y=Litiere, colour=SITE)) + 
+  geom_point(size=2)+
+  geom_errorbar(aes(ymin=EFFECTIFS-ci, ymax=EFFECTIFS+ci), width=.01)+
+  scale_color_manual(values = c("red", "dodgerblue", "green", "yellow", "orange")) +
+  
+  scale_y_continuous(breaks = c(10,20,50, 100, 200, 250))+
+  coord_trans(y="log")+
+  
+  theme(legend.position = "none")+
+  ggtitle("avec la fonction coord_trans()") 
