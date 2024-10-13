@@ -1,0 +1,240 @@
+base<-base[,2:10]
+base
+print(z)
+summary(A)
+theme_set(theme_bw())
+sample_n(base, 3)
+set.seed(123)
+ggplot(base, aes(x = O2  , y =CE )) +
+  geom_point() +
+  stat_smooth()
+cor(base$O2 , base$CE)
+model <- lm(CE  ~ NO3 , data = base)
+model
+summary(model)
+ggplot(base, aes(x = DPT, y = HG)) + 
+geom_point() +
+geom_smooth(colour="red", method="lm", fill="red") + 
+annotate("text", x = Inf, y = Inf, label = paste("R² =", round(r_squared, 2),label = "(pval<0.01) Y = 34.4905 + 2.0538 * X"), 
+hjust = 1.1, vjust = 1.1) +
+labs(title = "Scatter Plot with Linear Regression Line",
+x = "DPT",
+y = "HG")
+ggplot(base, aes(y=HG, x=GL))+
+  geom_point()+
+  geom_smooth(colour="blue", method="lm", fill="red"), +
+  ylab("HG")+
+  xlab("GL") +
+  theme_classic()+ 
+  annotate("text", x = 9, y = 80, label = "Y = 3.22251    + 0.47941 * X (pval<0.001)")
+ggplot(base, aes(x=HG, y=GL)) + 
+  geom_point()+ label = paste("R² =", round(r_squared, 2))+
+  geom_smooth(method=lm)
+dim(z)
+pairs(z[,1:22]) 
+z<-cor(z[,1:22])
+print(base)
+dim(base)
+A
+matrice.corr
+base
+library(corrplot)
+corrplot(z, method="circle")
+corrplot(base2, method="pie")
+corrplot(base2, method="color")
+corrplot(z, method="number")
+corrplot(z, type="upper", order="hclust")
+chart.Correlation(base, histogram=TRUE, pch=19)
+decathlon2.active <- A[1:9, 1:22]
+head(decathlon2.active[, 1:22], 9)       
+
+PCA(base, scale.unit = TRUE, ncp = 5, graph = TRUE)
+result <- PCA(z, scale.unit = TRUE, ncp = 5, graph = FALSE)
+
+# Générer le graphique avec des étiquettes gérées
+fviz_pca_var(result, geom = "point", repel = TRUE)
+
+res.pca <- PCA(base, graph = FALSE)
+var <- get_pca_var(res.pca)
+var
+head(var$contrib, 22)
+fviz_pca_var(res.pca, col.var = "black")
+fviz_pca_ind(res.pca, col.var = "black")
+iris.pca <- PCA(base[,-5], graph = FALSE)
+corrplot(var$cos2, is.corr=FALSE)
+fviz_pca_var(res.pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE # Avoid text overlapping
+)
+fviz_pca_ind(iris.pca,
+             geom.ind = "point", # show points only (nbut not "text")
+             col.ind = base$OUED, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             legend.title = "OUED"
+)
+#BOX PLOT #
+library(ggplot2)
+# Basic box plot
+p <- ggplot(base, aes(x=PARAMETRES, y=RESULTATS)) + 
+  geom_boxplot()
+p
+# Rotate the box plot
+p + coord_flip()
+# Notched box plot
+ggplot(base, aes(x=PARAMETRES, y=RESULTATS)) + 
+  geom_boxplot(notch=TRUE)
+# Change outlier, color, shape and size
+ggplot(base, aes(x=PARAMETRES, y=RESULTATS)) + 
+  geom_boxplot(outlier.colour="red", outlier.shape=10,
+               outlier.size=2)+ coord_flip()
+p<-ggplot(base, aes(x=PARAMETRES, y=RESULTATS, color=PARAMETRES)) +
+  geom_boxplot()
+p+ coord_flip()
+ggplot(base, aes(x=PARAMETRES, y=RESULTATS, fill=MOIS)) +
+  geom_boxplot()
+p<-ggplot(base, aes(x=PARAMETRES, y=RESULTATS, fill=MOIS)) +
+  geom_boxplot(position=position_dodge(1))
+p+ coord_flip()
+summary(base)
+ggplot(base, aes(x=PARAMETRES, y=RESULTATS, colour=PARAMETRES))+
+  geom_jitter(seed=123, width=0.15)+
+  geom_boxplot() +
+  scale_y_continuous(breaks = c( 0.1,0.3, 0.5, 1, 2, 4, 8, 12, 20,30, 50,75, 100, 200, 250,325, 450, 600))+
+  coord_trans(y="log")+
+  
+  theme(legend.position = "none")+ coord_flip()+
+  ggtitle("score variability of the nine station data set ")
+##
+g1 <- ggplot(base, aes(x=PARAMETRES, y=RESULTATS, colour=PARAMETRES))+
+  geom_jitter(seed=123, width=0.15)+
+  geom_boxplot() +
+  stat_summary(fun=mean, geom="point", shape=20, size=5, color="black", fill="black", label=mean)+
+  stat_summary(fun.y=mean, colour="red", geom="text", show_guide = FALSE, 
+               vjust=-0.7, aes( label=round(..y.., digits=1)))+
+  
+  scale_y_continuous(breaks = c( 0.1,0.3, 0.5, 1, 2, 4, 8, 12, 20,30, 50,75, 100, 200, 250,325, 450, 600))+
+  coord_trans(y="log")+
+  theme(legend.position = "non")+
+  ggtitle("score variability of the nine station data set")
+g2 <- ggplot(base, aes(x=PARAMETRES, y=RESULTATS, colour=PARAMETRES))+
+  geom_jitter(seed=123, width=0.15)+
+  geom_boxplot() +
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="black", fill="black", label=mean)+
+  stat_summary(fun.y=mean, colour="red", geom="text", show_guide = FALSE, 
+               vjust=-0.7, aes( label=round(..y.., digits=1)))+
+  
+  scale_y_continuous(breaks = c( 0.1,0.3, 0.5, 1, 2, 4, 8, 12,15, 20,30,40, 50,75, 100, 200, 250,325, 450, 600))+
+  coord_trans(y="log")+
+  
+  
+  theme(legend.position = "non")+
+  ggtitle("score variability of the nine station data set")
+g2
+grid.arrange(g1, g2, ncol=2) 
+g1
+g2
+#####
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/IQE1.csv")
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/amel.csv")
+print(base)
+PimaIndiansDiabetes2 <- na.omit(base)
+# Inspect the data
+sample_n(PimaIndiansDiabetes2, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- PimaIndiansDiabetes2$IQE %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- PimaIndiansDiabetes2[training.samples, ]
+test.data <- PimaIndiansDiabetes2[-training.samples, ]
+set.seed(123)
+model <- train(
+  IQE ~., data = train.data, method = "rf",
+  trControl = trainControl("cv", number = 10),
+  importance = TRUE
+)
+plot(model$finalModel)
+predicted.classes <- model %>% predict(test.data)
+head(predicted.classes)
+mean(predicted.classes == test.data$IQE)
+
+# Best tuning parameter
+model$bestTune
+##
+set.seed(123)
+model <- train(
+  IQE ~., data = train.data, method = "rf",
+  trControl = trainControl("cv", number = 10)
+)
+# Best tuning parameter mtry
+model$bestTune
+# Make predictions on the test data
+predictions <- model %>% predict(test.data)
+head(predictions,8)
+print(predictions)
+# Compute the average prediction error RMSE
+RMSE(predictions, test.data$IQE)
+MAE(predictions, test.data$IQE)
+R2(predictions, test.data$IQE)
+#####KNN
+sample_n(base, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$IQE %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+set.seed(123)
+model <- train(
+  IQE~., data = train.data, method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center","scale"),
+  tuneLength = 10
+)
+# Plot model error RMSE vs different values of k
+plot(model)
+# Best tuning parameter k that minimize the RMSE
+model$bestTune
+# Make predictions on the test data
+predictions <- model %>% predict(test.data)
+print(predictions)
+# Compute the prediction error RMSE
+RMSE(predictions, test.data$IQE)
+MAE(predictions, test.data$IQE)
+R2(predictions, test.data$IQE)
+### XGBOOST
+print(base)
+# Inspect the data
+sample_n(base, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$QUALITY %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+set.seed(123)
+model <- train(
+  IQE ~., data = train.data, method = "xgbTree",
+  trControl = trainControl("cv", number = 10)
+)
+# Best tuning parameter mtry
+model$bestTune
+# Make predictions on the test data
+predictions <- model %>% predict(test.data)
+head(predictions)
+# Compute the average prediction error RMSE
+RMSE(predictions, test.data$IQE)
+MAE(predictions, test.data$IQE)
+R2(predictions, test.data$IQE)
+### FOR CLASSIFICATION
+set.seed(123)
+model <- train(
+  QUALITY ~., data = train.data, method = "xgbTree",
+  trControl = trainControl("cv", number = 15)
+)
+# Best tuning parameter
+model$bestTune
+# Make predictions on the test data
+predicted.classes <- model %>% predict(test.data)
+head(predicted.classes, 15)
+mean(predicted.classes == test.data$QUALITY)
+######cart
