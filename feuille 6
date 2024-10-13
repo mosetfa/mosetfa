@@ -1,0 +1,150 @@
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/malak2.csv", header=TRUE, check.names = FALSE)
+print(base)
+base<-read.csv2("C:/Users/TOSHIBA/Documents/données climatiques 4 mois 2.csv")
+print(base)
+library(tidyr)
+# Convertir les données au format long
+base_long <- pivot_longer(base, cols = everything(), names_to = "Variable", values_to = "Value")
+ggplot(base_long, aes(x = Variable, y = Value)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size=12)) +
+  scale_y_continuous(breaks = c(0.5,1,5, 20, 40,60, 100, 200,400,800))+
+  labs(title = "Boxplot of All Variables", x = "Variables", y = "Value")
+ggplot(base_long, aes(x = Variable, y = Value, colour = Variable)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_y_log10(breaks = c(0.1, 0.2, 0.4, 0.6, 1, 2, 5, 20, 40, 60, 100, 200, 400, 800)) +
+  labs(title = "Boxplot of All Variables", x = "Variables", y = "Value") +
+  annotation_logticks(sides = "l")
+ggplot(base, aes(x=pelote, y=Valeur, fill=Mesure)) +
+  theme_minimal() +
+  geom_bar(stat="identity", position=position_dodge(), width=1)
+p<-ggplot(data=base, aes(x=Month, y=Precipitation)) + geom_bar(stat="identity")   
+p
+p + coord_flip()
+
+p<-ggplot(data=base, aes(x=PARCELLE, y=EFFECTIFS)) + geom_bar(stat="identity")
+p
+p + coord_flip()    
+ggplot(data=data_long, aes(x=Index, y=Values, fill=Index)) +scale_y_continuous(breaks = c(0,1,2,3,4, 5, 20, 40,60))+
+    theme(legend.position = "none")+
+  ggtitle("avec la fonction coord_trans()",
+  coord_trans(y="log")+
+  geom_bar(stat="identity", width=0.5))                         
+ggplot(data=base, aes(x=Pelote, y=Langueur)) +
+  geom_bar(stat="identity", color="blue", fill="white")
+p<-ggplot(data=base, aes(x=Health, y=Numbers)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal()                    
+p
+
+ggplot(data=base, aes(x=pelote, y=Valeur, fill=Mesure)) +
+  theme_minimal()+
+  geom_bar(stat="identity")
+ggplot(data=base, aes(x=Health, y=Numbers, fill=ETAT)) +coord_flip() +
+  geom_bar(stat="identity")
+OR
+ggplot(data=base, aes(x=SPECIES, y=VALUES, fill=INDEX)) +coord_flip() +
+  geom_bar(stat="identity")
+pour l’arrangement : cas du cumul des effectifs
+base4 <- arrange(base, Health, Species) 
+head(base4)
+base5 <- ddply(base4, "Health",
+               transform, label_ypos=cumsum(Numbers))
+head(base5)
+ggplot(data=base5, aes(x=Health, y=Numbers, fill=Species))+
+  geom_bar(stat="identity")+ coord_flip()+
+  scale_fill_brewer(palette="Paired")+ scale_x_discrete(limits=c("ARCHI H", "ARCHI S", "ARCHI R", "ARCHI D", "ARCHI I")+theme_minimal()
+data<-read.table("C:/Users/User/Desktop/lotfi0.csv",header=TRUE,sep=";",na.strings="NA",dec=".")
+data
+row.names(data)<-as.character(data$STATION)
+base
+library(cluster)
+tree<-agnes(base,diss = FALSE,stand = FALSE)
+pltree(tree)
+###barplot with percentage###
+library(ggplot2)
+library(dplyr)
+
+# Calculer les proportions
+HD2_prop <- HD2 %>%
+  group_by(chest_pain, has_heart_disease, gender) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+# Créer le graphique
+ggplot(HD2_prop, aes(x = interaction(chest_pain, has_heart_disease), y = percentage, fill = gender)) +
+  geom_bar(stat = "identity", position = "fill") +
+  geom_text(aes(label = paste0(round(percentage, 1), "%")), 
+            position = position_fill(vjust = 0.5), size = 4) +
+  labs(x = "Chest Pain and Heart Disease", y = "Proportion", fill = "Gender", 
+       title = "Proportional Distribution by Chest Pain and Heart Disease, by Gender") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_x_discrete(labels = function(x) gsub("\\.", "\n", x))
+####
+
+library(ggplot2)
+library(dplyr)
+
+# Calculer les proportions pour chest_pain
+HD2_chest_pain_prop <- HD2 %>%
+  group_by(chest_pain, gender) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100,
+         group = "chest_pain")
+
+# Calculer les proportions pour has_heart_disease
+HD2_heart_disease_prop <- HD2 %>%
+  group_by(has_heart_disease, gender) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100,
+         group = "has_heart_disease")
+
+# Combiner les deux jeux de données
+HD2_combined_prop <- bind_rows(
+  HD2_chest_pain_prop %>% rename(group_value = chest_pain),
+  HD2_heart_disease_prop %>% rename(group_value = has_heart_disease)
+)
+
+# Créer le graphique
+ggplot(HD2_combined_prop, aes(x = factor(group_value), y = percentage, fill = gender)) +
+  geom_bar(stat = "identity", position = "fill") +
+  geom_text(aes(label = paste0(round(percentage, 1), "%")), 
+            position = position_fill(vjust = 0.5), size = 4) +
+  labs(x = "Group Value", y = "Proportion", fill = "Gender", 
+       title = "Proportional Distribution by Chest Pain and Heart Disease, by Gender") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  facet_grid(~group, scales = "free_x", space = "free_x") +
+  theme(strip.text.x = element_text(size = 12))
+###bar plot avec pourcentage###
+library(ggplot2)
+library(dplyr)
+base<-base[,1:3]
+# Renommer les colonnes pour éviter les espaces
+colnames(base) <- c("Differents_ossements", "POURCENTAGE", "P")
+
+# Convertir les pourcentages pour ggplot2
+base <- base %>%
+  mutate(P = factor(P),
+         POURCENTAGE = as.numeric(POURCENTAGE))
+
+# Créer le graphique
+library(ggplot2)
+library(scales)
+
+# Créer le graphique
+ggplot(base, aes(x = Pelote, y =Percentage, fill = Number_of_species)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = paste0(round(Percentage, 1), "%")), 
+            position = position_dodge(width = 0.9), vjust = -0.25, size = 4) +
+  labs(x = "Classes ", y = "Number of Species", fill = "Number_of_species", 
+       title = "Distribution des Pourcentages par Différents Ossements et P") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::label_number(suffix = "%"))
+
+ggally_rowbar(base, mapping = aes(y = Diametres, x = Langueur))
+ggally_rowbar(HD2, mapping = aes(x = gender, y = chest_pain))
+ggally_colbar(HD2, mapping = aes(y = gender, x = chest_pain))
+ggally_colbar(HD2, mapping = aes(x = gender, y = chest_pain))
