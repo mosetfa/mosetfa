@@ -1,0 +1,210 @@
+base<-read.csv2("D:/moste/OneDrive/Bureau/SPECIES.csv")
+eco<-read.csv2("D:/moste/OneDrive/Bureau/SPECIES.csv", row.names = "SITE")
+print(eco)
+eco
+dim(eco)
+names(eco)
+head(base, 3)
+base<-read.csv2("D:/moste/OneDrive/Bureau/Classeur3.csv", check.names = "F", header = T)
+library(ggplot2)
+lm_model <- lm(DATE  ~ Clutch_size, data = base)
+r_squared <- summary(lm_model)$r.squared
+r_squared
+p<- ggplot(base, aes(x=DATE, y=Clutch_size)) + 
+  geom_boxplot()+geom_text(x = max(base$DATE), y = max(base$Clutch_size), 
+                           label = paste("R² =", round(r_squared, 2)), 
+                           hjust = 1, vjust = 1, color = "red")+  labs(x = "Laying dates (1=1 March)", y = "Clutch size")
+
+p
+
+p<-ggplot(base,  aes(x=DATE,  y=Clutch_size,  color=Stations)) +
+  geom_boxplot()
+p+ geom_boxplot()+geom_text(x = max(base$DATE), y = max(base$Clutch_size), 
+                            label = paste("R² =", round(r_squared, 2)), 
+                            hjust = 1, vjust = 1, color = "red")+  labs(x = "Laying dates (1=1 March)", y = "Clutch size")
+
+ggplot(base, aes(x=Laying_dates, y=Clutch_size)) + 
+  geom_boxplot(fill="gray")+
+  labs(title="variations")
+ggplot(base, aes(x=Laying_dates, y=Clutch_size)) + 
+  geom_boxplot(fill="yellow")+
+  labs(title="variations mensuelles de la T")
+,x="mois (mois)", température = "C")+
+  theme_classic()
+bp<- ggplot(base, aes(x=Laying_dates, y=Clutch_size, fill=Stations)) + 
+  geom_boxplot()+
+  labs(title="variations",x="Classe", y = "Numbers")
+bp + theme_classic()+ coord_flip() 
+p<-ggplot(base, aes(x=CLASSE, y=Numbers, color=CLASSE)) +
+  geom_boxplot()+ coord_flip() 
+p
+p<-ggplot(base,  aes(x=CLASSE,  y=Numbers,  color=CLASSE)) +
+  geom_boxplot()
+
+p + geom_dotplot(binaxis='y', stackdir='center', dotsize=0.5)+ coord_flip()
+p + scale_x_discrete(limits=c("Classe 0", "Classe 1", "Classe 2", "Classe 3", "Classe 4"))
+p + geom_jitter(shape=16, position=position_jitter(0.2))+ scale_x_discrete(limits=c("Classe 0", "Classe 1", "Classe 2", "Classe 3", "Classe 4"))
+della dataaaaaaaaaa
+ggplot(base, aes(x=Laying_dates, y=log(Clutch_size ), colour=Stations ))+
+  geom_jitter( width=0.15)+
+  geom_boxplot()+
+  scale_color_manual(values=c("red", "dodgerblue", "green", "yellow", "orange"))
+  
+ggplot(base, aes(x=CLASSE, y=log(Numbers), colour=CLASSE))+
+  geom_jitter(width=0.15)+
+  geom_boxplot() +
+  scale_color_manual(values=c("red", "dodgerblue", "green", "yellow", "orange"))+
+  scale_y_continuous(breaks = c(10,20,50,75, 500, 800, 1050))+
+  coord_trans(y="log")+
+  theme(legend.position = "none")+
+  ggtitle("avec la fonction coord_trans()")
+
+ggplot(base, aes(x = CLASSE, y = log(Numbers), colour = CLASSE)) +
+  geom_jitter(width = 0.15) +
+  geom_boxplot() +
+  scale_color_manual(values = c("red", "dodgerblue", "green", "yellow", "orange")) +
+  coord_trans(y = "log") +
+  scale_y_continuous(breaks = c(10, 20, 50, 75, 400, 750, 1050)) +
+  theme(legend.position = "none") +
+  ggtitle("Effectifs par classe")
+library(ggplot2)
+
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/NORHANE.csv")
+
+ggplot(base, aes(x = CLASSE, y = log(Numbers), fill = CLASSE)) +
+  geom_bar(width = 0.5) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("red", "dodgerblue", "green", "yellow", "orange")) +
+  scale_y_continuous(breaks = c(10,20,50,75, 500, 800, 1050))+
+  theme(legend.position = "none") +
+  ggtitle("Effectifs par classe")
+ 
+library(ggplot2)
+
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/NORHANE.csv")
+
+ggplot(base, aes(x = CLASSE, y = log(Numbers), fill = CLASSE)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  scale_fill_manual(values = c("red", "dodgerblue", "green", "yellow", "orange")) +
+  scale_y_continuous(breaks = c(10,20,50,75, 500, 800, 1050))+
+  theme(legend.position = "none") +
+  ggtitle("Effectifs par classe (logarithme)")
+library(ggplot2)
+
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/NORHANE.csv")
+
+ggplot(base, aes(x = CLASSE, y = Numbers, fill = CLASSE)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("red", "dodgerblue", "green", "yellow", "orange")) +    
+  geom_jitter(seed=123, width=0.15)+
+  scale_y_continuous(breaks = c(10,20,50,75, 500, 800, 1050))+
+  theme(legend.position = "none") +    coord_trans(y="log")+
+  ggtitle("avec la fonction coord_trans()")
+
+ggplot(base, aes(x=CLASSE, y=Numbers, colour=CLASSE))+
+  geom_jitter(seed=123, width=0.15)+
+  geom_boxplot() +
+  scale_color_manual(values=c("red", "dodgerblue", "yellow", "green", "orange"))+
+  
+  scale_y_continuous(breaks = c(10,20,50,75, 500, 700, 1050))+
+  coord_trans(y="log")+
+  
+  theme(legend.position = "none")+
+  ggtitle("avec la fonction coord_trans()")
+HHHHHHHHHHHHH
+library(ggplot2)
+
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/NORHANE.csv")
+
+# Filter out rows with zero or negative Numbers
+base_filtered <- base[base$Numbers > 0, ]
+
+ggplot(base_filtered, aes(x = M, y = CE, fill = M)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("red", "dodgerblue", "green", "yellow")) +
+  geom_jitter(width = 0.15) +
+  scale_y_continuous(breaks = c(10, 20, 50, 75, 150, 300, 600, 800)) +
+  theme(legend.position = "none") +
+  ggtitle("Box Plot des effectifs par classe ") +
+  coord_trans(y = "log")
+
+suppressPackageStartupMessages(library(caret))
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/MALAK.csv")
+print(base)
+ggboxplot(base, x = "M", y = "CE", 
+          color = "M", palette = c("#00AFBB", "#E7B800", "#FC4E07", "#00AFDB"),
+          order = c("OCT", "NOV", "JAN", "F"),
+          ylab = "CE", xlab = "MOIS")+coord_flip()
+ggline(base, x = "M", y = "CE", 
+       add = c("mean_se", "jitter"), 
+       order = c("OCT", "NOV", "JAN", "F"),
+       ylab = "CE", xlab = "MOIS")
+boxplot(CE ~ M, data = base,
+        xlab = "mois", ylab = "CE",
+        frame = FALSE, col = c("#00AFBB", "#E7B800", "#FC4E07", "#00AFDB"))
+library("gplots")
+plotmeans(CE ~ M, data = base, frame = FALSE,
+          xlab = "MOIS", ylab = "CE",
+          main="Mean Plot with 95% CI") 
+res.aov <- aov(CE ~ M, data = base)
+# Summary of the analysis
+summary(res.aov)
+require(ggplot2)
+browser=c("MSIE","Firefox","Chrome","Safari","Opera")
+share=c(50,21.9,10.8,6.5,1.8)
+df=data.frame(browser,share)
+PieDonut(df,aes(browser,count=share),r0=0.7,start=3*pi/2,labelpositionThreshold=0.1)
+PieDonut(mtcars,aes(gear,carb),start=3*pi/2,explode=3,explodeDonut=TRUE,maxx=1.7)
+browser=c("ESP1","ESP2","ESP3","ESP4","ESP5")
+share=c(60,20,10,6,4)
+df=data.frame(browser,share)
+PieDonut(df,aes(browser,count=share),r0=0.7,start=pi,labelpositionThreshold=0.5)
+PieDonut(mtcars,aes(vs,am),start=3*pi/2,explode=2,explodeDonut=TRUE,maxx=1.7)
+
+PieDonut(df,aes(browser,count=share),r0=0.7,explode=4:5,start=3*pi/2)
+PieDonut(mtcars,aes(gear,carb),start=3*pi/2,explode=3,explodeDonut=TRUE,maxx=1.7)
+FAMD (b, ncp = 5, sup.var = NULL, ind.sup = NULL, graph = TRUE)
+res.famd <- FAMD(b, graph = FALSE)
+eig.val <- get_eigenvalue(res.famd)
+head(eig.val)
+fviz_screeplot(res.famd)
+
+var <- get_famd_var(res.famd)
+var
+head(var$coord)
+head(var$cos2)
+head(var$contrib)
+fviz_famd_ind(res.famd, repel = TRUE)
+# Contribution to the first dimension
+fviz_contrib(res.famd, "var", axes = 1)
+# Contribution to the second dimension
+fviz_contrib(res.famd, "var", axes = 2)
+quanti.var <- get_famd_var(res.famd, "quanti.var")
+quanti.var 
+var
+fviz_famd_var(res.famd, "quanti.var", repel = TRUE,
+              col.var = "black")
+fviz_famd_var(res.famd, "quanti.var", col.var = "contrib", 
+              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+              repel = TRUE)
+fviz_famd_var(res.famd, "quanti.var", col.var = "cos2",
+              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+              repel = TRUE)
+quali.var <- get_famd_var(res.famd, "quali.var")
+quali.var
+
+fviz_ellipses(res.famd, 7, geom = "point")
+fviz_mfa_ind(res.famd, 
+             habillage = "Genre", # color by groups 
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE, ellipse.type = "confidence", 
+             repel = TRUE # Avoid text overlapping
+)
+fviz_ellipses(res.famd, c("Genre"), repel = TRUE)
+### anova
+print(base)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+set.seed(1234)
+base %>% sample_n_by(group, size = 1)
