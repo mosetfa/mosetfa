@@ -1,0 +1,188 @@
+print(base)
+base<-base[,1:6]
+head(base)
+dim(base)
+var<-base[1:6,]
+variris <- iris %>% mutate_if(is.character, as.factor)
+
+summary(var)
+geom_point(size, color, shape)
+library(ggplot2)
+# Basic scatter plot
+ggplot(base, aes(x=x, y=y)) + geom_point()
+# Change the point size, and shape
+ggplot(base, aes(x=x, y=y)) +
+  geom_point(size=2, shape=23)
+
+
+ggplot(base, aes(x=x, y=y, shape=espece, color=espece)) +
+  geom_point()
+ggplot(base, aes(x = x, y = y, shape = espece, color = espece)) +
+  geom_point(size = 3) +
+  geom_point(data = subset(base, espece == "ch"), size = 3, color = "black") +
+  theme_minimal() +
+  labs(x = "x (m)", y = "y (m)", color = "Espèce", shape = "Espèce") +
+  scale_shape_manual(values = c("ch" = 16, "c" = 17)) +
+  scale_color_manual(values = c("ch" = "red", "c" = "blue"))
+
+data_ch <- subset(base, espece == "ch")
+
+# Créer le graphique
+ggplot(base, aes(x = x, y = y, shape = espece, color = espece)) +
+  geom_point(size = 3) +
+  geom_path(data = data_ch, aes(x = x, y = y), color = "black", fill = NA, size = 2) +
+  theme_minimal() +
+  labs(x = "x (m)", y = "y (m)", color = "Espèce", shape = "Espèce") +
+  scale_shape_manual(values = c("ch" = 16, "c" = 17)) +
+  scale_color_manual(values = c("ch" = "red", "c" = "blue"))
+
+
+
+library(ggplot2)
+library(ggforce)
+
+# Lire les données
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/BOUCHERA/Les parametres physiques.csv", header = TRUE, check.names = FALSE)
+
+base
+# Créer le graphique
+ggplot(base, aes(x = x, y = y, shape = Species, color = Species)) +
+  geom_circle(data = subset(base, Species == "Quercus"), aes(x0 = x, y0 = y, r = 3), color = "black", fill = NA) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  labs(x = "x (m)", y = "y (m)", color = "Species", shape = "Species") +
+  scale_shape_manual(values = c("Quercus" = 16, "Cedrus" = 17)) +
+  scale_color_manual(values = c("Quercus" = "red", "Cedrus" = "blue")) + 
+  ggtitle("PLOT 1") + theme(plot.title = element_text(hjust = 0.5))+  # Ajuster l'alignement horizontal du titre
+  xlim(c(-60, 60))  # Ajuster l'alignement horizontal du titre
+
+
+# Créer le graphique avec un titre centré
+ggplot(base, aes(x = x, y = y, shape = espece, color = espece)) +
+  geom_point(size = 3) +
+  geom_circle(data = subset(base, espece == "ch"), aes(x0 = mean(x), y0 = mean(y), r = 1), color = "black", fill = NA) +
+  theme_minimal() +
+  labs(x = "x (m)", y = "y (m)", color = "Espèce", shape = "Espèce") +
+  scale_shape_manual(values = c("ch" = 16, "c" = 17)) +
+  scale_color_manual(values = c("ch" = "red", "c" = "blue")) +
+  ggtitle("PLOT 1") +
+  theme(plot.title = element_text(hjust = 0.5))  # Ajuster l'alignement horizontal du titre
+
+bicha<-read.csv2("")
+###svm###
+library(tidyverse)
+library(caret)
+data("PimaIndiansDiabetes2", package = "mlbench")
+pima.data <- na.omit(PimaIndiansDiabetes2)
+# Inspect the data
+dim(PimaIndiansDiabetes2)
+sample_n(pima.data, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- pima.data$diabetes %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- pima.data[training.samples, ]
+test.data <- pima.data[-training.samples, ]
+set.seed(123)
+model <- train(
+  diabetes ~., data = train.data, method = "svmLinear",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center","scale")
+)
+# Make predictions on the test data
+predicted.classes <- model %>% predict(test.data)
+head(predicted.classes, 121)
+mean(predicted.classes == test.data$diabetes)
+set.seed(123)
+model <- train(
+  diabetes ~., data = train.data, method = "svmLinear",
+  trControl = trainControl("cv", number = 10),
+  tuneGrid = expand.grid(C = seq(0, 2, length = 20)),
+  preProcess = c("center","scale")
+)
+# Plot model accuracy vs different values of Cost
+plot(model)
+model$bestTune
+predicted.classes <- model %>% predict(test.data)
+# Compute model accuracy rate
+mean(predicted.classes == test.data$diabetes)
+summary(model)
+importance(model$finalModel)
+
+model$finalModel
+varImp(model)
+varImpPlot(model$finalModel, type = 1)
+library(tidyverse)
+library(caret)
+library(randomForest)
+set.seed(123)
+model <- train(
+  diabetes ~., data = train.data, method = "rf",
+  trControl = trainControl("cv", number = 10),
+  importance = TRUE
+)
+# Best tuning parameter
+model$bestTune
+model$finalModel
+predicted.classes <- model %>% predict(test.data)
+head(predicted.classes, 100)
+mean(predicted.classes == test.data$diabetes)
+importance(model$finalModel)
+fit <- randomForest(x = train.data[, -which(names(train.data) == "diabetes")],
+                    y = train.data$diabetes)
+predictions <- predict(fit, test.data)
+prediction.probabilities <- predictions[[2]]
+predicted.classes <- predictions
+observed.classes <- test.data$diabetes
+accuracy <- mean(observed.classes == predicted.classes)
+accuracy
+table(observed.classes, predicted.classes)
+confusionMatrix(predicted.classes, observed.classes,
+                positive = "pos")
+library(pROC)
+# Compute roc
+res.roc <- roc(observed.classes, prediction.probabilities)
+plot.roc(res.roc, print.auc = TRUE)
+
+###LInear regression###
+base
+library(ggplot2)
+# Basic scatter plot
+ggplot(base, aes(x=DBO5, y=WA_WQI)) + geom_point()+
+  geom_smooth()
+sp <- ggplot(base, aes(x=DBO5, y=WA_WQI)) +
+  geom_point()
+sp + geom_density_2d()
+####
+library(tidyverse)
+library(caret)
+theme_set(theme_bw())
+set.seed(123)
+training.samples <- base$WA_WQI %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+model <- lm(WA_WQI ~DBO5, data = train.data)
+# Summarize the model
+summary(model)
+# Make predictions
+predictions <- model %>% predict(test.data)
+# Model performance
+# (a) Prediction error, RMSE
+RMSE(predictions, test.data$WA_WQI)
+# (b) R-square
+R2(predictions, test.data$WA_WQI)
+library(dplyr)
+install.packages("circlize")
+data <- data.frame(
+  Espece = c("Espece1", "Espece2", "Espece3", "Espece4"),
+  Site1 = c(10, 20, 15, 25),
+  Site2 = c(15, 25, 20, 30),
+  Site3 = c(20, 30, 25, 35)
+)
+data
+# Transformer les données pour les adapter au format de circlize
+data_long <- reshape2::melt(data, id.vars = "Espece")
+
+# Créer un diagramme de cordes avec circlize
+chordDiagram(data_long)
