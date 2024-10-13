@@ -1,0 +1,1116 @@
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/S.csv")
+lines <- readLines("C:/Users/moste/OneDrive/Bureau/S.csv", encoding = "UTF-8")
+# ou
+lines <- readLines("C:/Users/moste/OneDrive/Bureau/S.csv", encoding = "latin1")
+base <- read.csv2(textConnection(lines))
+print(base)
+head(base, 3)
+p<-ggplot(data=base, aes(x=Laying_dates, y=incubation_period)) + geom_bar(stat="identity",) 
+p
+p + coord_flip()    
+ggplot(data=base, aes(x=Presence, y=Species)) +
+  geom_bar(stat="identity", width=0.5)
+ggplot(data=base, aes(x=EAUX, y=Nombre_de_plantes_etudiees)) +
+  geom_bar(stat="identity", color="blue", fill="white")
+p<-ggplot(data=base, aes(x=Presence, y=Species    )) +
+  geom_bar(stat="identity", position=position_dodge(), fill="steelblue")+
+  theme_minimal()                    
+p
+fix(base)
+head(base, 3)
+ggplot(data=base, aes(x=Month, y=Precipitation, fill=Month), beside = TRUE) +
+  theme_minimal()+ scale_fill_brewer(palette="Paired") +scale_x_discrete(limits=c("JAN", "FEV", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEP", "OCT", "NOV", "DEC"))+
+  geom_bar(stat="identity")
+ggplot(data=base, aes(x=Month, y=Precipitation, fill=Month),beside = TRUE) +
+geom_bar(stat="identity", position=position_dodge()) +
+  scale_fill_brewer(palette="Paired") + scale_x_discrete(limits=c("JAN", "FEV", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEP", "OCT", "NOV", "DEC"))+
+  theme_minimal() 
+  
+I
+Pour l’arrangement 
+base4 <- arrange(base, CLASSE, Species) 
+head(base4)
+base5 <- ddply(base4, "CLASSE",
+               transform, label_ypos=cumsum(Numbers))
+head(base5)
+ggplot(data=base5, aes(x=CLASSE, y=Numbers, fill=Species)) +
+  geom_bar(stat="identity", position=position_dodge())+
+  scale_fill_brewer(palette="Paired") +
+  scale_x_discrete(limits=c("]0-10]cm", "]10-20]cm", "]20-30]cm", ">30 cm"))+
+  theme_minimal()
+
+ggplot(data=base, aes(x=Month, y=Temperature, fill=Month)) +
+    geom_bar(stat="identity", position=position_dodge()) + 
+    geom_text(aes(label=Temperature), vjust=1.6, color="red",
+              position = position_dodge(0.9), size=3.5)+  scale_fill_brewer(palette="Paired")+ coord_flip()+  
+    scale_x_discrete(limits=c("JAN", "FEV", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEP", "OCT", "NOV", "DEC"))+    theme_minimal() 
+  
+base <- data.frame(Species=rep(c("Quercus suber", "Quercus canariensis", "Quercus afares"), each=4),
+                   Health=rep(c("]0-5]", "]5-10]cm", "]10-15]", ">15 cm"),3),
+                   Numbers=c(23, 19, 20, 47, 35, 42, 37, 44, 49, 3, 2, 2))
+print(base)
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/NORHANE.csv")
+print(base)
+ggplot(data=base, aes(x=SPECIES, y=VALUES, fill=INDEX))
+base5 <- ddply(base4, "Health",
+               transform, label_ypos=cumsum(Numbers))
+head(base5)
+ggplot(data=base5, aes(x=Health, y=Numbers, fill=Species)) +
+  geom_bar(stat="identity") + coord_flip()+
+  scale_fill_brewer(palette="Paired")+theme_minimal()
+  
+  geom_bar(stat="identity")
+ggplot(data=base, aes(x=Health, y=Numbers, fill=Species)) +
+  geom_bar(stat="identity")
+base2 <- arrange(base, Health, Species) 
+head(base2)
+base3 <- ddply(base2, "Health",
+               transform, label_ypos=cumsum(Numbers))
+head(base3)
+ggplot(data=base3, aes(x=Health, y=Numbers, fill=Species)) +
+  geom_bar(stat="identity")+
+  geom_text(aes(y=label_ypos, label=Numbers), vjust=1.6, 
+            color="white", size=3.5)+
+  scale_fill_brewer(palette="Paired")+
+  theme_minimal()
+map('county', 'new jersey')     # county map of New Jersey
+map()
+map(wrap = c(0,360), fill = TRUE, col = 2) # pacific-centered map of the world
+map(wrap = c(0, 360, NA), fill= TRUE, col = 2) # idem, without Antarctica
+map('usa')      # national boundaries
+map('county', 'new york')     # county map of New Jersey
+#
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/IQE1.csv", header=TRUE, check.names = FALSE)
+print(base)
+# neural network 
+library(tidyverse)
+library(neuralnet)
+base1 <- base1 %>% mutate_if(is.character, as.factor)
+summary(base1)
+set.seed(245)
+data_rows <- floor(0.80 * nrow(base1))
+train_indices <- sample(c(1:nrow(base1)), data_rows)
+train_data <- base1[train_indices,]
+test_data <- base1[-train_indices,]
+model <- neuralnet(
+  ETAT ~ Na + K + T + PH + CE + TDS + Ca + Mg + Cl + HCO3 + SO4 + NO3,
+  data = train_data,
+  hidden = c(4, 2),
+  linear.output = FALSE
+)
+######KNN NEIGHBORS###### 
+data("PimaIndiansDiabetes2", package = "mlbench")
+base <- na.omit(base)
+# Inspect the data
+sample_n(base, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- PimaIndiansDiabetes2$diabetes %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- PimaIndiansDiabetes2[training.samples, ]
+test.data <- PimaIndiansDiabetes2[-training.samples, ]
+set.seed(123)
+model <- train(
+  diabetes ~., data = train.data, method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center","scale"),
+  tuneLength = 20
+)
+# Plot model accuracy vs different values of k
+plot(model)
+model$bestTune
+predicted.classes <- model %>% predict(test.data)
+head(predicted.classes)
+plot(predicted.classes)
+grid.arrange(model, predicted.classes, ncol = 2)
+mean(predicted.classes == test.data$diabetes)
+#knn regression
+data("Boston", package = "MASS")
+# Inspect the data
+sample_n(base, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$IQE %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+
+
+set.seed(123)
+model <- train(
+  IQE~., data = train.data, method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center","scale"),
+  tuneLength = 10
+)
+# Plot model error RMSE vs different values of k
+plot(model)
+model$bestTune
+# Make predictions on the test data
+predictions <- model %>% predict(test.data)
+head(predictions)
+print(predictions)
+# Compute the prediction error RMSE
+RMSE(predictions, test.data$IQE)
+
+# Créez un facteur à partir de la colonne ETAT
+base$ETAT <- factor(base$ETAT, levels = c("mauvaise", "tres mauvaise", "non potable"))
+
+# Convertissez ensuite le facteur en numérique
+base$ETAT <- as.numeric(base$ETAT)
+
+# Assurez-vous que les valeurs manquantes sont traitées correctement
+base$ETAT[is.na(base$ETAT)] <- 0  # Remplacez les NAs par 0 ou toute autre valeur appropriée
+
+# Vérifiez le résultat
+print(base)
+
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/IQE1.csv", header=TRUE, check.names = FALSE)
+print(base)
+row.labels = base[,14]
+base$ETAT <- as.factor(base$ETAT)
+levels(base$ETAT) <- c("2", "2", "1", "2", "2", "2", "1", "1", "2", "2", "2", "3", "1")  # Assign numeric values to levels
+base$ETAT <- as.numeric(base$ETAT)     # Convert to numeric
+
+base$ETAT <- as.numeric(base$ETAT)
+
+# Créer un dictionnaire de correspondance des catégories
+etat_mapping <- c("mauvaise" = 1, "tres mauvaise" = 2, "non potable " = 3)
+
+# Appliquer la correspondance aux données
+base$ETAT <- etat_mapping[base$ETAT]
+print(base)
+base[,2:13] <- scale(base[,2:13])
+set.seed(123)
+size <- floor(0.8 * nrow(base))
+train_ind <- sample(seq_len(nrow(data)), size = size)
+train_ind
+train_labels <- base[train_ind, 5]
+test_labels <- row.labels[-train_ind]
+base_train <- base[train_ind,2:13]
+base_test <- base[-train_ind,2:13]
+# Afficher toutes les lignes de base_test
+# Afficher les 10 premières lignes de base_test
+library(class)
+predictions <- knn(train = base_train, test =base_test, cl = train_labels, k = round(sqrt(nrow(base_train))))
+knn
+plot_predictions <- data.frame(base_test$Na, base_test$K, base_test$T, base_test$PH, base_test$CE, base_test$TDS, base_test$Ca, base_test$Mg, base_test$Cl, base_test$HCO3, base_test$SO4, base_test$NO3, predicted = predictions)
+colnames(plot_predictions) <- c("Na", "K", "T", "PH", "CE", "TDS", "Ca", "Mg", "Cl", "HCO3", "SO4", "NO3", 'predicted')
+library(ggplot2)
+library(gridExtra)
+ggplot(plot_predictions, aes(T, PH, color = predicted, fill = predicted)) + 
+  geom_point(size = 5) + 
+  geom_text(aes(label = test_labels), hjust = 1, vjust = 2) +
+ ggtitle("predicted relationship between temperature and PH") +
+  theme(plot.title = element_text(hjust = 0,5)) +
+  theme(legend.position = "none")
+##
+# Load the data and remove NAs
+data("PimaIndiansDiabetes2", package = "mlbench")
+PimaIndiansDiabetes2 <- na.omit(PimaIndiansDiabetes2)
+print(base)
+# Inspect the data
+sample_n(base, 4)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base7$ETAT %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.base7  <- base7[training.samples, ]
+test.base7 <- base7[-training.samples, ]
+set.seed(123)
+model1 <- rpart(ETAT ~T + PH + Mg , data = train.base, method = "class")
+par(xpd = NA)
+plot(model1)
+text(model1, digits = 3)
+
+# Convert 'ETAT' to a factor
+train.base$ETAT <- factor(train.base$ETAT, levels = c("tres mauvaise", "mauvaise", "non potable"))  # Add more levels as needed
+
+# Convert 'ETAT' to a factor with appropriate levels
+train.base$ETAT <- factor(train.base$ETAT, levels = c("tres mauvaise", "mauvaise", "non potable"))
+
+# Train the rpart model with modified control parameters
+model1 <- rpart(ETAT ~ , data = train.base7, method = "class", control = rpart.control(maxdepth = 5, minsplit = 2, minbucket = 1))
+
+# Check the summary of the model
+summary(model1)
+
+# Plot the decision tree
+plot(model1)
+text(model1, digits = 3)
+print(model, digits = 2)
+print(model1, digits = 2)
+predicted.classes <- model1 %>% 
+  predict(test.data, type = "class")
+head(predicted.classes)
+mean(predicted.classes == test.data$diabetes)
+
+# Check the summary of the model
+summary(model1)
+
+# Plot the decision tree
+plot(model1)
+
+# Plot the decision tree
+plot(model1)
+
+# Train the rpart model
+model1 <- rpart(ETAT ~ ., data = train.base, method = "class", control = rpart.control(maxdepth = 5))
+
+# Plot the decision tree
+plot(model1)
+
+model1 <- rpart(ETAT ~., data = train.base, method = "class", control = rpart.control(maxdepth = 5))
+
+plot(model1)
+model <- train(
+  ETAT ~., base = train.base, method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center","scale"),
+  tuneLength = 20
+)
+# Plot model accuracy vs different values of k
+plot(model)
+ETAT ~ . - NomDeLaVariableReponse
+model <- train(
+  ETAT ~ . - ETAT, data = train.base, method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center", "scale"),
+  tuneLength = 20,
+  tuneGrid = data.frame(k = 10)  # Changer 10 à la valeur souhaitée pour k
+)
+
+model$bestTune
+predicted.classes <- model %>% predict(test.data)
+head(predicted.classes)
+mean(predicted.classes == test.data$diabetes)
+mean(predicted.classes == test.data$ETAT)
+model1 <- rpart(WQI ~., data = train.data, method = "class")
+install.packages("rpart")
+data("PimaIndiansDiabetes2", package = "mlbench")
+PimaIndiansDiabetes2 <- na.omit(PimaIndiansDiabetes2)
+# Inspect the data
+sample_n(base1, 27)
+########
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/IQE1.csv")
+print(base)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$ETAT %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+set.seed(123)
+model1 <- rpart(ETAT ~., data = train.data, method = "class")
+# Plot the trees
+par(xpd = NA) # Avoid clipping the text in some device
+summary(model1)
+plot(model1)
+text(model1, digits = 3)
+data=PimaIndiansDiabetes2
+library(party)
+set.seed(123)
+model <- train(
+  diabetes ~., data = train.data, method = "ctree2",
+  trControl = trainControl("cv", number = 10),
+  tuneGrid = expand.grid(maxdepth = 3, mincriterion = 0.95 )
+)
+
+plot(model$finalModel)
+PimaIndiansDiabetes2 <- na.omit(PimaIndiansDiabetes2)
+# Inspect the data
+sample_n(PimaIndiansDiabetes2, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- PimaIndiansDiabetes2$diabetes %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- PimaIndiansDiabetes2[training.samples, ]
+test.data <- PimaIndiansDiabetes2[-training.samples, ]
+set.seed(123)
+model1 <- rpart(diabetes ~., data = train.data, method = "class")
+# Plot the trees
+par(xpd = 3) # Avoid clipping the text in some device
+plot(model1)
+summary(plot1)
+text(model1, digits = 3)
+# Charger la bibliothèque rpart si ce n'est pas déjà fait
+library(rpart)
+
+# Créer le modèle d'arbre de décision
+model_tree <- rpart(ETAT ~  PH, data = base1, method = "class")
+
+# Afficher le modèle
+print(model_tree)
+
+# Visualiser l'arbre
+plot(model_tree)
+text(model_tree)
+
+# Utiliser le modèle pour faire des prédictions sur de nouvelles données (test.data par exemple)
+# Remplacez "test.data" par vos données de test réelles si elles sont disponibles
+# predictions <- predict(model_tree, newdata = test.data, type = "class")
+predicted.classes <- model1 %>% 
+  predict(test.data, type = "class")
+head(predicted.classes)
+mean(predicted.classes == test.data$diabetes)
+
+
+data("PimaIndiansDiabetes2", package = "mlbench")
+PimaIndiansDiabetes2 <- na.omit(PimaIndiansDiabetes2)
+# Inspect the data
+sample_n(base1, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base1$ETAT %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base1[training.samples, ]
+test.data <- base1[-training.samples, ]
+set.seed(123)
+model1 <- rpart(ETAT ~ Mg+PH, data = train.data, method = "class")
+# Plot the trees
+par(xpd = NA) # Avoid clipping the text in some device
+plot(model1)
+text(model1, digits = 3)
+
+predicted.classes <- model1 %>% 
+  predict(test.data, type = "class")
+head(predicted.classes)
+predicted.classes <- model1 %>% 
+  predict(test.data, type = "class")
+head(predicted.classes)
+mean(predicted.classes == test.data$ETAT)
+V 
+set.seed(123)
+model2 <- train(
+  ETAT ~., data = train.data, method = "rpart",
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 10
+)
+# Plot model accuracy vs different values of
+# cp (complexity parameter)
+plot(model2)
+model2$bestTune
+par(xpd = NA) # Avoid clipping the text in some device
+plot(model2$finalModel)
+text(model2$finalModel,  digits = 3)
+model2$finalModel
+#####
+data("iris")
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/IQE1.csv")
+print(base)
+# Split the data into training (80%) and test set (20%)
+set.seed(123)
+training.samples <- base$ETAT %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+theme_set(theme_classic())
+preproc.param <- train.data %>% 
+  preProcess(method = c("center", "scale"))
+# Transform the data using the estimated parameters
+train.transformed <- preproc.param %>% predict(train.data)
+test.transformed <- preproc.param %>% predict(test.data)
+library(MASS)
+# Fit the model
+model <- lda(ETAT~., data = train.transformed)
+# Make predictions
+predictions <- model %>% predict(test.transformed)
+# Model accuracy
+mean(predictions$class==test.transformed$ETAT)
+library(MASS)
+model <- lda(ETAT~., data = train.transformed)
+model
+plot(model)
+predictions <- model %>% predict(test.transformed)
+names(predictions)
+head(predictions$class, 6)
+# Predicted probabilities of class memebership.
+head(predictions$posterior, 6) 
+# Linear discriminants
+head(predictions$x, 3) 
+lda.data <- cbind(train.transformed, predict(model)$x)
+ggplot(lda.data, aes(LD1, LD2)) +
+  geom_point(aes(color = ETAT))
+mean(predictions$class==test.transformed$ETAT)
+sum(predictions$posterior[ ,1] >=.5)
+#####
+library(tidyverse)
+library(caret)
+library(rpart)
+model <- rpart(ETAT ~., data = base)
+par(xpd = NA) # otherwise on some devices the text is clipped
+plot(model)
+text(model, digits = 3)
+print(model, digits = 2)
+sample_n(base, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$ETAT %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+set.seed(123)
+model2 <- rpart(ETAT ~PH, data = train.data, method = "class")
+# Plot the trees
+par(xpd = NA) # Avoid clipping the text in some device
+summary(model2)
+plot(model2)
+text(model2, digits = 3)
+predicted.classes <- model2 %>% 
+  predict(test.data, type = "class")
+head(predicted.classes)
+mean(predicted.classes == test.data$ETAT)
+base2 <- read.csv2("C:/Users/moste/OneDrive/Bureau/IQE1.csv")
+print(base2)
+###arbre decision
+print(base)
+base <- na.omit(base)
+# Inspect the data
+sample_n(base, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$ETAT %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+set.seed(123)
+model4 <- rpart(ETAT ~. , data = train.data, method = "class", control = rpart.control(maxdepth = 5, minsplit = 2, minbucket = 1))
+
+# Plot the trees
+par(xpd = NA) # Avoid clipping the text in some device
+plot(model4)
+text(model4, digits = 3)
+
+summary(model1)
+predicted.classes <- model1 %>% 
+  predict(test.data, type = "class")
+head(predicted.classes)
+mean(predicted.classes == test.data$ETAT)
+# Remplacez les anciens noms par les nouveaux noms
+base$ETAT[base$ETAT == "MAUVAISE"] <- "VIRGI"
+base$ETAT[base$ETAT == "TRES MAUVAISE"] <- "SETO"
+
+# Redéfinissez les niveaux de la variable ETAT
+base$ETAT <- factor(base$ETAT, levels = c("TRES MAUVAISE", "MAUVAISE"))
+
+# Vérifiez les niveaux mis à jour
+levels(base$ETAT)
+# Créez le modèle d'arbre de décision avec les données mises à jour
+set.seed(123)  # Réglez la graine aléatoire si nécessaire
+model <- rpart(ETAT ~ . , data = base, method = "class", control = rpart.control(maxdepth = 5, minsplit = 2, minbucket = 1))
+# Visualisez l'arbre de décision du nouveau modèle
+par(xpd = NA)  # Évitez de couper le texte dans certains dispositifs
+plot(model1)
+text(model1, digits = 3)
+
+table(observed.classes, predicted.classes)
+table(observed.classes, predicted.classes) %>% 
+  prop.table() %>% round(digits = 3)
+# Predict class probabilities
+prediction.probabilities <- predict(model1, test.data, type = "prob")
+
+# Access the probability of the VIRGI class (assuming it's the second class)
+virgi_probabilities <- prediction.probabilities[, "VIRGI"]
+predicted.classes <- predict(model1, test.data, type = "class")
+library(glmnet)
+
+logistic_model <- glm(ETAT ~ predicted.classes, data = train.data, family = "binomial")
+
+predictions <- predict(model1, test.data)
+prediction.probabilities <- predictions$posterior[,2]
+predicted.classes <- predictions$class 
+observed.classes <- test.data$ETAT
+
+confusionMatrix(predicted.classes, observed.classes,
+                positive = "SETO")
+# Remove rows with missing predictions
+# Define the levels explicitly
+levels(predicted.classes) <- levels(test.data$ETAT)
+
+# Create the confusion matrix
+confusionMatrix(predicted.classes, test.data$ETAT)
+length(predicted.classes)
+length(test.data$ETAT)
+
+
+
+confusionMatrix(predicted.classes, test.data$ETAT)
+library(party)
+accuracy <- mean(observed.classes == predicted.classes)
+fit <- lda(ETAT ~., data = train.data)
+fit
+# Make predictions on the test data
+predictions <- predict(model1, test.data)
+prediction.probabilities <- predictions$posterior[,2]
+predicted.classes <- predictions$class 
+observed.classes <- test.data$ETAT
+accuracy <- mean(observed.classes == predicted.classes)
+accuracy
+error <- mean(observed.classes != predicted.classes)
+error
+table(observed.classes, predicted.classes)
+table(observed.classes, predicted.classes) %>% 
+  prop.table() %>% round(digits = 3)
+confusionMatrix(predicted.classes, observed.classes,
+                MAUVAISE = "SETO")
+confusionMatrix(predicted.classes, observed.classes,
+                positive = "pos")
+library(caret)
+
+# Calculate confusion matrix
+confusion_matrix <- confusionMatrix(predicted.classes, observed.classes)
+
+# Print the confusion matrix
+print(confusion_matrix)
+
+# Print other metrics (e.g., accuracy, sensitivity, specificity)
+print(confusion_matrix$overall)
+
+
+
+
+
+
+
+
+
+
+
+#####
+sample_n(Boston, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base2$CE %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+set.seed(123)
+model <- train(
+  CE ~., data = train.data, method = "rpart",
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 10, control = rpart.control(maxdepth = 5, minsplit = 2, minbucket = 1)
+)
+# Plot model error vs different values of
+# cp (complexity parameter)
+plot(model)
+# Print the best tuning parameter cp that
+# minimize the model RMSE
+model$bestTune
+par(xpd = NA) # Avoid clipping the text in some device
+lda(ETAT ~., data = train.data)
+plot(fit)
+fit <- lda(ETAT ~., data = train.data)
+predictions <- predict(fit, test.data)
+prediction.probabilities <- predictions$posterior[,2]
+predicted.classes <- predictions$class 
+observed.classes <- test.data$ETAT
+fit <- plot(model$finalModel)
+predictions <- predict(fit, test.data)
+text(model$finalModel, digits = 3)
+model$finalModel
+plot(model44)
+error <- mean(observed.classes != predicted.classes)
+error
+# Make predictions on the test data
+predictions <- model %>% predict(test.data)
+head(predictions)
+# Compute the prediction error RMSE
+RMSE(predictions, test.data$CE)
+res.roc <- roc(observed.classes, prediction.probabilities)
+plot.roc(res.roc, print.auc = TRUE)
+fit <- lda(diabetes ~., data = train.data)
+# Make predictions on the test data
+predictions <- predict(fit, test.data)
+prediction.probabilities <- predictions$posterior[,2]
+predicted.classes <- predictions$class 
+observed.classes <- test.data$ETAT
+accuracy <- mean(observed.classes == predicted.classes)
+accuracy
+table(observed.classes, predicted.classes)
+table(observed.classes, predicted.classes) %>% 
+  prop.table() %>% round(digits = 3)
+confusionMatrix(predicted.classes, observed.classes,
+                positive = "TRES MAUVAISE")
+# Réglez la même graine aléatoire que vous avez utilisée pour le premier modèle
+set.seed(123)  # Assurez-vous que la graine est la même
+
+# Recréez un modèle avec les mêmes données et paramètres que le premier modèle
+model1 <- rpart(ETAT ~ . , data = train.data, method = "class", control = rpart.control(maxdepth = 5, minsplit = 2, minbucket = 1))
+
+# Vérifiez que les résultats du nouveau modèle sont identiques à ceux du premier modèle
+identical(model1$results, model2$results)  # Vérifiez si les résultats sont identiques
+FF
+# Make predictions on the test data with type = "response" for class probabilities
+predictions <- predict(model2, test.data, type = "response")
+
+# Access the probability of the VIRGI class (assuming it's the second class)
+virgi_probabilities <- predictions[, "VIRGI"]
+
+# Convert the probabilities to predicted classes based on a threshold (e.g., 0.5)
+predicted_classes <- ifelse(virgi_probabilities >= 0.5, "VIRGI", "SETO")
+
+# Create the confusion matrix
+confusionMatrix(predicted_classes, observed.classes)
+observed.classes <- factor(observed.classes, levels = c("TRES MAUVAISE", "MAUVAISE"))
+confusionMatrix(predicted.classes, observed.classes, positive = "TRES MAUVAISE")
+#####DISCRIMINANTE ANALYSIS 
+theme_set(theme_classic())
+print(base)
+set.seed(123)
+training.samples <- base$ETAT %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+preproc.param <- train.data %>% 
+  preProcess(method = c("center", "scale"))
+# Transform the data using the estimated parameters
+train.transformed <- preproc.param %>% predict(train.data)
+test.transformed <- preproc.param %>% predict(test.data)
+model <- lda(ETAT~., data = train.transformed)
+# Make predictions
+predictions <- model %>% predict(test.transformed)
+# Model accuracy
+mean(predictions$class==test.transformed$ETAT)
+model <- lda(ETAT~., data = train.transformed)
+model
+plot(model)
+predictions <- model %>% predict(test.transformed)
+names(predictions)
+head(predictions$class, 6)
+# Predicted probabilities of class memebership.
+head(predictions$posterior, 6) 
+# Linear discriminants
+head(predictions$x, 3)
+lda.data <- cbind(train.transformed, predict(model)$x)
+ggplot(lda.data, aes(LD1)) +
+  geom_point(aes(color = ETAT))
+# Calculer les deux premières dimensions discriminantes
+lda.pred <- predict(model)
+lda.data <- cbind(train.transformed, lda.pred$x)
+
+# Créer un graphique avec les deux dimensions discriminantes
+library(ggplot2)
+ggplot(lda.data, aes(LD1, LD2)) +
+  geom_point(aes(color = ETAT))
+# Créer un graphique à une seule dimension avec LD1 sur l'axe des x
+library(ggplot2)
+ggplot(lda.data, aes(LD1, y = 0)) +
+  geom_point(aes(color = ETAT))
+### random forest
+base <- na.omit(base)
+# Inspect the data
+sample_n(base, 3)
+# Split the data into training and test set
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/IQE1.csv")
+print(base)
+set.seed(123)
+training.samples <- base$ETAT %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+set.seed(123)
+model <- train(
+  ETAT ~., data = train.data, method = "rf",
+  trControl = trainControl("cv", number = 10),
+  importance = TRUE
+)
+plot(model)
+# Best tuning parameter
+model$bestTune
+library(randomForest)
+model$finalModel
+predicted.classes <- model %>% predict(test.data)
+head(predicted.classes)
+mean(predicted.classes == test.data$ETAT)
+model <- rpart(ETAT ~ . , data = base, method = "class", control = rpart.control(maxdepth = 5, minsplit = 2, minbucket = 1))
+# Visualisez l'arbre de décision du nouveau modèle
+par(xpd = NA)  # Évitez de couper le texte dans certains dispositifs
+plot(model)
+text(model, digits = 3)
+# Charger la bibliothèque randomForest
+library(randomForest)
+
+# Assurez-vous que la variable ETAT est un facteur
+base$ETAT <- as.factor(base$ETAT)
+
+# Entraîner un modèle de forêt aléatoire pour la classification
+model <- randomForest(ETAT ~ ., data = base, ntree = 500, mtry = 2)
+plot(model)
+# Afficher le modèle
+print(model)
+# Accéder au 10e arbre de la forêt aléatoire
+tree_10 <- getTree(model, k = 10)
+
+# Visualiser l'arbre (utilisez une bibliothèque graphique comme "party" ou "rpart.plot" pour une meilleure visualisation)
+library(party)
+plot(tree_10)
+# Charger la bibliothèque randomForest
+library(randomForest)
+
+# Entraîner un modèle de forêt aléatoire
+model <- randomForest(ETAT ~ ., data = base, ntree = 500, mtry = 2)
+iris.rf <- randomForest(ETAT ~ ., base, keep.forest=FALSE)
+plot(margin(iris.rf))
+# Sélectionnez le numéro de l'arbre que vous souhaitez visualiser (par exemple, le premier arbre)
+tree_number <- 1
+
+# Extrait l'arbre spécifique du modèle
+tree <- getTree(model, k = tree_number)
+
+# Visualisez l'arbre en utilisant la fonction plot de la bibliothèque "randomForest"
+plot(tree)
+####
+# Charger les packages nécessaires
+library(ggplot2)
+library(randomForest)
+
+# Charger un jeu de données exemple, par exemple, le dataset Iris
+data(iris)
+print(base)
+base$ETAT <- as.factor(base$ETAT)
+
+# Former un modèle Random Forest avec le dataset Iris
+rf_model <- randomForest(ETAT ~ ., data = base, ntree = 500)
+
+# Ajouter les prédictions du modèle au jeu de données
+base$Predicted_ETAT <- predict(rf_model, newdata = base)
+
+# Créer le graphique avec ggplot2
+ggplot(base, aes(x = Mg, y = CE, color = Predicted_ETAT)) +
+  geom_point() +
+  labs(x = "Longueur du Mg", y = "Largeur du CE", color = "Prédiction de l'ETAT") +
+  scale_color_manual(values = c("TRES MAUVAISE" = "blue", "MAUVAISE" = "red")) +
+  theme_minimal()
+# Calcul de l'exactitude
+accuracy <- sum(base$Predicted_ETAT == base$ETAT) / nrow(base)
+
+# Affichage de l'exactitude
+print(paste("Exactitude :", round(accuracy * 100, 2), "%"))
+# Calcul de la matrice de confusion
+confusion_matrix <- table(Prédiction = base$Predicted_ETAT, Réel = base$ETAT)
+
+# Affichage de la matrice de confusion
+print("Matrice de confusion :")
+print(confusion_matrix)
+base <- na.omit(base)
+# Inspect the data
+sample_n(base, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$ETAT %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+set.seed(123)
+model <- train(
+  ETAT ~., data = train.data, method = "rf",
+  trControl = trainControl("cv", number = 10),
+  importance = TRUE
+)
+# Best tuning parameter
+model$bestTune
+set.seed(123)
+model <- train(
+  ETAT ~., data = train.data, method = "rf",
+  trControl = trainControl("cv", number = 10),
+  importance = TRUE
+)
+# Best tuning parameter
+model$bestTune
+set.seed(123)
+model <- train(
+  diabetes ~., data = train.data, method = "rf",
+  trControl = trainControl("cv", number = 10),
+  importance = TRUE
+)
+# Best tuning parameter
+model$bestTune
+model$finalModel
+predicted.classes <- model %>% predict(test.data)
+head(predicted.classes)
+mean(predicted.classes == test.data$ETAT)
+# Set random seed to make results reproducible:
+set.seed(17)
+# Calculate the size of each of the data sets:
+data_set_size <- floor(nrow(base)/2)
+# Generate a random sample of "data_set_size" indexes
+indexes <- sample(1:nrow(base), size = data_set_size)
+
+# Assign the data to the correct sets
+training <- base[indexes,]
+validation1 <- base[-indexes,]
+#import the package
+library(randomForest)
+# Perform training:
+rf_classifier = randomForest(ETAT ~ ., data=training, ntree=100, mtry=2, importance=TRUE)
+rf_classifier
+varImpPlot(rf_classifier)
+mean(predicted.classes == test.data$ETAT)
+importance(model$finalModel)
+plot(model$finalModel)
+varImpPlot(model$finalModel, type = 1)
+# Plot MeanDecreaseGini
+varImpPlot(model$finalModel, type = 2)
+varImp(model)
+####random regression
+# Load the data
+data("Boston", package = "MASS")
+# Inspect the data
+sample_n(Boston, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$CE %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+set.seed(123)
+model <- train(
+  CE ~TDS +Mg + Na + Cl, data = train.data, method = "rf",
+  trControl = trainControl("cv", number = 10)
+)
+# Best tuning parameter mtry
+model$bestTune
+# Make predictions on the test data
+predictions
+model %>% predict(test.data)
+plot(model)
+head(predictions, 7)
+# Compute the average prediction error RMSE
+RMSE(predictions, test.data$CE)
+library(randomForest)
+
+# Construire un modèle Random Forest
+set.seed(123)
+model_rf <- randomForest(ETAT ~ ., data = base, ntree = 500)
+# Extraire le premier arbre de la Random Forest
+tree <- getTree(model_rf, k = 1)
+# Visualiser le premier arbre de la Random Forest
+plot(model_rf, which.tree = 1)
+rf1 <- randomForest(ETAT ~ ., base, ntree=50, norm.votes=FALSE)
+rf2 <- randomForest(ETAT ~ ., base, ntree=50, norm.votes=FALSE)
+rf3 <- randomForest(ETAT ~ ., base, ntree=50, norm.votes=FALSE)
+rf.all <- combine(rf1, rf2, rf3)
+print(rf.all)
+iris.rf <- randomForest(ETAT ~ ., base, keep.forest=FALSE)
+plot(margin(iris.rf))
+# Visualiser le premier arbre
+plot(tree)
+text(tree)
+# Convertir la variable cible en numérique
+base$ETAT <- as.numeric(base$ETAT)
+
+# Définir une gamme de nombres d'arbres à évaluer
+num_trees <- seq(50, 500, by = 50)  # Par exemple, de 50 à 500 arbres par incréments de 50
+
+# Créer un vecteur pour stocker les erreurs
+errors <- numeric(length(num_trees))
+
+# Boucle pour entraîner des modèles avec différents nombres d'arbres
+for (i in seq_along(num_trees)) {
+  ntree <- num_trees[i]
+  model_rf <- randomForest(ETAT ~ ., data = base, ntree = ntree)
+  predictions <- predict(model_rf, newdata = base)
+  errors[i] <- sqrt(mean((predictions - base$ETAT)^2))  # Erreur RMSE
+}
+
+# Tracer le graphique des erreurs en fonction du nombre d'arbres
+plot(num_trees, errors, type = "b", xlab = "Nombre d'arbres", ylab = "Erreur RMSE",
+     main = "Erreur RMSE en fonction du nombre d'arbres dans la Random Forest")
+importance(model$finalModel)
+##regression lineaire multinomial
+sample_n(base, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$ETAT %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+model <- nnet::multinom(ETAT ~., data = train.data)
+# Summarize the model
+summary(model)
+# Make predictions
+predicted.classes <- model %>% predict(test.data)
+head(predicted.classes)
+# Model accuracy
+mean(predicted.classes == test.data$ETAT)
+theme_set(theme_bw())
+sample_n(base, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$ETAT %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+model <- glm( ETAT ~., data = train.data, family = binomial)
+# Summarize the model
+summary(model)
+# Make predictions
+probabilities <- model %>% predict(test.data, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, "TRES MAUVAISE", "MAUVAISE")
+# Model accuracy
+mean(predicted.classes == test.data$ETAT)
+model <- glm( ETAT ~ CE, data = train.data, family = binomial)
+summary(model)$coef
+newdata <- data.frame(CE = c(20,  180))
+probabilities <- model %>% predict(newdata, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, "TRES MAUVAISE", "MAUVAISE")
+predicted.classes
+train.data %>%
+  mutate(prob = ifelse(ETAT == "TRES MAUVAISE", 1, 0)) %>%
+  ggplot(aes(CE, prob)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "glm", method.args = list(family = "binomial")) +
+  labs(
+    title = "Logistic Regression Model", 
+    x = " CONDUCTIVITE Concentration",
+    y = "Probability of being TRES MAUVAISE"
+  )
+model <- glm( ETAT ~ CE + TDS + Na + Mg, 
+              data = train.data, family = binomial)
+summary(model)$coef
+plot(model)
+coef(model)
+summary(model )$coef
+# Model accuracy
+accuracy <- mean(predicted.classes == test.data$ETAT)
+accuracy
+error <- mean(predicted.classes != test.data$ETAT)
+error
+table(predicted.classes == test.data$ETAT)
+table(predicted.classes == test.data$ETAT) %>% 
+  prop.table() %>% round(digits = 3)
+confusionMatrix(predicted.classes, test.data$ETAT,
+                positive = "TRES MAUVAISE")
+# Convertir les deux variables en facteurs avec les mêmes niveaux
+predicted.classes <- factor(predicted.classes, levels = c("TRES MAUVAISE", "MAUVAISE"))
+test.data$ETAT <- factor(test.data$ETAT, levels = c("TRES MAUVAISE", "MAUVAISE"))
+
+# Calculer la matrice de confusion
+confusionMatrix(predicted.classes, test.data$ETAT, positive = "TRES MAUVAISE")
+library(pROC)
+# Compute roc
+res.roc <- roc(test.data$ETAT, prediction.probabilities)
+plot.roc(res.roc, print.auc = TRUE)
+fit <- glm( ETAT ~ CE, data = train.data, family = binomial)
+fit <- lda(diabetes ~., data = train.data)
+# Make predictions on the test data
+predictions <- predict(fit, test.data)
+# Faire des prédictions de probabilités sur les données de test
+prediction.probabilities <- predict(fit, test.data, type = "response")
+predicted.classes <- predictions
+observed.classes <- test.data$CE
+accuracy <- mean(observed.classes == predicted.classes)
+accuracy
+#### TREE DECISION 
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/IQE1.csv")
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/amel.csv")
+print(base)
+base <- na.omit(base)
+# Inspect the data
+sample_n(base, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$QUALITY %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+set.seed(123)
+model1 <- rpart(QUALITY ~., data = train.data, method = "class")
+model2 <- train(
+  IQE ~., data = train.data, method = "rpart",
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 10
+)
+# Plot model accuracy vs different values of
+# cp (complexity parameter)
+plot(model2)
+model1$bestTune
+par(xpd = NA) # Avoid clipping the text in some device
+plot(model1$finalModel)
+text(model2$finalModel,  digits = 3)
+model1 <- rpart(QUALITY ~., data = train.data, method = "class", control = rpart.control(maxdepth = 5, minsplit = 2, minbucket = 1))
+# Plot the trees
+print(model1)
+par(xpd = NA) # Avoid clipping the text in some device
+plot(model1)
+text(model1, digits = 3)
+model1$finalModel1
+predicted.classes <- model1 %>% 
+  predict(test.data, type = "class")
+head(predicted.classes)
+predicted.classes <- model1 %>% predict(test.data)
+# Compute model accuracy rate on test data
+mean(predicted.classes == test.data$QUALITY)
+predicted.classes <- model1 %>% 
+  predict(test.data, type = "class")
+head(predicted.classes)
+mean(predicted.classes == test.data$QUALITY)
+pima.data <- na.omit(base)
+# Inspect the data
+sample_n(pima.data, 3)
+
+# Split the data into training and test set
+set.seed(123)
+training.samples <- pima.data$QUALITY %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- pima.data[training.samples, ]
+test.data <- pima.data[-training.samples, ]
+fit <- rpart(QUALITY ~. , data = train.data, method = "class", control = rpart.control(maxdepth = 5, minsplit = 2, minbucket = 1))
+# Make predictions on the test data
+predictions <- predict(fit, test.data)
+prediction.probabilities <- predict(fit, test.data, type = "prob")
+predicted.classes <- predict(fit, test.data, type = "class")
+observed.classes <- test.data$QUALITY
+accuracy <- mean(observed.classes == predicted.classes)
+accuracy
+
+# Calculez l'exactitude
+error <- mean(observed.classes != predicted.classes)
+error
+table(observed.classes, predicted.classes)
+table(observed.classes, predicted.classes) %>% 
+  prop.table() %>% round(digits = 3)
+observed.classes <- factor(observed.classes, levels = levels(predicted.classes))
+confusionMatrix(predicted.classes, observed.classes)
+
+predictions <- predict(fit, test.data)
+prediction.probabilities <- predict(fit, test.data, type = "prob")
+predicted.classes <- predictions$class 
+observed.classes <- test.data$QUALITY
+
+# Vérifier la longueur des vecteurs
+length(observed.classes)
+length(prediction.probabilities)
+# Extraction de la colonne de probabilités pour la classe "TRES MAUVAISE"
+prediction.probabilities <- prediction.probabilities[, "GOOD"]
+observed.classes <- factor(observed.classes, levels = c("GOOD", "AVERAGE", "FAIR"))
+library(pROC)
+res.roc <- roc(observed.classes, prediction.probabilities)
+plot(res.roc, print.auc = TRUE)
+roc.data <- data_frame(
+  thresholds = res.roc2$thresholds,
+  sensitivity = res.roc2$sensitivities,
+  specificity = res.roc2$specificities
+)
+# Get the probality threshold for specificity = 0.6
+roc.data %>% filter(specificity >= 0.6)
+plot.roc(res.roc2, print.auc = TRUE, print.thres = "best")
+plot.roc(res.roc2, print.thres = c(0.3, 0.5, 0.7))
+CE <- ifelse(test.data$CE < 230,8, "CE.low", "CE.high")
+Mg <- ifelse(test.data$Mg < 12,01, "LOW", "HIGH")
+roc.data <- roc.data %>%
+  filter(thresholds !=-Inf) %>%
+  mutate(CE = CE, Mg =  Mg)
+# Create ROC curve
+ggplot(roc.data, aes(specificity, sensitivity)) + 
+  geom_path(aes(color = Mg))+
+  scale_x_reverse(expand = c(0,0))+
+  scale_y_continuous(expand = c(0,0))+
+  geom_abline(intercept = 1, slope = 1, linetype = "dashed")+
+  theme_bw()
+model2$finalModel
+# Make predictions on the test data
+predictions <- model2 %>% predict(test.data)
+head(predictions)
+# Compute the prediction error RMSE
+RMSE(predictions, test.data$IQE)
