@@ -1,0 +1,262 @@
+df
+dim(base)
+df<-base[1:10,]
+df
+Species <- df[1:40 ,2:11]
+Species
+RS<-df[41:80 ,2:11]
+RS
+VALEUR<- df[1:40 ,2:11]
+VALEUR
+NORME<-df[41:80 ,2:11]
+NORME
+weight<-df[81:120,2:11]
+weight
+dim(Species)
+sum(Species[1, ], na.rm = TRUE)
+sum(Species[,3 ], na.rm = TRUE)
+TA <- rowSums(Species, na.rm = TRUE)
+TA
+Individuals<-TA
+Individuals
+sum(Species[1, ] > 0, na.rm = TRUE)
+sum(Species[3, ] > 0, na.rm = TRUE)
+Richness <- rowSums(Species > 0, na.rm = TRUE)
+Richness
+pairs(cbind(H, simp, Richness, Individuals, E), pch="+", col="blue")
+
+RS <- rowSums(Species, na.rm = TRUE)
+RS
+prop <-(Species / RS)
+POURCENTAGE<-(VALEUR/NORME)*100
+POURCENTAGE
+POURCENTAGE2<-(weight/NORME)*100
+POURCENTAGE2
+df
+Species
+prop
+weight
+W<-(1/weight)
+W
+WA<-sum(W[1,], na.rm = TRUE)
+WA
+WAQ<-(1/WA)
+WAQ
+WAQI<-(WAQ/weight)
+WAQI
+WAQI<-df[121:160,2:11]
+WAQI
+WAWQI<-(POURCENTAGE * WAQI)
+WAWQI
+WA_WQI<-sum(WAWQI[1, ], na.rm = TRUE)
+WA_WQI<-sum(WAWQI[21, ], na.rm = TRUE)
+WA_WQI
+###WA_WQI##
+VALEUR<- df[1:40 ,2:11]
+VALEUR
+NORME<-df[41:80 ,2:11]
+NORME
+POURCENTAGE<-(VALEUR/NORME)*100
+POURCENTAGE
+POURCENTAGE2<-(weight/NORME)*100
+POURCENTAGE2
+df
+Species
+prop
+weight
+W<-(1/NORME)
+W
+WA<-sum(W[1,], na.rm = TRUE)
+WA
+WAQ<-(1/WA)
+WAQ
+WAQI1<-(WAQ/NORME)
+WAQI1
+WAQI1<-df[161:200,2:11]
+WAQI1
+WAWQI1<-(POURCENTAGE * WAQI1)
+WAWQI1
+WA_WQI1<-sum(WAWQI1[3, ], na.rm = TRUE)
+WA_WQI1<-sum(WAWQI1[21, ], na.rm = TRUE)
+WA_WQI1
+
+
+
+##
+H <- -rowSums(prop * log2(prop), na.rm = TRUE)
+H
+library(vegan)
+H <- diversity(Species)
+H
+simp <- diversity(Species, "simpson")
+simp
+invsimp <- diversity(Species, "inv")
+invsimp
+S <- specnumber(Species)
+S
+Dmax <- 1-(1/S)
+Dmax
+D <- 1-simp
+D
+ED <- simp/Dmax
+ED
+E <- H/log(S)
+E
+pairs(cbind(H, simp, ED, S, E), pch="+", col="blue")
+(alpha <- with(BCI.env, tapply(diversity(BCI), Stream, mean))) # average
+(gamma <- with(BCI.env, diversity(BCI, groups=Stream)))
+gamma-alpha
+gamma/alpha - 1
+
+###Climate Diagram###
+fix(df)
+df
+ggplot(df, aes(x= Month)) +
+  geom_bar(aes(y= Precipitation/2, fill = "Precipitation"), stat="identity")  +
+  geom_line(aes(y = Temperature, color = "Temperature")) +
+  geom_point(aes(y = Temperature)) +
+  scale_x_discrete(limits = month.name) +
+  scale_y_continuous(
+    expression("Average Monthly Temperature " ( degree*C)), 
+    sec.axis = sec_axis(~ . * 2, name = "Monthly Precipitation (mm)")
+  ) +
+  scale_colour_manual("", values = c("Temperature" = "black")) +
+  scale_fill_manual("", values = "orange") +
+  theme(text = element_text(size=15),
+        axis.text.x = element_text(angle=90, hjust=1),
+        legend.position = "bottom") +
+  facet_wrap(~Year)
+
+###Climate Diagram###
+library(ggplot2)
+library(dplyr)
+df %>%
+  group_by(Month) %>%
+  ggplot(aes(x= Month)) +
+  geom_bar(aes(y= Precipitation/2, fill = "Precipitation"), stat="identity")  +
+  geom_line(aes(y = Temperature, color = "Temperature")) +
+  geom_point(aes(y = Temperature)) +
+  scale_x_discrete(limits = month.name) +
+  scale_y_continuous(
+    expression("Average Monthly Temperature " ( degree*C)), 
+    sec.axis = sec_axis(~ . * 2, name = "Monthly Precipitation (mm)")
+  ) +
+  scale_colour_manual("", values = c("Temperature" = "black")) +
+  scale_fill_manual("", values = "orange") +
+  theme(text = element_text(size=15),
+        axis.text.x = element_text(angle=90, hjust=1),
+        legend.position = "bottom") 
+dim(df)
+df <- df %>%
+  group_by(Month) %>%
+  summarise(mean_Precip = (Precipitation),
+            mean_Temp = (Temperature)) 
+ggplot(df, aes(x = Month)) +
+  geom_bar(aes(y = Precipitation / 2, fill = "Precipitation"), stat = "identity") +
+  geom_line(aes(y = Temperature, color = "Temperature")) +
+  geom_point(aes(y = mean_Temp)) +
+  scale_x_discrete(limits = df$Month) +
+  scale_y_continuous(
+    expression("Average Monthly Temperature " ( degree*C)), 
+    sec.axis = sec_axis(~ . * 2, name = "Monthly Precipitation (mm)")
+  ) +
+  scale_colour_manual("", values = c("Temperature" = "RED")) +
+  scale_fill_manual("", values = "BLUE") +
+  theme(text = element_text(size = 15),
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "bottom") 
+df
+
+df %>%
+  group_by(Month) %>%
+  mutate(Temperature) %>%
+  ggplot(aes(x= Month)) +coord_flip()+
+  geom_bar(aes(y= Precipitation/2, fill = "Precipitation"), stat="identity")  +
+  geom_line(aes(y = Temperature, color = "Temperature", group=1)) +
+  geom_point(aes(y = Temperature)) +
+  scale_x_discrete(limits = df$Month) +
+  scale_y_continuous(
+    expression("Average Monthly Temperature " ( degree*C)), 
+    sec.axis = sec_axis(~ . * 2, name = "Monthly Precipitation (mm)")
+  ) +
+  scale_colour_manual("", values = c("Temperature" = "red")) +
+  scale_fill_manual("", values = "BLUE") +
+  theme(text = element_text(size=15),
+        axis.text.x = element_text(angle=90, hjust=1),
+        legend.position = "bottom") 
+
+
+df %>%
+  group_by(Month) %>%
+  mutate(Temperature) %>%
+  ggplot(aes(x = Month)) +
+  geom_line(aes(y = Precipitation / 2, group = 1)) +
+  geom_line(aes(y = Temperature, color = "Temperature", group = 1)) +
+  geom_point(aes(y = Temperature)) +
+  scale_x_discrete(limits = df$Month) +
+  scale_y_continuous(
+    expression("Average Monthly Temperature " (degree * C)), 
+    sec.axis = sec_axis(~. * 2, name = "Monthly Precipitation (mm)")
+  ) +
+  scale_colour_manual("", values = c("Temperature" = "black")) +
+  theme(text = element_text(size = 15),
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "bottom")
+
+df %>%
+  group_by(Month) %>%
+  mutate(Temperature) %>%
+  ggplot(aes(x = Month)) +
+  geom_line(aes(y = Precipitation / 2, group = 1)) +
+  geom_line(aes(y = Temperature, color = "Temperature", group = 1)) +
+  geom_point(aes(y = Temperature)) +
+  scale_x_discrete(limits = df$Month) +
+  scale_y_continuous(
+    expression("Average Monthly Temperature " (degree * C)), 
+    sec.axis = sec_axis(~. * 2, name = "Monthly Precipitation (mm)")
+  ) +
+  scale_colour_manual("", values = c("Temperature" = "black")) +
+  theme(text = element_text(size = 15),
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "none") +  # Supprimer la légende
+  guides(fill = FALSE, color = FALSE)  # Supprimer la légende pour les couleurs et le remplissage
+df %>%
+  ggplot(aes(x = Month)) +
+  geom_bar(aes(y = Precipitation / 2, fill = "Precipitation"), stat = "identity") +
+  geom_col(aes(y = Temperature, fill = "Temperature"), alpha = 0.5, color = "red", position = "stack") +
+  scale_x_discrete(limits = df$Month) +
+  scale_y_continuous(
+    expression("Average Monthly Temperature " (degree * C)), 
+    sec.axis = sec_axis(~ . * 2, name = "Monthly Precipitation (mm)")
+  ) +
+  scale_fill_manual(values = c("Precipitation" = "blue", "Temperature" = "red")) +
+  theme(text = element_text(size = 15),
+        axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(y = "Temperature / Precipitation")
+df
+###rarefaction ###
+data(BCI)
+fix(BCI)
+Srare <- rarefy(df, raremax)
+(raremax <- min(rowSums(df)))
+rarecurve(df, step = 20, sample = raremax, col = "blue", cex = 0.6)
+df1<-df[-9,]
+df_filtered <- df[rowSums(df) >1, ]
+
+
+
+# Check the filtered data frame summary
+print(summary(df_filtered))
+
+# Recalculate raremax
+raremax <- min(rowSums(df_filtered))
+print(raremax)
+
+# Ensure raremax is at least 2
+if (raremax < 2) {
+  raremax <- 2
+}
+
+# Run rarecurve with filtered data and adjusted raremax
+rarecurve(df_filtered, step = 20, sample = raremax, col = "blue", cex = 0.6)
+
