@@ -1,0 +1,622 @@
+library(pheatmap) 
+library(tidyverse)
+library(lubridate)
+print(base)
+dim(base)
+pheatmap(base,
+         display_numbers = TRUE,# pour afficher les valeurs
+         fontsize = 8, # pour diminuer la police des valeurs
+         cluster_cols = FALSE,# pour ne pas faire de réarrangement de colonnes
+         cluster_rows = FALSE) # pour ne pas faire de réarrangement de lignes 
+pheatmap(base,
+         display_numbers = TRUE,# pour afficher les valeurs
+         fontsize = 8, # pour diminuer la police des valeurs
+         cluster_cols = FALSE,# pour ne pas faire de réarrangement de colonnes
+         cluster_rows = FALSE, # pour ne pas faire de réarrangement de lignes
+         scale="column") 
+pheatmap(base,
+         display_numbers = TRUE,# pour afficher les valeurs
+         fontsize = 8, # pour diminuer la police des valeurs
+         cluster_cols = TRUE,# pour obtenir un réarrangement de colonnes
+         cluster_rows = TRUE, # pour obtenir un réarrangement de lignes
+         scale="column") 
+pheatmap(base,
+         display_numbers = TRUE,# pour afficher les valeurs
+         fontsize = 8, # pour diminuer la police des valeurs
+         cluster_cols = TRUE,# pour obtenir un réarrangement de colonnes
+         cluster_rows = TRUE, # pour obtenir un réarrangement de lignes
+         scale="column",
+         clustering_distance_rows= "euclidean",
+         clustering_distance_cols = "euclidean", 
+         clustering_method = "complete"
+) 
+pheatmap(base,
+         display_numbers = TRUE,# pour afficher les valeurs
+         fontsize = 8, # pour diminuer la police des valeurs
+         cluster_cols = TRUE,# pour obtenir un réarrangement de colonnes
+         cluster_rows = TRUE, # pour obtenir un réarrangement de lignes
+         scale="column",
+         clustering_distance_rows= "euclidean",
+         clustering_distance_cols = "euclidean", 
+         clustering_method = "complete",
+         cutree_rows = 3,
+         cutree_cols = 1
+) 
+pheatmap(base,
+         display_numbers = TRUE,# pour afficher les valeurs
+         fontsize = 8, # pour diminuer la police des valeurs
+         cluster_cols = TRUE,# pour obtenir un réarrangement de colonnes
+         cluster_rows = TRUE, # pour obtenir un réarrangement de lignes
+         scale="column",
+         clustering_distance_rows= "euclidean",
+         clustering_distance_cols = "euclidean", 
+         clustering_method = "complete",
+         cutree_rows =4,
+         cutree_cols = 2
+) 
+
+# Créer la dataframe pour vos données écologiques
+data <- data.frame(
+  Site = c("Site 1", "Site 2", "Site 3"),
+  Espèce_A = c(0, 1, 2),
+  Espèce_B = c(2, 0, 1),
+  Espèce_C = c(1, 3, 2),
+  Température = c(25, 22, 20),
+  Humidité = c(60, 70, 65)
+)
+dim(base)
+base<-df
+base1<-base[,1:30]
+base1
+dim(base)
+base2
+base2<-base[,33:35]
+dim(base)
+library("vegan")
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/LABO.csv", row.names = "Familles")
+base
+df1<-df[,1:15]
+df1
+df2<-df[,16:30]
+df2
+print(base)
+dim(base)
+base1<-base[,1:9]
+base2<-base[,10:15]
+base<-df1
+base2<-df2
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/LABO.csv", row.names = "Familles")
+print(base)
+baseRDA <- rda(base1 ~ ., data=base2)
+baseRDA <- rda(base ~ PH + Cal + Cal_actif + MO + P2O5 + CE_meq + CE , data=base2)
+summary(baseRDA)
+base
+plot(baseRDA)+points(puits_scores[, 1], puits_scores[, 2], col = as.numeric(base2$type_de_protection), pch = 16)  # Add points with colors
+plot(baseRDA, xlab="RDA1 (59,17%)", ylab="RDA2 (37,37%)", cex.lab=1.25)
+model <- ordiplot(baseRDA, scaling=2, cex=10, xlab="RDA1 (52,39%)", ylab="RDA2 (33,09%)", cex.lab=1.25)
+points(baseRDA, dis="sp","bp","si", col="blue")
+data(dune)
+data(dune.env)
+# Assuming you have already loaded the "vegan" package and read the data
+# If not, you can do it like this:
+# library("vegan")
+# base <- read.csv2("C:/Users/moste/OneDrive/Bureau/YOUCEF.csv", row.names = "PUITS")
+# base2 <- read.csv2("C:/Users/moste/OneDrive/Bureau/YOUCEF1.csv")
+
+# 1. Add "type de protection" variable to the base2 dataset
+type_de_protection <- c("Non_protege", "Semi_protege", "Semi_protege", "Non_protege", "Semi_protege", "Non_protege", "Non_protege", "Non_protege", "Non_protege", "Semi_protege")
+base2$type_de_protection <- factor(type_de_protection)
+
+# 2. Perform RDA analysis with the updated base2 dataset
+baseRDA <- rda(base ~ Longitude + Latitude + Diametre + Profondeur + Niveau_d.eau + type_de_protection, data = base2)
+
+# 3. Extract RDA scores for the sampling points (puits)
+puits_scores <- scores(baseRDA, display = "sites")
+
+# 4. Create a new plot and add points with colors based on "type de protection"
+plot(baseRDA, display = "sites")  # Plot the RDA ordination first
+points(puits_scores[, 1], puits_scores[, 2], col = as.numeric(base2$type_de_protection), pch = 16)  # Add points with colors
+
+# Add a legend for the "type de protection" variable
+legend("bottomright", legend = levels(base2$type_de_protection), col = 1:length(levels(base2$type_de_protection)), pch = 16, title = "Type de Protection")
+
+# Optionally, you can add labels to the points (if desired)
+text(puits_scores[, 1], puits_scores[, 2], rownames(puits_scores), pos = 3)
+
+
+
+
+
+ggpairs(base)
+library(car)
+scatterplotMatrix(base)
+base2 <- base %>% 
+  select(-K., -Chlorures )
+scatterplotMatrix(base2)
+# Calculate and plot ellipses for each group
+for (group in unique(base2$type_de_protection)) {
+  group_indices <- base2$type_de_protection == group
+  group_data <- puits_scores[group_indices, ]
+  group_ellipse <- ordiellipse(baseRDA, group_data, display = "sites", conf = 0.95)
+  lines(group_ellipse, col = as.numeric(group), lty = 2)
+}
+
+# Add a legend for the "type de protection" variable
+legend("bottomright", legend = levels(base2$type_de_protection), col = 1:length(levels(base2$type_de_protection)), pch = 16, title = "Type de Protection")
+
+# Optionally, you can add labels to the points (if desired)
+text(puits_scores[, 1], puits_scores[, 2], rownames(puits_scores), pos = 3)
+In this modified code, we use the ellipse library to calculate and plot ellipses for each group defined by the "type de protection" variable. The ordiellipse() function calculates the ellipses for each group based on the RDA scores and the specified confidence level (in this case, 0.95). The lines() function is used to add the ellipses to the plot, and the color of each ellipse corresponds to the respective "type de protection" group. The legend is updated to reflect the colors of the ellipses.
+h
+base1
+view(base)
+spe_hellinger <- decostand(base1, method = "hellinger")
+view(base2)
+my_rda <- rda(spe_hellinger ~ ., data=base2)
+summary(my_rda)
+plot(my_rda, xlab="RDA1 (72,32%)", ylab="RDA2 (27,67%)", cex.lab=1.25)
+plot(my_rda, choices = c(1, 3))
+plot(my_rda,display=c("sp","bp","si"))
+RsquareAdj(my_rda)
+anova.cca(rda_model_reduced)
+anova.cca(rda_model_reduced, by = "axis")
+anova.cca(rda_model_reduced, by = "terms")
+base2
+# Ajuster un modèle RDA avec un sous-ensemble de variables explicatives
+rda_model_reduced <- rda(spe_hellinger ~  SO4 + phosphore + amonuim+T+PH+O2+CE+S, data = base2)
+anova_result_reduced <- anova(rda_model_reduced)
+print(anova_result_reduced)
+
+
+site_scores <- scores(my_rda, display = "sites")
+
+# Générer le graphique de base
+plot(my_rda, xlab = "RDA1 (74.03%)", ylab = "RDA2 (24.97%)", cex.lab = 1.25)
+
+# Ajouter les noms des sites
+site_names <- c("A", "A", "B", "B", "C", "C", "C", "C", "D", "D")
+text(site_scores[, 1], site_scores[, 2], labels = site_names, pos = 4, cex = 0.8)
+hhhhhhhhh
+base1<-read.csv2("C:/Users/moste/OneDrive/Bureau/nahla sol.csv", row.names = "Station")
+print(base1)
+head(base1)
+data("marketing", package = "datarium")
+head(marketing)
+print(marketing)
+model <- lm(CE ~  Sal + T + PH + Alcalinite  + Ca + Mg + TH + Cl + PO4 + SO4 + NH4 + NO3, data = base3)
+summary(model)
+summary(model)$coefficient
+plot(model)
+model <- lm(CE ~  Sal + T + PH + Alcalinite  + Ca + Mg + TH + Cl + PO4 + SO4 + NH4 + NO3, data = base3)
+summary(model)
+confint(model)
+sigma(model)/mean(marketing$sales)
+hhhhhh
+set.seed(123)
+training.samples <- base$IQE %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+# Charger la bibliothèque caret
+
+library(caret)
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/malak.csv")
+print(base)
+# Diviser le jeu de données en un ensemble d'entraînement et un ensemble de test
+set.seed(123)
+training.samples <- createDataPartition(base$IQE, p = 0.8, list = FALSE)
+install.packages("tibble")
+library(caret)
+set.seed(123)
+training.samples <- createDataPartition(base$IQE, p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+x <- model.matrix(IQE~., train.data)[,-1]
+y <- train.data$IQE
+glmnet(x, y, alpha = 1, lambda = NULL)
+# Find the best lambda using cross-validation
+set.seed(123) 
+cv <- cv.glmnet(x, y, alpha = 0)
+# Display the best lambda value
+cv$lambda.min
+model <- glmnet(x, y, alpha = 0, lambda = cv$lambda.min)
+# Display regression coefficients
+coef(model)
+# Make predictions on the test data
+x.test <- model.matrix(IQE ~., test.data)[,-1]
+predictions <- model %>% predict(x.test) %>% as.vector()
+# Model performance metrics
+data.frame(
+  RMSE = RMSE(predictions, test.data$IQE),
+  Rsquare = R2(predictions, test.data$IQE), 
+  MAE = MAE(predictions, test.data$IQE)
+)
+
+#Calcul de la régression du lasso
+set.seed(123) 
+cv <- cv.glmnet(x, y, alpha = 1)
+# Display the best lambda value
+cv$lambda.min
+model <- glmnet(x, y, alpha = 1, lambda = cv$lambda.min)
+# Dsiplay regression coefficients
+coef(model)
+# Make predictions on the test data
+x.test <- model.matrix(IQE ~., test.data)[,-1]
+predictions <- model %>% predict(x.test) %>% as.vector()
+# Model performance metrics
+data.frame(
+  RMSE = RMSE(predictions, test.data$IQE),
+  Rsquare = R2(predictions, test.data$IQE), 
+  MAE = MAE(predictions, test.data$IQE)
+)
+#Calcul de la régession nette élastique
+# Build the model using the training set
+set.seed(123)
+model <- train(
+  IQE ~., data = train.data, method = "glmnet",
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 10
+)
+# Best tuning parameter
+model$bestTune
+plot(model$bestTune)
+coef(model$finalModel, model$bestTune$lambda)
+x.test <- model.matrix(IQE ~., test.data)[,-1]
+predictions <- model %>% predict(x.test)
+# Model performance metrics
+data.frame(
+  RMSE = RMSE(predictions, test.data$IQE),
+  Rsquare = R2(predictions, test.data$IQE),
+  MAE = MAE(predictions, test.data$IQE)
+)
+
+lambda <- 10^seq(-3, 3, length = 100)
+# Build the model
+# Build the model
+set.seed(123)
+ridge <- train(
+  IQE ~., data = base, method = "glmnet",
+  trControl = trainControl("cv", number = 10),
+  tuneGrid = expand.grid(alpha = 0, lambda = lambda)
+)
+# Model coefficients
+coef(ridge$finalModel, ridge$bestTune$lambda)
+# Make predictions
+predictions <- ridge %>% predict(test.data)
+# Model prediction performance
+data.frame(
+  RMSE = RMSE(predictions, test.data$IQE),
+  Rsquare = R2(predictions, test.data$IQE),
+  MAE = MAE(predictions, test.data$IQE)
+)
+results <- data.frame(Predicted = predictions, Actual = test.data$IQE)
+
+# Créer le graphique de régression linéaire
+ggplot(results, aes(x = Actual, y = Predicted)) +
+  geom_point() +                   # Ajouter des points de données
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +  # Régression linéaire
+  labs(x = "Valeurs Réelles", y = "Valeurs Prédites", title = "Régression Linéaire") +
+  annotate("text", x = max(results$Actual), y = max(results$Predicted), 
+           label = paste("R^2 =", round(cor(results$Predicted, results$Actual)^2, 2)), 
+           hjust = 1)
+# Build the model
+set.seed(123)
+lasso <- train(
+  IQE ~., data = train.data, method = "glmnet",
+  trControl = trainControl("cv", number = 10),
+  tuneGrid = expand.grid(alpha = 0, lambda = lambda)
+)
+plot(elastic)
+# Model coefficients
+coef(lasso$finalModel, lasso$bestTune$lambda)
+# Make predictions
+predictions <- lasso %>% predict(test.data)
+# Model prediction performance
+data.frame(
+  RMSE = RMSE(predictions, test.data$IQE),
+  Rsquare = R2(predictions, test.data$IQE),
+  MAE = MAE(predictions, test.data$IQE)
+)
+# Build the model
+set.seed(123)
+elastic <- train(
+  IQE ~., data = train.data, method = "glmnet",
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 10
+)
+# Model coefficients
+coef(elastic$finalModel, elastic$bestTune$lambda)
+# Make predictions
+predictions <- elastic %>% predict(test.data)
+
+# Model prediction performance
+data.frame(
+  RMSE = RMSE(predictions, test.data$IQE),
+  Rsquare = R2(predictions, test.data$IQE),
+  MAE = MAE(predictions, test.data$IQE)
+)
+models <- list(ridge = ridge, lasso = lasso, elastic = elastic)
+resamples(models) %>% summary( metric = "RMSE")
+resamples(models) %>% summary( metric = "Rsquare")
+resamples(models) %>% summary( metric = "MAE")
+
+#régression logistique 
+theme_set(theme_bw())
+# Load the data and remove NAs
+data("PimaIndiansDiabetes2", package = "mlbench")
+PimaIndiansDiabetes2 <- na.omit(PimaIndiansDiabetes2)
+# Inspect the data
+sample_n(PimaIndiansDiabetes2, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- PimaIndiansDiabetes2$diabetes %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- PimaIndiansDiabetes2[training.samples, ]
+test.data <- PimaIndiansDiabetes2[-training.samples, ]
+# Fit the model
+model <- glm( diabetes ~., data = train.data, family = binomial)
+# Summarize the model
+summary(model)
+# Make predictions
+probabilities <- model %>% predict(test.data, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
+# Model accuracy
+mean(predicted.classes == test.data$diabetes)
+model <- glm( diabetes ~ glucose, data = train.data, family = binomial)
+summary(model)$coef
+newdata <- data.frame(glucose = c(20,  180))
+probabilities <- model %>% predict(newdata, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
+predicted.classes
+train.data %>%
+  mutate(prob = ifelse(diabetes == "pos", 1, 0)) %>%
+  ggplot(aes(glucose, prob)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "glm", method.args = list(family = "binomial")) +
+  labs(
+    title = "Logistic Regression Model", 
+    x = "Plasma Glucose Concentration",
+    y = "Probability of being diabete-pos"
+  )
+model <- glm( diabetes ~ glucose + mass + pregnant, 
+              data = train.data, family = binomial)
+summary(model)$coef
+model <- glm( diabetes ~., data = train.data, family = binomial)
+summary(model)$coef
+coef(model)
+summary(model )$coef
+model <- glm( diabetes ~   glucose  + mass + pedigree, 
+              data = train.data, family = binomial)
+probabilities <- model %>% predict(test.data, type = "response")
+head(probabilities)
+contrasts(test.data$diabetes)
+predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
+head(predicted.classes)
+mean(predicted.classes == test.data$diabetes)
+#analyse discriminante 
+data("iris")
+library(tidyverse)
+library(caret)
+theme_set(theme_classic())
+# Load the data
+data("iris")
+# Split the data into training (80%) and test set (20%)
+set.seed(123)
+training.samples <- iris$Species %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data <- iris[training.samples, ]
+test.data <- iris[-training.samples, ]
+# Estimate preprocessing parameters
+preproc.param <- train.data %>% 
+  preProcess(method = c("center", "scale"))
+# Transform the data using the estimated parameters
+train.transformed <- preproc.param %>% predict(train.data)
+test.transformed <- preproc.param %>% predict(test.data)
+library(MASS)
+# Fit the model
+model <- lda(Species~., data = train.transformed)
+# Make predictions
+predictions <- model %>% predict(test.transformed)
+# Model accuracy
+mean(predictions$class==test.transformed$Species)
+library(MASS)
+model <- lda(Species~., data = train.transformed)
+model
+plot(model)
+predictions <- model %>% predict(test.transformed)
+names(predictions)
+# Predicted classes
+head(predictions$class, 6)
+# Predicted probabilities of class memebership.
+head(predictions$posterior, 6) 
+# Linear discriminants
+head(predictions$x, 3) 
+lda.data <- cbind(train.transformed, predict(model)$x)
+ggplot(lda.data, aes(LD1, LD2)) +
+  geom_point(aes(color = Species))
+mean(predictions$class==test.transformed$Species)
+sum(predictions$posterior[ ,1] >=.5)
+
+###regression linéaire simple ############
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/AYMEN.csv")
+base<-read.csv2("D:/MOSTEFA/les images des invertébrées/Sortie 4/RESULTATS PH ET CH SORTIE 4.csv", row.names = "Stations")
+print(base)
+dim(base)
+base<-base[1:9,]
+ggboxplot(base, x = "Saturation", y = "CE")
+ggplot(base, aes(x = C, y = CE)) +
+  geom_point() +
+  stat_smooth()
+cor(base$CE, base$T)
+lm(PH ~T, data = base)
+
+model <- lm(PH ~T , data = base)
+model
+summary(model)
+sigma(model)*100/mean(base2$CE)
+##
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/IQE.csv")
+print(base)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+set.seed(1234)
+print(base)
+base%>% sample_n_by(CE, size = 1)
+levels(base$MOIS)
+base <- base %>%
+  reorder_levels(MOIS, order = c("3", "4", "5", "6", "7", "8", "9"))
+base <- base %>%
+  reorder_levels(MOIS, order = c("OCT", "nov", "jan", "fev"))
+ggboxplot(base, x = "STATION", y = "CE")
+base %>% 
+  group_by(MOIS) %>%
+  identify_outliers(CE)
+# Construire le modèle linéaire
+model  <- lm(CE ~ MOIS, data = base)
+# Créer un QQ plot des résidus
+ggqqplot(residuals(model))
+shapiro_test(residuals(model))
+print(base)
+base %>%
+  group_by(MOIS) %>%
+  shapiro_test(CE)
+ggqqplot(base, "IQE", facet.by = "MOIS")
+ggqqplot(base2, "CE", facet.by = "station")
+base %>% levene_test(CE ~ MOIS)
+res.aov <- base %>% anova_test(CE ~ MOIS)
+res.aov
+pwc <- base %>% tukey_hsd(CE ~ MOIS)
+pwc
+pwc <- pwc %>% add_xy_position(x = "MOIS")
+ggboxplot(base, x = "MOIS", y = "CE") +
+  stat_pvalue_manual(pwc, hide.ns = TRUE) +
+  labs(
+    subtitle = get_test_label(res.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
+data("PimaIndiansDiabetes2", package = "mlbench")
+data("Boston", package = "MASS")
+sample_n(Boston, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- Boston$medv %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- Boston[training.samples, ]
+test.data <- Boston[-training.samples, ]
+# Fit the model on the training set
+set.seed(123)
+model <- train(
+  medv~., data = train.data, method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center","scale"),
+  tuneLength = 10
+)
+# Plot model error RMSE vs different values of k
+plot(model)
+# Best tuning parameter k that minimize the RMSE
+model$bestTune
+# Make predictions on the test data
+predictions <- model %>% predict(test.data)
+head(predictions)
+# Compute the prediction error RMSE
+RMSE(predictions, test.data$medv)
+
+jjjjjjjjjjjjjj
+data("PimaIndiansDiabetes2", package = "mlbench")
+PimaIndiansDiabetes2 <- na.omit(PimaIndiansDiabetes2)
+# Inspect the data
+sample_n(PimaIndiansDiabetes2, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- PimaIndiansDiabetes2$diabetes %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+set.seed(123)
+model <- train(
+  diabetes ~., data = train.data, method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center","scale"),
+  tuneLength = 20
+)
+# Check the column names in your dataset
+colnames(PimaIndiansDiabetes2)
+
+# Split the data into training and test set
+set.seed(123)
+training.samples <- PimaIndiansDiabetes2$diabetes %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+
+# Update the target variable name if necessary
+set.seed(123)
+model <- train(
+  diabetes ~., data = PimaIndiansDiabetes2[training.samples, ], method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center", "scale"),
+  tuneLength = 20
+)
+
+# Plot model accuracy vs different values of k
+plot(model)
+print(model)
+model$bestTune
+# Load necessary libraries
+library(caret)
+
+# ... (previous code)
+
+# Create a test data frame or matrix
+test.data <- PimaIndiansDiabetes2[-training.samples, ]  # Assuming you have a separate test set
+
+# Make predictions using the trained model
+predicted.classes <- predict(model, newdata = test.data)
+
+# Display the head of predicted classes
+head(predicted.classes)
+
+mean(predicted.classes == test.data$diabetes)
+# Load necessary libraries
+library(caret)
+library(ggplot2)
+
+# ... (previous code)
+
+# Create a test data frame or matrix
+test.data <- PimaIndiansDiabetes2[-training.samples, ]  # Assuming you have a separate test set
+
+# Make predictions using the trained model
+predicted.classes <- predict(model, newdata = test.data)
+
+# Create a confusion matrix
+confusion_matrix <- table(Actual = test.data$diabetes, Predicted = predicted.classes)
+
+# Calculate accuracy for each combination of predicted and actual labels
+accuracy_scores <- diag(confusion_matrix) / rowSums(confusion_matrix)
+print(accuracy_scores)
+# Create a data frame for plotting
+accuracy_df <- data.frame(Predicted = rownames(confusion_matrix), Actual = colnames(confusion_matrix), Accuracy = accuracy_scores)
+
+# Create a ggplot for visualization
+ggplot(accuracy_df, aes(x = Predicted, y = Actual, fill = Accuracy)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue") +
+  labs(x = "Predicted Labels", y = "Actual Labels", fill = "Accuracy") +
+  theme_minimal()
+
+
+
+# Charger la bibliothèque vegan
+library(vegan)
+
+# Création du modèle RDA
+my_rda <- rda(spe_hellinger ~ ., data=base2)
+
+# Graphique par défaut
+plot(my_rda)
+
+# Calcul des valeurs d'inertie
+inertia_values <- diag(summary(my_rda)$cont$eig)
+
+# Extraction du pourcentage de variation expliquée par RDA1
+percentage_axis1 <- round(inertia_values[1] / sum(inertia_values) * 100, digits = 2)
+
+# Ajout de l'annotation pour le pourcentage de RDA1
+text(1, 0, paste("RDA1:", percentage_axis1, "%"), pos=4)
