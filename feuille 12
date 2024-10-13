@@ -1,0 +1,395 @@
+print(base)
+dim(base)
+colonnes_especes <- colnames(base)[2:25]
+matrice_especes <- base[, colonnes_especes]
+nmds <- metaMDS(matrice_especes)
+print(nmds)
+stressplot(nmds)
+ordiplot(nmds, display = "species", type = "text") 
+ordiplot(nmds, type = "text")
+base_especes <- matrice_especes
+parametres_supplementaires <- data.frame(land_use = c("agriculture", "prairie", "semi_urbain", "semi_urbain", "foret", "foret", "foret", "agriculture", "foret", "prairie", "semi_urbain", "foret"),
+  depth = c(2, 2, 3, 4, 0.4, 0.7, 0.7, 1, 2.3, 0.7, 5, 2),
+  debit = c(20, 24, 25, 23, 13, 24, 23, 43, 23, 24, 32, 11)
+)
+etat <- data.frame(type = c("E_Usee", "E_traitee", "E_Usee", "E_traitee", "E_Usee", "E_traitee",  "E_Usee", "E_traitee", "E_Usee", "E_traitee", "E_Usee", "E_traitee", "E_Usee", "E_traitee", "E_Usee", "E_traitee", "E_Usee", "E_traitee", "E_Usee", "E_traitee", "E_Usee", "E_traitee", "E_Usee", "E_traitee", "E_Usee", "E_traitee")
+)
+###
+matrice_especes <- base[, colonnes_especes]
+base1<-read.csv2("C:/Users/moste/OneDrive/Bureau/Classeur3.csv")
+print(base1)
+print(matrice_especes)
+ord <- metaMDS(matrice_especes)
+stress_value <- ord$stress
+fit <- envfit(ord ~ EAU, base1, perm = 999)
+fit
+plot(ord, type = "n")
+with(base1, ordispider(ord, EAU, col="skyblue"))
+with(base1, points(ord ,  col= "black",pch=15))
+with(base1, points(ord , display = "species", col= "red",pch=16))
+plot(fit, cex=1.2, axis=T, bg = rgb(1, 1, 1, 0.5))
+with(base1, text(ord, display = "species", labels = colnames(matrice_especes), col = "black", cex = 0.6 , pos = 3))
+
+# Extraction des noms d'espèces et suppression du préfixe "type"
+noms_especes <- gsub("E_", "", base$type)
+
+# Affichage du nuage de points NMDS avec les noms des espèces sans le préfixe 'type'
+plot(fit, cex=1.2, axis=TRUE, bg = rgb(1, 1, 1, 0.5))
+with(base1, points(ord, display = "species", col = "red", pch = 16))
+with(base1, text(ord, display = "species", labels = noms_especes, col = "black", cex = 0.5, pos = 3))
+
+
+
+base_combinees <- cbind(base_especes, etat)
+base_especes <- data.frame(
+  x = nmds$points[, 1],
+  y = nmds$points[, 2],
+  type = etat$type
+)
+ggplot() +
+  geom_point(data = base_especes, aes(x = x, y = y, shape = type)) +
+  scale_shape_manual(values = c(16, 17)) +
+  geom_point(data = especes, aes(x = x, y = y), shape = 16, size = 3, color = "black") +
+  annotate("text", x = -0.8, y = 0.8, label = paste0("Stress: ", round(nmds$stress, 4)), size = 4, color = "black") +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(x = "NMDS1", y = "NMDS2") +
+  theme_bw()
+
+###
+df_sites <- data.frame(
+  x = rep(nmds$points[, 1], each = nrow(base)),
+  y = rep(nmds$points[, 2], each = nrow(base)),
+  land_use = rep(base$land_use, times = nrow(nmds$species)),
+  depth = rep(base$water_depth, times = nrow(nmds$species)),
+  debit = rep(base$water_velocity, times = nrow(nmds$species))
+)
+
+  
+  land_use = c("agriculture", "agriculture", "prairie", "semi-urbain e", "semi-urbain e", "foret", "foret", "foret", "agriculture", "semi-urbain e", "prairie", "foret", "foret"),
+  water_depth = c(2, 2, 3, 4, 1, 1, 1, 1, 12, 23, 4, 5, 4),
+  water_velocity = c(20, 24, 25, 23, 13, 24, 23, 43, 45, 2, 5, 5, 8)
+)
+
+parametres_supplementaires <- data.frame(
+  land_use = c("agriculture", "agriculture", "prairie", "semi-urbain e", "semi-urbain e", "foret", "foret", "foret", "agriculture", "semi-urbain e", "prairie", "foret", "foret"),
+  water_depth = c(2, 2, 3, 4, 1, 1, 1, 1, 12, 23, 4, 5, 4),
+  water_velocity = c(20, 24, 25, 23, 13, 24, 23, 43, 45, 2, 5, 5, 8)
+)
+
+df_sites <- data.frame(
+  x = nmds$points[, 1],
+  y = nmds$points[, 2],
+  
+  land_use = parametres_supplementaires$land_use,
+  depth = parametres_supplementaires$depth,
+  debit = parametres_supplementaires$debit
+)
+
+ggplot() +
+  geom_point(data = df_especes, aes(x = x, y = y, shape = land_use, size = depth, color = debit)) +
+  scale_shape_manual(values = c(16, 17, 18, 19)) +
+  scale_size_continuous(range = c(3, 10)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(x = "NMDS1", y = "NMDS2") +
+  theme_bw()
+ggplot() +
+  geom_point(data = df_sites, aes(x = x, y = y, shape = land_use, size = depth, color = debit)) +
+  scale_shape_manual(values = c(16, 17, 18, 19)) +
+  scale_size_continuous(range = c(3, 10)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(x = "NMDS1", y = "NMDS2") +
+  theme_bw()
+ggplot() +
+  geom_point(data = df_sites, aes(x = x, y = y, shape = land_use, size = depth, color = debit)) +
+  scale_shape_manual(values = c(16, 17, 18, 19)) +
+  scale_size_continuous(range = c(3, 10)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_bw() +labs(x = "NMDS1", y = "NMDS2")+
+  geom_text(data = df_sites, aes(x = x, y = y, label = rownames(df_sites)), size = 3)
+df_especes <- data.frame(
+  x = nmds$species[, 1],
+  y = nmds$species[, 2],
+  land_use = parametres_supplementaires$land_use,
+  depth = parametres_supplementaires$depth,
+  debit = parametres_supplementaires$debit
+)
+df_especes <- data.frame(
+  x = nmds$species[, 1],
+  y = nmds$species[, 2],
+  land_use = parametres_supplementaires$land_use,
+  depth = parametres_supplementaires$depth,
+  debit = parametres_supplementaires$debit
+)
+df_especes <- data.frame(
+  x = nmds$species[, 1],
+  y = nmds$species[, 2],
+  land_use = parametres_supplementaires[1:nrow(nmds$species), "land_use"],
+  depth = parametres_supplementaires[1:nrow(nmds$species), "depth"],
+  debit = parametres_supplementaires[1:nrow(nmds$species), "debit"]
+)
+df_especes <- data.frame(
+  x = nmds$species[, 1],
+  y = nmds$species[, 2],
+  land_use = parametres_supplementaires$land_use,
+  depth = parametres_supplementaires$depth,
+  debit = parametres_supplementaires$debit
+)
+
+df_especes <- data.frame(
+  x = rep(nmds$species[, 1], each = nrow(parametres_supplementaires)),
+  y = rep(nmds$species[, 2], each = nrow(parametres_supplementaires)),
+  land_use = rep(parametres_supplementaires[, 22], times = nrow(nmds$species)),
+  depth = rep(parametres_supplementaires[, 23], times = nrow(nmds$species)),
+  debit = rep(parametres_supplementaires[, 24], times = nrow(nmds$species))
+)
+
+
+library(ggplot2)
+ggplot() +
+  geom_point(data = df_sites, aes(x = x, y = y, shape = land_use, size = depth, color = debit)) +
+  scale_shape_manual(values = c(16, 17, 18, 19)) +
+  scale_size_continuous(range = c(3, 10)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(x = "NMDS1", y = "NMDS2") +
+  theme_bw()
+parametres_supplementaires  <- data.frame(x = nmds$species[, 1], y = nmds$species[, 2], 
+                         land_use = parametres_supplementaires$land_use,
+                         depth = parametres_supplementaires$depth,
+                         debit = parametres_supplementaires$debit)
+nmds$species
+df_sites <- data.frame(
+  x = nmds$points[, 1],
+  y = nmds$points[, 2],
+  land_use = parametres_supplementaires$land_use,
+  depth = parametres_supplementaires$depth,
+  debit = parametres_supplementaires$debit
+)
+df_especes <- data.frame(
+  x = nmds$species[, 1],
+  y = nmds$species[, 2],
+  land_use = base$land_use,
+  depth = base$water_depth,
+  debit = base$water_velocity
+)
+ggplot() +
+  geom_point(data = df_especes, aes(x = x, y = y, shape = land_use, size = depth, color = debit)) +
+  scale_shape_manual(values = c(16, 17, 18, 19)) +
+  scale_size_continuous(range = c(3, 10)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(x = "NMDS1", y = "NMDS2") +
+  theme_bw()
+dim(nmds$species)
+dim(base$land_use)
+dim(base$water_depth)
+dim(base$water_velocity)
+df_sites <- data.frame(
+  x = nmds$points[, 1],
+  y = nmds$points[, 2],
+  land_use = base$land_use,
+  depth = base$water_depth,
+  debit = base$water_velocity
+)
+library(ggplot2)
+
+df_especes <- data.frame(
+  x = nmds$species[, 1],
+  y = nmds$species[, 2],
+  land_use = parametres_supplementaires$land_use,
+  depth = parametres_supplementaires$depth,
+  debit = parametres_supplementaires$debit
+)
+
+ggplot() +
+  geom_point(data = df_especes, aes(x = x, y = y, shape = land_use, size = depth, color = debit)) +
+  scale_shape_manual(values = c(16, 17, 18, 19)) +
+  scale_size_continuous(range = c(3, 10)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(x = "NMDS1", y = "NMDS2") +
+  theme_bw()
+
+# Sélectionner les premières 13 lignes de chaque colonne dans nmds$species
+x <- nmds$species[1:13, 1]
+y <- nmds$species[1:13, 2]
+
+# Répéter les valeurs dans parametres_supplementaires pour correspondre au nombre de lignes
+parametres_supplementaires <- parametres_supplementaires[rep(1:13, each = 20), ]
+
+# Créer le data frame df_parametres_supplementaires
+df_parametres_supplementaires <- data.frame(x = x, y = y, land_use = parametres_supplementaires$land_use, depth = parametres_supplementaires$depth, debit = parametres_supplementaires$debit)
+df_parametres_supplementaires <- data.frame(x = x, y = y, land_use = parametres_supplementaires$land_use, depth = parametres_supplementaires$depth, debit = parametres_supplementaires$debit, row.names = 1:13)
+kk
+# Vérification des valeurs manquantes dans df_especes
+missing_values <- data.frame(
+  x = sum(is.na(df_especes$x)),
+  y = sum(is.na(df_especes$y)),
+  shape = sum(is.na(df_especes$shape)),
+  size = sum(is.na(df_especes$size)),
+  color = sum(is.na(df_especes$color))
+)
+
+print(missing_values)
+# Aperçu statistique des variables dans df_especes
+summary(df_especes)
+df_especes 
+kkkk
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/NMDS1.csv", header=TRUE, check.names = FALSE)
+
+print(base)
+summary(base)
+attach(base)
+names(base)
+clean <- base[,2:10]
+summary(clean)
+SITE<- base[,1]
+SITE
+ord<- metaMDS(clean, distance="horn")
+ord
+stressplot(ord)
+plot(ord)
+plot(ord, type="t")
+ordiellipse(ord, SITE, kind="se", conf=0.95, lwd=1, col= c('Green', 'Orange', 'bleu'))
+ordispider(ord, SITE, col=c('Green', 'Orange', 'bleu'), label = F)
+ENV<- base[,36:36]
+ENV
+fit<- envfit(ord, ENV, pernu=999)
+fit
+plot(ord)
+plot(fit)
+plot(fit, p.max=0.05)
+plot(ord)
+plot(fit, p.max=0.05)
+ordiellipse(ord, SITE, kind="se", conf=0.95, lwd=1, col= c('Green', 'Orange'))
+ordispider(ord, SITE, col=c('Green', 'Orange'), label = F)
+hhhhhhhhh
+region <- c("oeb", "oeb", "collo", "collo", "batna", "batna", "khenchla", "khenchla", "batna", "collo", "oeb", "batna")
+base$region <- region
+regions_presentees <- c("oeb", "collo", "batna", "khenchla")
+base_filtre <- subset(base, region %in% regions_presentees)
+colonnes_especes_filtre <- colnames(base_filtre)[2:15]
+matrice_especes_filtre <- base_filtre[, colonnes_especes_filtre]
+nmds_filtre <- metaMDS(matrice_especes_filtre)
+print(nmds_filtre)
+stressplot(nmds_filtre)
+ordiplot(nmds_filtre, display = "species", type = "text")
+ordiplot(nmds_filtre, type = "text")
+base <- read.csv2("C:/Users/moste/OneDrive/Bureau/NMDS.csv")
+regions <- c("oeb", "collo", "batna", "khenchla")  # Les régions spécifiées
+base$REGIONS <- tolower(base$REGIONS)  # Convertir la colonne "REGIONS" en minuscules pour une correspondance insensible à la casse
+filtered_base <- base[base$REGIONS %in% regions, ]  # Filtrer les données pour inclure uniquement les régions spécifiées
+
+library(vegan)
+colonnes_especes <- colnames(filtered_base)[2:15]
+matrice_especes <- filtered_base[, colonnes_especes]
+nmds <- metaMDS(matrice_especes)
+
+# Ajouter les régions comme étiquettes aux points du graphique
+ordiplot(nmds, display = "species", type = "text", main = "NMDS Plot")
+ordilabel(nmds, display = "sites", labels = filtered_base$REGIONS, main = "NMDS Plot with Regions")
+
+# Assuming you have already performed the NMDS analysis and stored the result in 'nmds'
+
+# Extract the site information
+sites <- base$sites
+
+# Create a factor variable for sites
+sites_factor <- factor(sites)
+
+# Run envfit with the site information
+envfit_result <- envfit(nmds, sites_factor)
+
+# Plot the ordination with sites and species
+plot_ord <- ordiplot(nmds, type = "none")  # Generate the basic ordination plot without labels
+jjjjjjjjjjjjjjj
+print(base)
+summary(base)
+attach(base)
+names(base)
+clean <- base[,2:15]
+summary(clean)
+SITE<- base[,1]
+SITE
+ord<- metaMDS(clean, distance="horn")
+ord
+stressplot(ord)
+plot(ord)
+plot(ord, type="t")
+ordiellipse(ord, SITE, kind="se", conf=0.95, lwd=1, col= c('Green', 'Orange', 'red', 'yellow'))
+ordispider(ord, SITE, col=c('Green', 'Orange'), label = F)
+ENV<- base[,8:9]
+ENV
+fit<- envfit(ord, ENV, pernu=999)
+fit
+plot(ord)
+plot(fit)
+plot(fit, p.max=0.05)
+plot(ord)
+plot(fit, p.max=0.05)
+ordiellipse(ord, SITE, kind="se", conf=0.95, lwd=1, col= c('Green', 'Orange'))
+ordispider(ord, SITE, col=c('Green', 'Orange'), label = F)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+base_combinees <- cbind(base_especes, etat)
+base_especes <- data.frame(
+  x = nmds$points[, 1],
+  y = nmds$points[, 2],
+  type = etat$type
+)
+ggplot() +
+  geom_point(data = base_especes, aes(x = x, y = y, shape = type)) +
+  scale_shape_manual(values = c(16, 17, 18, 19)) +
+  scale_size_continuous(range = c(3, 10)) +
+  geom_point(data = especes, aes(x = x, y = y), shape = 16, size = 3, color = "black") +
+  annotate("text", x = -0.8, y = 0.8, label = paste0("Stress: ", round(nmds$stress, 4)), size = 4, color = "black") +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(x = "NMDS1", y = "NMDS2") +
+  theme_bw()
+especes <- data.frame(
+  x = nmds$species[, 1],  # Coordonnées NMDS1 des espèces
+  y = nmds$species[, 2],  # Coordonnées NMDS2 des espèces
+  nom_espece = rownames(nmds$species)  # Noms des espèces
+)
+ggplot() +
+  geom_point(data = base_especes, aes(x = x, y = y, shape = type, size = type)) +
+  scale_shape_manual(values = c(16, 17)) +
+  geom_point(data = especes, aes(x = x, y = y), shape = 19, size = 4, color = "red") +
+  geom_text(data = especes, aes(x = x, y = y, label = nom_espece), hjust = 0.5, vjust = -0.5, size = 5, color = "black") +
+  annotate("text", x = -0.3, y = 0.05, label = paste0("Stress: ", round(nmds$stress, 4)), size = 6, color = "black") +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(x = "NMDS1", y = "NMDS2") +
+  theme_bw()
+
+ggplot() +
+  geom_point(data = base_especes, aes(x = x, y = y, shape = type, size = type), alpha = 0.6) +
+  scale_shape_manual(values = c(16, 17)) +
+  geom_point(data = especes, aes(x = x, y = y), shape = 19, size = 4, color = "red") +
+  geom_text(data = especes, aes(x = x, y = y, label = nom_espece), hjust = 0.5, vjust = -0.5, size = 5, color = "black") +
+  annotate("text", x = -0.3, y = 0.05, label = paste0("Stress: ", round(nmds$stress, 4)), size = 6, color = "black") +
+  scale_size_manual(values = c(5, 6)) +  # Adjust the size values as needed
+  labs(x = "NMDS1", y = "NMDS2") +
+  theme_bw()
+
+adonis_result <- adonis2(matrice_especes ~  type, data = base1)
+print(adonis_result)
+
