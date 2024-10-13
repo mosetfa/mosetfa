@@ -1,0 +1,433 @@
+Species<-read.csv2("D:/moste/OneDrive/Bureau/SPECIES.csv", row.names = "SITE")
+data(BCI, BCI.env)
+A<-read.csv2("D:/moste/OneDrive/Bureau/krigeage.csv")
+Adf=Anames(Species)
+Species<-read.csv2("D:/moste/OneDrive/Bureau/SPECIES.csv", row.names = "SITE")
+Species<-Species[,1:8]
+names(Species)
+print(Species)
+dim(Species)
+abundance<-sum(Species[1, ], na.rm = TRUE)
+abundance
+sum(Species[1, ], na.rm = TRUE)
+AB <- rowSums(Species, na.rm = TRUE)
+AB
+sum(Species[1, ] > 0, na.rm = TRUE)
+sum(Species[2, ] > 0, na.rm = TRUE)
+Richness <- rowSums(Species > 0, na.rm = TRUE)
+Richness
+RS <- rowSums(Species, na.rm = TRUE)
+RS
+prop <- Species / RS
+prop
+H <- -rowSums(prop * log(prop), na.rm = TRUE)
+H
+library(vegan)
+H <- diversity(Species)
+H
+simp <- diversity(Species, "simpson")
+simp
+invsimp <- diversity(Species, "inv")
+invsimp
+Dmax <- 1-(1/S)
+Dmax
+D <- 1-simp
+D
+ED <- simp/Dmax
+ED
+S <- specnumber(Species)
+S
+E <- H/log(S)
+E
+Hmax<-log(S)
+Hmax
+pairs(cbind(H, Hmax, E, Richness, average_richness), pch="+", col="blue")
+data(BCI, BCI.env)
+(alpha <- with(BCI.env, tapply(diversity(BCI), Stream, mean))) # average
+(gamma <- with(BCI.env, diversity(BCI, groups=Stream)))
+gamma-alpha
+gamma/alpha - 1
+### DESCRIPTIVE STATISTICS
+var(base$Cl)
+median(base$T)
+Standard deviation	
+sd(base)
+Variance	var()
+Minimum	min()
+Maximum	maximum()
+Median	median()
+Range of values (minimum and maximum)	range()
+Sample quantiles	quantile()
+summary(Species)
+Interquartile range	IQR()
+
+ggboxplot(base, y = "Flavonoides", width = 0.5)
+gghistogram(base, x = "CL", bins = 9, 
+            add = "mean")
+ggecdf(base, x = "CL")
+ggqqplot(base, x = "CL")
+library("ggpubr")
+# Box plot colored by groups: Species
+ggboxplot(base, x = "QUALITY", y = "EC",
+          color = "QUALITY",
+          palette = c("#00AFBB", "#E7B800", "#FC4E07"))
+ggstripchart(base, x = "QUALITY", y = "EC",
+             color = "QUALITY",
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             add = "mean_sd")
+ggplot(base, aes(HCO3, EC))+
+  geom_point()+
+  stat_ellipse()
+# Ellipse by groups
+p <- ggplot(base, aes(EC, HCO3, color = HCO3 > 3))+
+  geom_point()
+p + stat_ellipse()
+p <- ggplot(diamonds, aes(carat, price))
+p + geom_bin2d()
+
+library(fmsb)
+exam_scores <- data.frame(
+  row.names = c("Student.1", "Student.2", "Student.3"),
+  Biology = c(7.9, 3.9, 9.4),
+  Physics = c(10, 20, 0),
+  Maths = c(3.7, 11.5, 2.5),
+  Sport = c(8.7, 20, 4),
+  English = c(7.9, 7.2, 12.4),
+  Geography = c(6.4, 10.5, 6.5),
+  Art = c(2.4, 0.2, 9.8),
+  Programming = c(0, 0, 20),
+  Music = c(20, 20, 20)
+)
+exam_scores
+base <- data.frame( row.names = c("Site1", "Site2", "Site3", "Site4", "Site5", "Site6", "Site7", "Site8", "Site9", "Site10"),
+  SP1 = c(9, 5, 2, 10, 3, 12, 5, 20, 11, 8),
+  SP2 = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0),
+  SP3 = c(2, 9, 2, 8, 0, 0, 5, 8, 0, 0),
+  SP4 = c(11, 8, 5, 0, 0, 0, 0, 0, 0, 0),
+  SP5 = c(2, 0, 3, 5, 0, 1, 0, 4, 0, 0)
+ 
+)
+base
+max_min <- data.frame(
+  Biology = c(20, 0), Physics = c(20, 0), Maths = c(20, 0),
+  Sport = c(20, 0), English = c(20, 0), Geography = c(20, 0),
+  Art = c(20, 0), Programming = c(20, 0), Music = c(20, 0)
+)
+rownames(max_min) <- c("Max", "Min")
+max_min <- data.frame(
+  SP1 = c(20, 0), SP2 = c(85, 0), SP3 = c(85, 0),
+  SP4 = c(85, 0), SP5 = c(85, 0))
+rownames(max_min) <- c("Max", "Min")
+df <- rbind(max_min, base)
+df
+Site1 <- df[c("Max", "Min", "Site1"), ]
+radarchart(Site1)
+Site2 <- df[c("Max", "Min", "Site2"), ]
+radarchart(Site2)
+Site3 <- df[c("Max", "Min", "Site3"), ]
+radarchart(Site3)
+Site4 <- df[c("Max", "Min", "Site4"), ]
+radarchart(Site4)
+Site5 <- df[c("Max", "Min", "Site5"), ]
+radarchart(Site5)
+Site6 <- df[c("Max", "Min", "Site6"), ]
+radarchart(Site6)
+create_beautiful_radarchart <- function(data, color = "#00AFBB", 
+                                        vlabels = colnames(data), vlcex = 0.7,
+                                        caxislabels = NULL, title = NULL, ...){
+  radarchart(
+    data, axistype = 1,
+    # Personnaliser le polygone
+    pcol = color, pfcol = scales::alpha(color, 0.5), plwd = 2, plty = 1,
+    # Personnaliser la grille
+    cglcol = "grey", cglty = 1, cglwd = 0.8,
+    # Personnaliser l'axe
+    axislabcol = "grey", 
+    # Étiquettes des variables
+    vlcex = vlcex, vlabels = vlabels,
+    caxislabels = caxislabels, title = title, ...
+  )
+}
+op <- par(mar = c(1, 2, 2, 1))
+create_beautiful_radarchart(Site6, caxislabels = c(0, 5, 10, 15, 20))
+ par(op)
+op <- par(mar = c(1, 2, 2, 2))
+create_beautiful_radarchart(
+  data = df, caxislabels = c(0, 5, 10, 15, 20),
+  color = c("#00AFBB", "#E7B800", "#FC4E07")
+)
+# Ajouter une légende horizontale
+legend(
+  x = "bottom", legend = rownames(df[-c(1,2),]), horiz = TRUE,
+  bty = "n", pch = 20 , col = c("#00AFBB", "#E7B800", "#FC4E07"),
+  text.col = "black", cex = 1, pt.cex = 1.5
+)
+par(op)
+colors <- c("#00AFBB", "#E7B800", "#FC4E07", "#FC2E07", "#FC1E27", "#13AFBB", "#99AFBB", "#50AFBB", "#30AFBB", "")
+titles <- c("Site1", "Site2", "Site3", "Site4", "Site5", "Site6", "Site7", "Site8", "Site9", "Site10")
+op <- par(mar = c(1, 1, 1, 1))
+par(mfrow = c(1,3))
+for(i in 1:3){
+  create_beautiful_radarchart(
+    data = df[c(1, 2, i+2), ], caxislabels = c(0, 5, 10, 15, 20),
+    color = colors[i], title = titles[i]
+  )
+}
+par(op)
+
+
+require(ggiraphExtra)
+ggRadar(data=iris,aes(color=Species),interactive=TRUE)
+base
+print(iris)
+ggRadar(data=iris,aes(color=Species),interactive=TRUE)
+ggRadar(data=base,aes(color=),interactive=TRUE)
+ggRadar(data=base,aes(color=site),interactive=TRUE)
+
+###netoyage des données
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/QGIS2.csv", row.names = "SITE")
+base
+str(base)
+mean(base$CE)
+z<-na.omit(base)
+z
+mean(base$CE, na.rm = TRUE)
+summary(z)
+summary(base)
+z<-base[-5,]
+z
+mean(base$CE, na.rm = TRUE)
+summary(base)
+head(base, na.omit)
+base1<-
+ 
+  library(ComplexUpset)
+
+library(ComplexUpset)
+
+# Créer un jeu de données exemple
+data <- data.frame(
+  A = c(1, 1, 0, 1, 0, 0, 1, 1),
+  B = c(1, 0, 0, 1, 0, 1, 1, 0),
+  C = c(0, 1, 1, 1, 0, 2, 0, 1),
+  D = c(0, 0, 0, 0, 0, 1, 0, 0),
+  E = c(0, 1, 0, 1, 1, 0, 0, 1),
+  J = c(1, 1, 0, 1, 1, 0, 0, 1)
+)
+
+# Afficher l'upset plot directement à partir du jeu de données
+upset(data)
+z<-base[-5,]
+data
+base
+# Créer une nouvelle colonne d'ensemble en combinant SP1, SP2 et SP3
+base$ensemble1 <- apply(base[, c("SP1", "SP2", "SP3")], 2, any)
+
+# Supprimer les colonnes individuelles
+base <- base[, c("ensemble1", "SP4", "SP5")]
+
+# Afficher l'upset plot
+upset(base)
+
+###PAOULA
+library(dplR)
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/PAOULA.csv", row.names = "Year")
+base
+ca533
+data(ca533) # the result of ca533 <- read.rwl('ca533.rwl')
+nrow(base)
+ncol(base)
+base_ts <- ts(base)
+
+# Afficher les dix premières observations
+head(base_ts, n = 10)
+# Afficher les dix premières observations de l'ensemble de données
+head(base, n = 10)
+
+colnames(base) # the series IDs
+head(time(base),n = 10) # the first 10 years
+# Assurez-vous que les années sont de type numérique
+base$Year <- as.numeric(row.names(base))
+
+# Sélectionnez uniquement les colonnes contenant les données de la série temporelle
+base_ts <- base[, -ncol(base)]
+
+# Convertissez en une série temporelle avec la fonction ts()
+base_ts <- ts(data.matrix(base_ts), start = min(base$Year), end = max(base$Year), frequency = 1)
+# Assurez-vous d'avoir les bibliothèques nécessaires chargées
+# library(dplR)
+
+# Spaghetti plot
+plot(base_ts, plot.type = "spag")
+
+plot(base_ts, plot.type = "multiple")
+# Spaghetti plot avec plot.type = "single"
+plot(base_ts, plot.type = "single")
+rwl.report(ca533)
+# Utilisez la bibliothèque dplR pour le spaghetti plot
+library(dplR)
+
+# Convertissez la série temporelle en format rwl
+base_rwl <- as.rwl(base_ts)
+
+# Spaghetti plot
+plot(base_rwl, plot.type = "spag")
+
+# Ajoutez des colonnes factices pour générer le rapport
+base_ts$first <- rep(NA_real_, nrow(base_ts))
+base_ts$last <- rep(NA_real_, nrow(base_ts))
+base_ts$len <- rep(NA_real_, nrow(base_ts))
+base_ts$site <- rep("Site1", nrow(base_ts))  # Remplacez "Site1" par le nom de votre site
+
+# Générer le rapport
+rwl.report(base_rwl)
+ca533.stats <- summary(base_rwl) # same as calling rwl.stats(ca533)
+head(ca533.stats,n=10) # look at the first five series
+# Calculer la moyenne des années pour chaque série
+mean_years_base <- sapply(colnames(base), function(col) mean(base[[col]]$Year, na.rm = TRUE))
+
+# Afficher la moyenne des années
+print(mean_years_base)
+
+mean(ca533.stats$year)
+sd(ca533.stats$year)
+boxplot(ca533.stats$ar1,ylab=expression(phi[1]),col = "lightblue")
+stripchart(ca533.stats$ar1, vertical = TRUE,  
+           method = "jitter", jitter = 0.02,add = TRUE, pch = 20, col = 'darkblue',cex=1.25)
+ar1Quant <- quantile(ca533.stats$ar1,probs = c(0.25,0.5,0.75))
+abline(h=ar1Quant,lty="dashed",col="grey")
+mtext(text = names(ar1Quant),side = 4,at = ar1Quant,las=2)
+library(ggplot2)
+ar1 <- data.frame(x="base",y=ca533.stats$ar1)
+ggplot(ar1,aes(x,y)) + geom_boxplot(width=.2) +
+  geom_jitter(width=0.1) + 
+  labs(y=expression(phi[1]),x=element_blank()) +
+  theme_minimal()
+ca533.rwi <- detrend(rwl = base_rwl, method = "ModNegExp")
+nrow(ca533.rwi) # 1358 years
+ncol(ca533.rwi) # 34 series
+colMeans(ca533.rwi, na.rm=TRUE)
+CAM011.rwi <- detrend.series(y = base_rwl[, "obj1"],verbose=TRUE)
+ca533.ids <- read.ids(base_rwl, stc = c(3, 2, 1))
+rwi.stats(ca533.rwi, ca533.ids, prewhiten=TRUE)
+ca533.rho <- interseries.cor(ca533.rwi, prewhiten=TRUE,
+                             method="spearman")
+ca533.rho[1:34, ]
+mean(ca533.rho[, 1])
+ca533.crn <- chron(ca533.rwi)
+dim(ca533.rwi)
+dim(ca533.crn)
+plot(ca533.crn, add.spline=TRUE, nyrs=20)
+ca533
+write.csv(ca533, file="LABO.csv")
+
+####multinomial logistic regression###
+base<-read.csv2("C:/Users/moste/OneDrive/Bureau/AYMEN.csv", check.names = F, header = T)
+print(names(base1))
+dim(base1)
+base<-base[,:11]
+library(sp)
+data(meuse)
+coordinates(meuse) = ~x+y
+data(meuse.grid)
+gridded(meuse.grid) = ~x+y
+m <- vgm(.59, "Sph", 874, .04)
+# ordinary kriging:
+x <- krige(log(zinc)~1, meuse, meuse.grid, model = m)
+[using ordinary kriging]
+spplot(x["var1.pred"], main = "ordinary kriging predictions")
+base
+
+
+###glm###
+##verification de la multicoliniarité par vif si la valeur est au dessous de 5 il n y a pas de multicolinéarité 
+vif(lm(WQI ~ ., data = base1))
+glm( CE~TEMPERATURE+HCO3+SO4+Cl, family=poisson, data=base)
+model <- glm(CE ~., data = base, family = gaussian)
+summary(model)
+$coef
+model
+data("PimaIndiansDiabetes2", package = "mlbench")
+base <- na.omit(base)
+# Inspect the data
+sample_n(base, 3)
+# Split the data into training and test set
+set.seed(123)
+training.samples <- base$IQE %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- base[training.samples, ]
+test.data <- base[-training.samples, ]
+model <- glm( IQE ~., 
+              data = train.data, family = poisson())
+summary(model)$coef
+summary(model)
+model <- glm( IQE ~., data = train.data)
+coef(model)
+summary(model )$coef
+###glm mixte ###
+library(lme4)
+library(dplyr)
+model <- lmer(CEC ~ Ph + EC + Carbone_Organique + Potassium + Calcium + Sodium + Azote + Humidite + Phosphore + magnesium + (1 | SITE), data = base)
+summary(glmm_model1)
+###glm famille quasi poisson
+#une matrice de correlation pour exclure les variables fortement corrélées
+alias(glmm_model1)
+lm_model <- lm(Mg ~  TH + Ca, data = base)
+# Calculer le VIF
+vif_values <- vif(meta_model)
+
+# Afficher les valeurs VIF
+print(vif_values)
+cor_matrix <- cor(base[, c("Crops_richness", "Tree_layer", "Land_cover","Shrub_layer")])
+print(cor_matrix)
+base <- subset(base, select = -Herb_layer)
+print(names(bas
+            e))
+
+library(MASS)
+library(MuMIn)
+# Calculer le R² marginal et conditionnel
+r_squared <- r.squaredGLMM(glmm_model_lme4)
+
+# Afficher les résultats
+print(r_squared)
+library(performance)
+check_overdispersion(glm_model_poisson)
+# Ajuster le modèle GLMM avec une famille quasi-Poisson
+glmm_model1 <- glmer(CE ~ T + PH + Tur + SAL + Cl + NO3 + K + NH4 + O2_Dissous + NO2 + PO43 + (1 | statios), 
+  family = Gamma(link = "log"),
+  data = base_scaled
+)
+glmm_model1 <- glmer(CE ~ T + PH + Tur + SAL + Cl + NO3 + K + NH4 + O2_Dissous + NO2 + PO43 + (1 | statios), 
+                     family = Gamma(link = "log"),
+                     data = base_scaled,
+                     control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 100000))
+)
+r_squared <- r.squaredGLMM(glmm_model1)
+
+# Afficher les résultats
+print(r_squared)
+library(performance)
+check_overdispersion(glmm_model1)
+#AIC/BIC : Des valeurs plus faibles indiquent un meilleur modèle en termes de compromis entre ajustement et complexité.
+#Log-Likelihood : Plus la valeur est élevée, mieux le modèle ajuste les données.
+# Résumé du modèle
+summary(glmm_model1)
+###transformation en normalité 
+##racine carrée pour biais modéré:
+#sqrt(x) pour les données asymétriques positives,
+#sqrt(max(x+1) - x) pour les données asymétriques négatives
+#log pour une plus grande asymétrie:
+#log10(x) pour les données asymétriques positives,
+#log10(max(x+1) - x) pour les données asymétriques négatives
+#inverse pour une asymétrie sévère:
+#1/x pour les données asymétriques positives
+1/(max(x+1) - x) pour les données asymétriques négatives
+library(moments)
+skewness(base$CEC, na.rm = TRUE)
+base$CEC <- log10(base$CEC)
+base$CEC <- log10(max(base$CEC+1) - base$CEC)
+base$EC<-1/(base$EC)
+base$EC<-sqrt(base$EC)
+print(names(base))
+
