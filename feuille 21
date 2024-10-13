@@ -1,0 +1,140 @@
+###VORONOI##
+df<-read.csv2("D:/moste/OneDrive/Bureau/NORHANE.csv",  header= T, check.names = F,row.names="SPECIES")
+df<-df[1:6,]
+df1
+set.seed(42)
+x <- runif(20)
+x
+y <- runif(20)
+y
+z <- deldir(x,y,rw=c(0,1,0,1))
+z
+w <- tile.list(z)
+plot(w)
+ccc <- heat.colors(20) # Or topo.colors(20), or terrain.colors(20)
+# or cm.colors(20), or rainbow(20).
+plot(w,fillcol=ccc,close=TRUE)
+if(require(polyclip)) {
+  CP  <- list(x=c(0.49,0.35,0.15,0.20,0.35,0.42,
+                  0.43,0.62,0.46,0.63,0.82,0.79),
+              y=c(0.78,0.86,0.79,0.54,0.58,0.70,
+                  0.51,0.46,0.31,0.20,0.37,0.54))
+  cul <- rainbow(10)[c(1,7,3:6,2,8:10)] # Rearranging colours to improve
+  # the contrast between contiguous tiles.
+  plot(w,clipp=CP,showpoints=FALSE,fillcol=cul)
+}
+plot(w,labelPts=TRUE,col.lbls="red")
+plot(w,labelPts=TRUE,col.lbls="red",cex=0.5)
+plot(w,showpoints=TRUE,labelPts=TRUE,col.pts="green",col.lbls="red")
+
+###
+install.packages("ggvoronoi")
+# install.packages("ggplot2")
+library(ggvoronoi)
+library(ggplot2)
+# Data
+set.seed(1)
+x <- sample(1:400, size = 100)
+x
+y <- sample(1:400, size = 100)
+y
+dist <- sqrt((x - 200) ^ 2 + (y - 200) ^ 2)
+
+df <- data.frame(x, y, dist = dist)
+
+ggplot(df, aes(x, y)) +
+  stat_voronoi(geom = "path") 
+
+data <- data.frame(
+  'Study_Station' = c('ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6'),
+  'LONGITUDE' = c(7.9950306, 8.0057028, 8.0253944, 8.0981389, 8.1676667, 8.3616361),
+  'LATITUDE' = c(36.2723639, 36.2706917, 36.300325, 36.31525, 36.3398611, 36.4069306),
+  'WA_WQI' = c(234.875, 128.62, 86.89, 75.33, 203.1, 195.56)
+)
+
+# Afficher le dataframe
+print(data)
+# Charger le package deldir
+library(deldir)
+
+# Créer un objet de tessellation de Voronoi
+tesselation <- deldir(data$LONGITUDE, data$LATITUDE)
+
+# Afficher la tessellation
+print(tesselation)
+
+# Calculate Voronoi Tesselation and tiles
+tesselation <- deldir(LONGITUDE, LATITUDE)
+tiles <- tile.list(tesselation)
+
+plot(tiles, pch = 19)
+plot(tiles, pch = 19,
+     number = TRUE, fill = WA_WQI)
+plot(tiles, pch = 19, labelPts = TRUE, fill = data$WA_WQI)
+ggplot(base, aes(LONGITUDE, LATITUDE, fill = data$WA_WQI)) +
+  geom_voronoi() +
+  geom_point()
+
+# Créer le dataframe df en utilisant les données de votre dataframe existant
+df <- data.frame(
+  Study_Station = data$Study_Station,
+  LONGITUDE = data$LONGITUDE,
+  LATITUDE = data$LATITUDE,
+  WA_WQI = data$WA_WQI
+)
+
+# Afficher le dataframe df
+print(df)
+library(ggvoronoi)
+library(ggplot2)
+
+ggplot(df, aes(LONGITUDE, LATITUDE)) +
+  stat_voronoi(geom = "path")
+ggplot(df, aes(LONGITUDE, LATITUDE)) +
+  stat_voronoi(geom = "path") +
+  geom_point()
+ggplot(df, aes(LONGITUDE, LATITUDE, fill = WA_WQI)) +
+  geom_voronoi() +
+  geom_text(aes(label = `Study Station`), vjust = 1.5, hjust = 0.5, size = 3)+
+  geom_point()
+df
+df<-df[1:8,]
+ggplot(df, aes(LONGITUDE, LATITUDE, fill = WA_WQI)) +
+  geom_voronoi(color = "yellow", aes(group = id)) +
+  geom_point() +
+  geom_text(aes(label = `Study Station`), vjust = 1.5, hjust = 0.5, size = 3)
+
+ggplot(df, aes(LONGITUDE, LATITUDE, fill = WA_WQI)) +
+  geom_voronoi() +
+  stat_voronoi(geom = "path") +
+  geom_point()
+ggplot(df, aes(LONGITUDE, LATITUDE, fill = WA_WQI)) +
+  geom_voronoi(color = "yellow", aes(group = id)) +
+  geom_point() +
+  geom_text(aes(label = `Study Station`), vjust = 1.5, hjust = 0.5, size = 3)
+###diagram de voronoi opi + WA_WQI###
+ggplot(df, aes(LONGITUDE, LATITUDE, fill = WA_WQI)) +
+  geom_voronoi() +
+  geom_text(aes(label = `Study Station`), vjust = 1.5, hjust = 0.5, aes(size = OPI)) +
+  geom_point(aes(size = OPI), color = "gre") +
+  scale_size_continuous(name = "OPI") +  # Optionnel: Ajoute une légende pour la taille
+  theme_minimal()  # Optionnel: Applique un thème minimal pour améliorer l'apparence
+
+ggplot(df, aes(LONGITUDE, LATITUDE, fill = WA_WQI)) +
+  geom_voronoi() +
+  geom_text(aes(label = `Study Station`, size = OPI), vjust = 2, hjust = 0.5) +
+  geom_point(aes(size = OPI), color = "red") +
+  scale_size_continuous(name = "OPI") +  # Optionnel: Ajoute une légende pour la taille
+  theme_minimal()  # Optionnel: Applique un thème minimal pour améliorer l'apparence
+
+# Créer un dataframe avec les données fournies
+data <- data.frame(
+  'Study_Station' = c(1:21), # Générer une séquence de 1 à 21 pour les stations d'étude
+  'LONGITUDE' = c(-0.711152, -0.11457, -0.733454, -0.329115, -0.50193, -0.18047, -0.38707, -0.504054, -0.506616, -0.288126, -0.353169, -0.39836, -0.354758, -0.716042, -0.810801, -0.736484, -0.241607, -0.815072, -0.464455, -0.60481, -0.210002),
+  'LATITUDE' = c(34.553155, 34.57342, 35.24049, 34.593752, 34.786333, 35.24846, 34.68041, 34.635759, 34.639784, 34.7911, 34.759732, 34.668143, 34.83418, 35.027513, 35.068178, 34.911643, 34.090414, 34.501216, 34.68702, 35.005486, 34.702278),
+  'WA_WQI' = c(76, 87, 56, 45, 78, 87, 97, 56, 45, 65, 67, 76, 233, 76, 32, 34, 54, 65, 76, 56, 54)
+)
+
+# Afficher le dataframe
+print(data)
+
