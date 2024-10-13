@@ -1,0 +1,177 @@
+###chord diagram###
+base1<-base[1:8,]
+base1
+
+# Installer les packages nécessaires
+install.packages(c("geodata", "raster", "rgdal", "sp", "sf", "rnaturalearth", "rnaturalearthdata"))
+library(geodata)
+library(raster)
+library(rgdal)
+library(sp)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+# Télécharger les données climatiques de WorldClim avec geodata
+temp <- worldclim_global(var = "tavg", res = 10, path = tempdir())
+prec <- worldclim_global(var = "prec", res = 10, path = tempdir())
+temp
+# Définir les limites géographiques de Skikda (approximativement)
+xmin <- 6.5
+xmax <- 7.5
+ymin <- 36.5
+ymax <- 37.5
+
+# Créer une étendue spatiale pour Skikda
+extent_skikda <- extent(xmin, xmax, ymin, ymax)
+
+# Recadrer les données climatiques sur la région de Skikda
+temp_skikda <- crop(temp, extent_skikda)
+prec_skikda <- crop(prec, extent_skikda)
+
+# Visualiser la température moyenne pour la région de Skikda
+plot(temp_skikda[[1]], main="Température Moyenne - Skikda")
+
+# Visualiser la précipitation pour la région de Skikda
+plot(prec_skikda[[1]], main="Précipitation - Skikda")
+###
+class_prediction <-
+  ifelse(probability_prediction > 0.50,
+         "positive_class",
+         "negative_class"
+  )
+data <- data.frame(
+  param1 = rnorm(100),
+  param2 = rnorm(100),
+  param3 = rnorm(100),
+  IQE = rnorm(100)
+)
+data
+###neural network###
+iris <- iris %>% mutate_if(is.character, as.factor)
+head(iris)
+summary(iris)
+iris
+set.seed(245)
+data_rows <- floor(0.80 * nrow(iris))
+train_indices <- sample(c(1:nrow(iris)), data_rows)
+train_data <- iris[train_indices,]
+test_data <- iris[-train_indices,]
+model = neuralnet(
+  Species~Sepal.Length+Sepal.Width+Petal.Length+Petal.Width,
+  data=train_data,
+  hidden=c(4,9),
+  linear.output = FALSE
+)
+plot(model,rep = "best")
+pred <- predict(model, test_data)
+labels <- c("setosa", "versicolor", "virginca")
+prediction_label <- data.frame(max.col(pred)) %>%     
+  mutate(pred=labels[max.col.pred.]) %>%
+  select(2) %>%
+  unlist()
+
+table(test_data$Species, prediction_label)
+check = as.numeric(test_data$Species) == max.col(pred)
+accuracy = (sum(check)/nrow(test_data))*100
+print(accuracy)
+prediction_label
+iris
+test_data
+check
+plot_predictions(test_data, prediction_label):
+  plt.plot(test, color="gray", label="Real")
+plt.plot(predicted, color="red", label="Predicted")
+plt.title("MasterCard Stock Price Prediction")
+plt.xlabel("Time")
+plt.ylabel("MasterCard Stock Price")
+plt.legend()
+plt.show()
+
+###300 DPI 
+package imager and magick
+chemin_vers_image <- "C:/Users/moste/Downloads/Capture d’écran 2024-08-06 001626.jpg"
+
+# Read the image with imager
+image_imager <- load.image(chemin_vers_image)
+
+# Boost resolution by resizing the image (e.g., double the size)
+boosted_image_imager <- resize(image_imager, size_x = 2 * dim(image_imager)[1], size_y = 2 * dim(image_imager)[2])
+
+# Convert imager object back to magick format
+boosted_image_magick <- image_read(as.raster(boosted_image_imager))
+
+# Save the new image with 300 DPI
+output_path <- "C:/Users/moste/OneDrive/Bureau/BOUCHERA/NORHANE12.jpg"
+image_write(boosted_image_magick, path = output_path, format = "jpg", density = "300x300")
+###
+shapefile_path <- "C:/Users/moste/OneDrive/Bureau/SHAPE FILE/SHP/DZA_adm/DZA_adm2/DZA_adm/DZA_adm1.shp"
+algeria_wilayas <- st_read(shapefile_path)
+print(head(algeria_wilayas))
+oum_el_bouaghi <- algeria_wilayas[algeria_wilayas$name == "Oum el Bouaghi", ]
+print(oum_el_bouaghi)
+oum_el_bouaghi <- algeria_wilayas[grepl("Oum el Bouaghi", algeria_wilayas$NAME_1, ignore.case = TRUE), ]
+plot(oum_el_bouaghi["NAME_1"])
+###distance betewen points and coastal mediterranean ##
+shapefile_path <- "C:/Users/moste/OneDrive/Bureau/SHAPE FILE/SHP"
+oceans <- st_read(shapefile_path)
+mediterranean <- oceans %>% filter(name == "Mediterranean Region")
+pnts <- data.frame(
+lon = c(7.9950306, 8.0057028, 8.0253944, 8.0981389, 8.1676667, 8.3616361, 8.3616361, 8.3679306, 7.0891667),
+lat = c(36.2723639, 36.2706917, 36.300325, 36.31525, 36.3398611, 36.4069306, 36.4069306, 36.4115972, 35.88))
+##Convertir les points en objets sf
+pnts_sf <- st_as_sf(pnts, coords = c("lon", "lat"), crs = 4326)
+distances <- st_distance(pnts_sf, mediterranean)
+##Afficher les distances
+print(distances)
+fix(distances) 
+###données climatiques###
+# Augmenter le timeout pour les téléchargements
+library(raster)
+library(ncdf4)
+options(timeout = 300)
+
+# Définir les années restantes à télécharger
+years_remaining <- 1992:2021
+
+for (year in years_remaining) {
+  # URL pour télécharger les données
+  url <- paste0("https://climate.northwestknowledge.net/TERRACLIMATE-DATA/TerraClimate_ppt_", year, ".nc")
+  destfile <- paste0("TerraClimate_ppt_", year, ".nc")
+  
+  # Télécharger le fichier
+  download.file(url, destfile = destfile, mode = "wb")
+}
+
+###carte des precipitations skikda 
+# Load necessary libraries
+library(sf)
+library(raster)
+library(ggplot2)
+library(viridis)  # For color scales
+
+precipitation_raster <- raster("C:/Users/moste/OneDrive/Documents/PRECIPITATIONS MOYENNE 1992-2021.tif")
+# Charger le shapefile de la wilaya de Skikda
+algeria_shapefile <- st_read("D:/moste/OneDrive/Bureau/SHAPE FILE/SHP/DZA_adm/DZA_adm2/DZA_adm/DZA_adm1.shp")
+skikda_shape <- algeria_shapefile[algeria_shapefile$NAME_1 == "Skikda", ]
+
+# Augmenter la résolution du raster en utilisant l'interpolation bilinéaire
+# Exemple : Facteur de 8 pour augmenter davantage la résolution
+high_res_raster <- disaggregate(precipitation_raster, fact = 8)
+
+# Recadrer et masquer le raster haute résolution pour Skikda
+skikda_precip_high_res <- crop(high_res_raster, st_bbox(skikda_shape))
+skikda_precip_masked_high_res <- mask(skikda_precip_high_res, skikda_shape)
+
+# Convertir le raster haute résolution en dataframe pour ggplot
+skikda_precip_df_high_res <- as.data.frame(rasterToPoints(skikda_precip_masked_high_res), stringsAsFactors = FALSE)
+names(skikda_precip_df_high_res) <- c("x", "y", "precipitation")
+
+# Créer la carte de précipitation avec le raster haute résolution
+ggplot() +
+  geom_raster(data = skikda_precip_df_high_res, aes(x = x, y = y, fill = precipitation)) +
+  scale_fill_viridis_c(option = "C", direction = -1) +
+  geom_sf(data = skikda_shape, fill = NA, color = "black", size = 0.5) +
+  labs(title = "Average Precipitation in Skikda (1992-2021)",
+       x = "Longitude", y = "Latitude", fill = "Precipitation (mm)") +
+  theme_minimal()
