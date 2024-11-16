@@ -16,7 +16,6 @@ base
 res.pca <- PCA(variables, graph = FALSE)
 res.pca
 fviz_eig(res.pca)
-data("USArrests")
 res.pca <- PCA(variables, graph = FALSE)
 
 eig.val <- get_eigenvalue(res.pca)
