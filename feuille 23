@@ -1,137 +1,274 @@
-###acp###
+base<-read.csv2("D:/moste/OneDrive/Bureau/LAKOUK.csv",  header= T, check.names = F)
+View(base)## refers to our dataframe that contains a value of each parametres
+###step 1: consist to select only the most important variables using PCA###
+## PACKAGES for PCA visualisation:###
 library(FactoMineR)
 library(factoextra)
 library(corrplot)
 library(ggrepel)
-dim(base)
-fix(base)
-base1<-base[1:159,]
-base2<-base[160:318,]
-base3<-base[319:477,]
-base4<-base[478:636,]
 variables<-base
-variables <- base[, 1:8]
-variables
-base
 res.pca <- PCA(variables, graph = FALSE)
 res.pca
 fviz_eig(res.pca)
 res.pca <- PCA(variables, graph = FALSE)
+###First of all we should select the retained dimensions of PCA:###
+eig.val <- get_eigenvalue(res.pca)###using the get_eignvalue function###
+eig.val ### from the KAISER rule we should take into consideration only the dimensions that have eigenvalue grather than 1(in this case we have 4 dimensions)
 
-eig.val <- get_eigenvalue(res.pca)
-eig.val
+### after the prcess of selction of dimension we should select only the 2 most important variables that contribute on the formation of  the fourth axes (2 that have the higher value of contribution for each axes)##
+### we need also to visualise the correlation matrix 
+###check the correltaion between parametres 
+cor_matrix <- cor(variables)
+# Visualization of the correlation matrix for more detailed insights and information:
+print(cor_matrix)
+library(corrplot)
+corrplot(cor_matrix, method = "number")
+corrplot(cor_matrix, method = "circle")
+###extract the most important variables of each dimension
 var <- get_pca_var(res.pca)
 var
 corrplot(var$contrib, is.corr=FALSE) 
 var$contrib
-weight<-var$contrib
-weight
-weight<-weight[,1]
-weight
-var$contrib
-
-fviz_contrib(res.pca, choice = "var", axes = 4)
-fviz_pca_biplot(res.pca, repel = TRUE)
-fviz_pca_var(res.pca, repel = TRUE)
-fviz_pca_var(res.pca, repel = TRUE, axes = c(2, 3))
-S<-1/base4
-S
-sum(S[1, ], na.rm = TRUE)
-K<-1/7.116936
-K
-WI<-K/base4
-WI
-sum(WI[1, ], na.rm = TRUE)
-q1<-base[1:159,1:7]/base[160:318,1:7]
-q1<-q1*100
-q1
-write.xlsx(WQI_WA, file="D:/moste/OneDrive/Bureau/WQI_WA.xlsx")
-qPH<-base[1:159,(9)]-7
-qPH<-qPH/2
-qPH<-qPH*100
-qPH
-qPH<-data.frame(qPH)
-qPH
-qO2<-base[1:159,(8)]-14.6
-qO2<-qO2/-7.6
-qO2<-qO2*100
-qO2<-data.frame(qO2)
-qO2
-WQI<-base3*WI
-WQI
-sum(WQI[1, ], na.rm = TRUE)
-WQI_WA <- rowSums(WQI, na.rm = TRUE)
-WQI_WA
-WQI_WA<-data.frame(WQI_WA)
-WQI_WA
-write.xlsx(WQI_WA, file="D:/moste/OneDrive/Bureau/base1.xlsx")
-###nouveau indice de qualité d'eau ###
-base<-read.csv2("D:/moste/OneDrive/Bureau/NMDS.csv",  header= T, check.names = F)
-dim(base)
-fix(base)
-base1<-base[1:159,]
-base2<-base[160:318,]
-base3<-base[319:477,]
-base4<-base[478:636,]
-variables<-base
-variables <- base[, 1:8]
-variables
-base
-res.pca <- PCA(variables, graph = FALSE)
-res.pca
-fviz_eig(res.pca)
-data("USArrests")
-res.pca <- PCA(variables, graph = FALSE)
-
-eig.val <- get_eigenvalue(res.pca)
-eig.val
-var <- get_pca_var(res.pca)
-var
-corrplot(var$contrib, is.corr=FALSE) 
-var$contrib
-weight<-var$contrib
-weight<-1/weight
-weight<-weight[,1]
-weight
-var$contrib
-
-fviz_contrib(res.pca, choice = "var", axes = 4)
-fviz_pca_biplot(res.pca, repel = TRUE)
-fviz_pca_var(res.pca, repel = TRUE)
-fviz_pca_var(res.pca, repel = TRUE, axes = c(1, 4))
-S<-1/base4
-S
+### We should consider the correlation matrix to eliminate variables that have high correlation(grather than 0.7) values with each other.
+fviz_contrib(res.pca, choice = "var", axes = 1)###only the CE have selected(we select the first parametres (variables) following their contrib value in formation of the first dim(axe), but we have eliminated the TH and CaCO3 for the reason of higher correlation )
+fviz_contrib(res.pca, choice = "var", axes = 2)###The saturation rate, O2 dissolved, and turbidity (which replaced the second most important variables in dimension 1) were selected based on their contribution values in forming the second dimension (axis). We replaced turbidity in place of TH (hardness) based on this selection
+fviz_contrib(res.pca, choice = "var", axes = 3)###NH4 and PO43 is selected (we select the 2 first parametres (variables) following their contrib value in formation of the third dim(axe))
+fviz_contrib(res.pca, choice = "var", axes = 4)###NO3 and NO2 were selected because PO43 is found in the third dimension, and turbidity (which occupies the third position) was also selected. Therefore, we chose the third most important variable in the third dimension, which is nitrite (NO2). So, we selected the first two parameters based on their contribution values in forming the fourth dimension (axis)
+##the total parametres selected is (CE, saturation rate, O2 dissolved,  turbidity, NH4, PO43, NO3 and NO2)
+###the contribution value of each parametres for the fourth top dimension
+var$contrib["CE",1:4]
+var$contrib["Saturation",1:4]
+var$contrib["O2_Dissous",1:4]
+var$contrib["Tur",1:4]
+var$contrib["NH4",1:4]
+var$contrib["PO43",1:4]
+var$contrib["NO3",1:4]
+var$contrib["NO2",1:4]
+##After the process of selecting the 8 parameters, we need to calculate the Weighting Arithmetic Water Quality Index (WA_WQI)
+base<-read.csv2("D:/moste/OneDrive/Bureau/IQE1.csv",  header= T, check.names = F)
+base1<-base[1:159,]##This dataframe contains the results of all 8 parameters across all stations in the study. 
+base2<-base[160:318,]##refers to the standard limit of each paramteres
+head(base1)
+### the standar limitaiton of the 8 parametres:NO2	CE	Tur	NO3	NH4	Saturation	PO43	O2_Dissous
+# standard value for each paramètre
+NO2 <- 0.03
+CE <- 2500
+Tur <- 1
+NO3 <- 50
+NH4 <- 0.5
+Saturation <- 70
+PO43 <- 0.1
+O2_Dissous <- 7
+df <- data.frame(NO2, CE, Tur, NO3, NH4, Saturation, PO43, O2_Dissous)
+print(df)
+###We need to repeat the standard values to match the 159 rows in our results. 
+df <- data.frame(
+  NO2 = rep(NO2, 159),
+  CE = rep(CE, 159),
+  Tur = rep(Tur, 159),
+  NO3 = rep(NO3, 159),
+  NH4 = rep(NH4, 159),
+  Saturation = rep(Saturation, 159),
+  PO43 = rep(PO43, 159),
+  O2_Dissous = rep(O2_Dissous, 159)
+)
+base2<-df
+head(base1)###results value of 8 parametres selected
+head(base2)###base2 represnt the standard value of each paramaters
+###Step 2: calculating the WA_WQI
+S<-1/base2
+head(S)
 ES<-sum(S[1, ], na.rm = TRUE)
 ES
-K<-1/2.046424
+K<-1/ES
 K
-WI<-K/base4
+WI<-K/base2
 WI
-sum(WI[1, ], na.rm = TRUE)
-q1<-base[1:159,1:8]/base[160:318,1:8]
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+###We calculate the ratio of the value to the standard value, then multiply it by 100(there is an exception for O2_DISOLVED and PH(if is it selection).
+q1<-base[1:159,1:7]/base2[1:159,1:7]
 q1<-q1*100
-q1
-write.xlsx(base_standardized, file="C:/Users/moste/OneDrive/Bureau/base_standardized.xlsx")
-qPH<-base[1:159,(9)]-7
-qPH<-qPH/2
-qPH<-qPH*100
-qPH
-qPH<-data.frame(qPH)
-qPH
-qO2<-base[1:159,(10)]-14.6
-qO2<-qO2/-7.6
-qO2<-qO2*100
-qO2<-data.frame(qO2)
-qO2
-WQI<-base3*WI
-WQI
-sum(WQI[1, ], na.rm = TRUE)
-WQI_WA <- rowSums(WQI, na.rm = TRUE)
-WQI_WA
-WQI_WA<-data.frame(WQI_WA)
-WQI_WA
-base<-read.csv2("C:/Users/moste/OneDrive/Bureau/NMDS.csv",  header= T, check.names = F)
+head(q1)
+View(q1)
+##if you want to extract the results...
+#write.xlsx(q1, file="D:/moste/OneDrive/Bureau/q1.xlsx")
+###this part is an exception for Ph but we dont need to run it only if we have selected PH##
+#qPH<-base[1:159,(9)]-7#
+#qPH<-qPH/2
+#qPH<-qPH*100
+#qPH
+#qPH<-data.frame(qPH)
+#qPH
+#caculation of the q1 value of the exception parameters O2_DISOLVED  
+O2_Dissous<-base1[1:159,(8)]-14.6
+O2_Dissous<-O2_Dissous/(7-14.6)
+O2_Dissous<-O2_Dissous*100
+O2_Dissous<-data.frame(O2_Dissous)
+head(O2_Dissous)
+# add O2_Dissous as eithenth colmn of q1
+q1$O2_Dissous <- O2_Dissous
+head(q1)
+##applied the equation
+AW_WQI<-q1*WI
+AW_WQI
+sum(AW_WQI[1, ], na.rm = TRUE)##summarize per sample
+AW_WQI <- rowSums(AW_WQI, na.rm = TRUE)
+summary(AW_WQI)
+#if you want transform as a data frame 
+AW_WQI<-data.frame(AW_WQI)
+#View(AW_WQI)
+###if you need to excract the results 
+#write.xlsx(AW_WQI, file="D:/moste/OneDrive/Bureau/AW_WQI.xlsx")
+###We need to check multicollinearity using the vif function from the car package
+base1$AW_WQI <-AW_WQI
+names(base1)
+library(car)
+modele <- lm(AW_WQI ~NO2 + CE + Tur + NO3 + NH4 + Saturation + PO43 + O2_Dissous, data = base1)
+vif_values <- vif(modele)
+# Afficher les valeurs VIF
+print(vif_values)###all thevif values as less than 5.
+###new water quality index based on the calucation the index of each dimensions(axes) of PCA, the only differce is replaced the standards values by contribution value of formation of dimensions BUUUUUT WHEN WE CALCULATE ONLY THE WEITHED VALUE WI.
+NO2<-var$contrib["NO2",1]
+CE<-var$contrib["CE",1]##contrib value of CE to formation of the first axe 
+Tur<-var$contrib["Tur",1]
+NO3<-var$contrib["NO3",1]
+NH4<-var$contrib["NH4",1]
+Saturation<-var$contrib["Saturation",1]
+PO43<-var$contrib["PO43",1]
+O2_Dissous<-var$contrib["O2_Dissous",1]
+
+df <- data.frame(NO2, CE, Tur, NO3, NH4, Saturation, PO43, O2_Dissous)
+print(df)
+###We need to repeat the standard values to match the 159 rows in our results. 
+df <- data.frame(
+  NO2 = rep(NO2, 159),
+  CE = rep(CE, 159),
+  Tur = rep(Tur, 159),
+  NO3 = rep(NO3, 159),
+  NH4 = rep(NH4, 159),
+  Saturation = rep(Saturation, 159),
+  PO43 = rep(PO43, 159),
+  O2_Dissous = rep(O2_Dissous, 159)
+)
+base_D1<-df
+View(base_D1)
+###represents the contribution value of each parametres for the first dimension
+###Step 2: calculating the WQI_D1
+S<-1/base_D1
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+K<-1/ES
+K ###THE CONSTANT K
+WI<-K/base_D1
+WI
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+###We calculate the ratio of the value to the standard value, then multiply it by 100(there is an exception for O2_DISOLVED and PH(if is it selection).
+q1<-base1[1:159,1:7]/base2[1:159,1:7]
+q1<-q1*100
+head(q1)
+##if you want to extract the results...
+#write.xlsx(q1, file="D:/moste/OneDrive/Bureau/q1.xlsx")
+###this part is an exception for Ph but we dont need to run it only if we have selected PH##
+#qPH<-base[1:159,(9)]-7#
+#qPH<-qPH/2
+#qPH<-qPH*100
+#qPH
+#qPH<-data.frame(qPH)
+#qPH
+#caculation of the q1 value of the exception parameters O2_DISOLVED 
+O2_Dissous<-base1[1:159,(8)]-14.6
+O2_Dissous<-O2_Dissous/(7-14.6)
+O2_Dissous<-O2_Dissous*100
+O2_Dissous
+# add O2_Dissous as eighth colmn of q1
+q1$O2_Dissous <- O2_Dissous
+head(q1)
+##applied the equation
+WQI_D1<-q1*WI
+WQI_D1
+sum(WQI_D1[1, ], na.rm = TRUE)##summarize per sample
+WQI_D1 <- rowSums(WQI_D1, na.rm = TRUE)
+WQI_D1
+WQI_D1<-data.frame(WQI_D1)
+summary(WQI_D1)
+write.xlsx(WQI_D1, file="D:/moste/OneDrive/Bureau/WQI_D1.xlsx")
+aaaaaaaaaaa
+###DIM2
+NO2<-var$contrib["NO2",2]
+CE<-var$contrib["CE",2]##contrib value of CE to formation of the first axe 
+Tur<-var$contrib["Tur",2]
+NO3<-var$contrib["NO3",2]
+NH4<-var$contrib["NH4",2]
+Saturation<-var$contrib["Saturation",2]
+PO43<-var$contrib["PO43",2]
+O2_Dissous<-var$contrib["O2_Dissous",2]
+
+df <- data.frame(NO2, CE, Tur, NO3, NH4, Saturation, PO43, O2_Dissous)
+print(df)
+###We need to repeat the standard values to match the 159 rows in our results. 
+df <- data.frame(
+  NO2 = rep(NO2, 159),
+  CE = rep(CE, 159),
+  Tur = rep(Tur, 159),
+  NO3 = rep(NO3, 159),
+  NH4 = rep(NH4, 159),
+  Saturation = rep(Saturation, 159),
+  PO43 = rep(PO43, 159),
+  O2_Dissous = rep(O2_Dissous, 159)
+)
+base_D2<-df
+head(base_D1)###represents the contribution value of each parametres for the first dimension
+###Step 2: calculating the WQI_D1
+S<-1/base_D2
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+K<-1/ES
+K ###THE CONSTANT K
+WI<-K/base_D2
+WI
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+###We calculate the ratio of the value to the standard value, then multiply it by 100(there is an exception for O2_DISOLVED and PH(if is it selection).
+q1<-base1[1:159,1:7]/base2[1:159,1:7]
+q1<-q1*100
+head(q1)
+##if you want to extract the results...
+#write.xlsx(q1, file="D:/moste/OneDrive/Bureau/q1.xlsx")
+###this part is an exception for Ph but we dont need to run it only if we have selected PH##
+#qPH<-base[1:159,(9)]-7#
+#qPH<-qPH/2
+#qPH<-qPH*100
+#qPH
+#qPH<-data.frame(qPH)
+#qPH
+#caculation of the q1 value of the exception parameters O2_DISOLVED 
+O2_Dissous<-base1[1:159,(8)]-14.6
+O2_Dissous<-O2_Dissous/(7-14.6)
+O2_Dissous<-O2_Dissous*100
+O2_Dissous
+# add O2_Dissous as eighth colmn of q1
+q1$O2_Dissous <- O2_Dissous
+head(q1)
+##applied the equation
+WQI_D2<-q1*WI
+WQI_D2
+sum(WQI_D2[1, ], na.rm = TRUE)##summarize per sample
+WQI_D2 <- rowSums(WQI_D2, na.rm = TRUE)
+WQI_D2
+WQI_D2<-data.frame(WQI_D2)
+summary(WQI_D1)
+write.xlsx(WQI_P, file="D:/moste/OneDrive/Bureau/WQI_P.xlsx")
+
+p<-read.csv2("D:/moste/OneDrive/Bureau/MALAK2.csv")
+names(p)
+WQI_P<-((p$WQI_D1*47.20397823)/73.65070)+((p$WQI_D2*11.37620373)/73.65070)+((p$WQI_D3*8.28996521)/73.65070)+((p$WQI_D4*6.78055218)/73.65070)
+WQI_P<-data.frame(WQI_P)
+WQI_P
+
 ###DECISION TREE###
+colnames(base1)[9] <-"WQI"
+base1<-read.csv2("D:/moste/OneDrive/Bureau/IQE1.csv",  header= T, check.names = F)
 library(tidyverse)
 library(caret)
 library(rpart)
