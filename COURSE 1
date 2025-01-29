@@ -1,0 +1,22 @@
+##first course##
+base<-read.csv2("D:/moste/OneDrive/Bureau/NORHANE 2.csv", header= T, check.names = F)
+base<-read.csv2("D:/moste/OneDrive/Bureau/Species.csv", header= T, check.names = F)
+names(base)
+fix(base)
+head(base)
+dim(base)
+summary(base)
+base<-base[,1:4]
+base<-base[,c("SAISON","CE", "HUMIDITE", "Ph")]
+base
+###create a simple graph using ggplot function
+ggplot(data=base, aes(x=CE, y=Ph, color=SAISON)) + geom_point()
+ggplot(data=base, aes(x=SAISON, y=Ph, color=SAISON)) + geom_boxplot() 
+ggplot(data=base, aes(x=SAISON, y=Ph, fill=SAISON)) + geom_violin()
+ggplot(data=base, aes(x=SAISON, y=Ph, fill=SAISON)) + geom_violin()
+ggplot(data=base, aes(x=SAISON, y=Ph, color=SAISON)) + geom_tile() 
+ggplot(data=base, aes(x=CE, y=Ph, fill=SAISON)) + geom_smooth()
+ggplot(data=base, aes(x=CE, y=Ph, color=SAISON)) + geom_point()+ geom_smooth(method = lm) 
+library(gtExtras) 
+base[, c("CE", "Ph")] %>% gt_plt_summary() 
+base%>%gt_plt_summary()
