@@ -584,17 +584,4 @@ meta_sd <- sd(meta_predictions)
 meta_rmse
 meta_corr
 meta_sd
-###comment créer une équation et puis l'importer sur un fichier doc##
-library(officer)
-library(rmarkdown)
-# Créer un document Word
-doc <- read_docx()
 
-# Ajouter des équations
-doc <- doc %>%
-  body_add_par("RMSE = sqrt(1/n * Σ(yi - ŷi)²)", style = "Normal") %>%
-  body_add_par("MAE = 1/n * Σ |yi - ŷi|", style = "Normal") %>%
-  body_add_par("R² = 1 - Σ(yi - ŷi)² / Σ(yi - ȳ)²", style = "Normal")
-
-# Enregistrer le document
-print(doc, target = "equations.docx")
