@@ -1,0 +1,133 @@
+base<-read.csv2("D:/moste/OneDrive/Bureau/base.csv",  header= T, check.names = F)
+NO2 <- 0.03
+NO3 <- 2
+NH4 <- 0.5
+PO4 <- 0.1
+DCO=6
+DBO5=3
+pH=9
+base=base[,c("NO2", "No3", "NH4", "PO4", "DCO", "DBO5", "pH")]
+df <- data.frame(NO2, NO3, NH4, PO4, DCO, DBO5, pH)
+print(df)
+df <- data.frame(
+  NO2 = rep(NO2, 24),
+  NO3 = rep(NO3, 24),
+  NH4 = rep(NH4, 24),
+  PO4 = rep(PO4, 24),
+  DCO = rep(DCO, 24),
+  DBO5 = rep(DBO5, 24),
+  pH = rep(pH, 24)
+)
+base2<-df
+base1=base
+
+###Step 2: calculating the WA_WQI
+S<-1/base2
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+K<-1/ES
+K
+WI<-K/base2
+WI
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+###We calculate the ratio of the value to the standard value, then multiply it by 100(there is an exception for O2_DISOLVED and PH(if is it selection).
+q1<-base[,1:6]/base2[,1:6]
+q1<-q1*100
+head(q1)
+View(q1)
+##if you want to extract the results...
+#write.xlsx(q1, file="D:/moste/OneDrive/Bureau/q1.xlsx")
+###this part is an exception for Ph but we dont need to run it only if we have selected PH##
+pH<-base[,(7)]-7#
+pH<-qPH/2
+pH<-qPH*100
+pH
+pH<-data.frame(pH)
+pH
+# adds Saturation and O2_Dissous as eithenth colmn of q1
+q1$pH <- pH
+head(q1)
+##applied the equation
+AW_WQI<-q1*WI
+AW_WQI
+sum(AW_WQI[1, ], na.rm = TRUE)##summarize per sample
+AW_WQI <- rowSums(AW_WQI, na.rm = TRUE)
+summary(AW_WQI)
+#if you want transform as a data frame 
+AW_WQI<-data.frame(AW_WQI)
+AW_WQI
+write.xlsx(AW_WQI, file="D:/moste/OneDrive/Bureau/AW_WQI.xlsx")
+
+##calculating the OPI
+# Fonctions de classification selon les plages corrigées
+get_class_dbo5 <- function(x) {
+  if (x < 2) return(5)
+  else if (x < 5.1) return(4)
+  else if (x < 10.1) return(3)
+  else if (x < 15.1) return(2)
+  else return(1)
+}
+
+get_class_nh4 <- function(x) {
+  if (x < 0.1) return(5)
+  else if (x < 1) return(4)
+  else if (x < 2.5) return(3)
+  else if (x < 6.1) return(2)
+  else return(1)
+}
+
+get_class_no2 <- function(x) {
+  x <- x * 1000  # convertir mg/L → µg/L
+  if (x < 5) return(5)
+  else if (x < 11) return(4)
+  else if (x < 51) return(3)
+  else if (x < 151) return(2)
+  else return(1)
+}
+
+get_class_po4 <- function(x) {
+  x <- x * 1000  # convertir mg/L → µg/L
+  if (x < 15) return(5)
+  else if (x < 76) return(4)
+  else if (x < 251) return(3)
+  else if (x < 901) return(2)
+  else return(1)
+}
+
+# Appliquer les fonctions sur chaque ligne
+base$IPO_DBO5 <- sapply(base$DBO5, get_class_dbo5)
+base$IPO_NH4  <- sapply(base$NH4, get_class_nh4)
+base$IPO_NO2  <- sapply(base$NO2, get_class_no2)
+base$IPO_PO4  <- sapply(base$PO4, get_class_po4)
+
+# Calcul de l'IPO moyen
+base$IPO <- rowMeans(base[, c("IPO_DBO5", "IPO_NH4", "IPO_NO2", "IPO_PO4")], na.rm = TRUE)
+
+# Attribution d'une classe qualitative
+base$IPO_Qual <- cut(base$IPO,
+                     breaks = c(-Inf, 1.9, 2.9, 3.9, 4.5, 5.1),
+                     labels = c("very high organic pollution",
+                                "high organic pollution",
+                                "moderate organic pollution",
+                                "low organic pollution",
+                                "no organic pollution"),
+                     right = FALSE)
+
+# Afficher les résultats
+head(base[, c("DBO5", "NH4", "NO2", "PO4", "IPO", "IPO_Qual")])
+IPO<-data.frame(base$IPO)
+IPO*
+write.xlsx(IPO, file="D:/moste/OneDrive/Bureau/IPO.xlsx")
+ ##calculating the WQPI
+# Étape 1 : Normalisation de WA_WQI
+base$WA_WQI_norm <- 1 - pmin(base$AW_WQI, 100) / 100
+
+# Étape 2 : Normalisation de l'IPO
+base$IPO_norm <- (base$IPO - 1) / 4
+
+# Étape 3 : Calcul du WQPI avec α = β = 0.5
+alpha <- 0.5
+beta <- 0.5
+
+base$WQPI <- alpha * base$IPO_norm + beta * base$WA_WQI_norm
