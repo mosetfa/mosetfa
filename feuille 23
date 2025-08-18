@@ -269,6 +269,10 @@ WQI_P
 ###DECISION TREE###
 colnames(base1)[9] <-"WQI"
 base1<-read.csv2("D:/moste/OneDrive/Bureau/IQE1.csv",  header= T, check.names = F)
+head(base1)
+compute_prei <- function(observed, predicted) {
+  ((observed - predicted) / observed) * 100
+}
 library(tidyverse)
 library(caret)
 library(rpart)
@@ -283,7 +287,6 @@ training.samples <- base1$WQI %>%
 train.data  <- base1[training.samples, ]
 test.data <- base1[-training.samples, ]
 set.seed(123)
-
 dtmodelWQI<-model <- train(
   WQI   ~., data = train.data, method = "rpart",
   trControl = trainControl("cv", number = 10),
@@ -304,14 +307,17 @@ predictions_DT <- dtmodelWQI %>% predict(test.data)
 head(predictions_DT)
 # Compute the prediction error RMSE
 RMSE(predictions_DT, test.data$WQI)
-R2(predictions_DT, test.data$WQI)
 MAE(predictions_DT, test.data$WQI)
+R2(predictions_DT, test.data$WQI)
 results_DT <- data.frame(
   Observed = test.data$WQI,
   Predicted = predictions_DT
 )
 head(results_DT)
-write.xlsx(results_DT, file="C:/Users/moste/OneDrive/Bureau/results_DT.xlsx")
+results_DT$PREI <- compute_prei(results_DT$Observed, results_DT$Predicted)
+head(results_DT)
+summary(results_DT)
+write.xlsx(, file="C:/Users/moste/OneDrive/Bureau/results_DT.xlsx")
 ###randoom forest###
 base1 <- na.omit(base1)
 set.seed(123)
@@ -340,7 +346,9 @@ results_RF <- data.frame(
   Predicted = predictions_RF
 )
 head(results_RF)
-write.xlsx(results_RF, file="C:/Users/moste/OneDrive/Bureau/results_RF.xlsx")
+results_RF$PREI <- compute_prei(results_RF$Observed, results_RF$Predicted)
+summary(results_RF)
+write.xlsx(, file="C:/Users/moste/OneDrive/Bureau/results_RF.xlsx")
 ####ANN###
 library(tidyverse)
 library(neuralnet)
@@ -386,7 +394,10 @@ print(paste("RMSE:", rmse))
 RMSE(predictions_ANN, test.data$WQI)
 MAE(predictions_ANN, test.data$WQI)
 R2(predictions_ANN, test.data$WQI)
-write.xlsx(results_ANN, file="C:/Users/moste/OneDrive/Bureau/results_ANN.xlsx")
+results_ANN$PREI <- compute_prei(results_ANN$Observed, results_ANN$Predicted)
+head(results_ANN)
+summary(results_ANN)
+write.xlsx(, file="")
 ###XGBOOST
 library(tidyverse)
 library(caret)
@@ -429,7 +440,9 @@ results_XGB <- data.frame(
   Predicted = predictions_XGB
 )
 head(results_XGB)
-write.xlsx(results_XGB, file="C:/Users/moste/OneDrive/Bureau/results_XGB.xlsx")
+results_XGB$PREI <- compute_prei(results_XGB$Observed, results_XGB$Predicted)
+summary(results_XGB)
+write.xlsx(, file="C:/Users/moste/OneDrive/Bureau/results_XGB.xlsx")
 ###KNN NEIGHBORS###
 set.seed(123)
 train_control <- trainControl(method = "cv", number = 10)
@@ -455,7 +468,113 @@ results_KNN <- data.frame(
   Predicted = predictions_KNN
 )
 head(results_KNN)
-write.xlsx(results_KNN, file="C:/Users/moste/OneDrive/Bureau/results_KNN.xlsx")
+results_KNN$PREI <- compute_prei(results_KNN$Observed, results_KNN$Predicted)
+summary(results_KNN)
+write.xlsx(, file="C:/Users/moste/OneDrive/Bureau/results_KNN.xlsx")
+
+###SVM###
+library(caret)
+library(e1071)  # Nécessaire pour SVM
+
+set.seed(123)
+svm_model <- train(
+  WQI ~ ., 
+  data = train.data,
+  method = "svmLinear",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center", "scale"),  # Standardisation
+  tuneLength = 10
+)
+
+# Résumé
+print(svm_model)
+svm_model$bestTune
+
+# Prédictions
+predictions_SVM <- predict(svm_model, test.data)
+
+# Évaluation
+RMSE(predictions_SVM, test.data$WQI)
+MAE(predictions_SVM, test.data$WQI)
+R2(predictions_SVM, test.data$WQI)
+
+# Résultats
+results_SVM <- data.frame(
+  Observed = test.data$WQI,
+  Predicted = predictions_SVM
+)
+head(results_SVM)
+results_SVM$PREI <- compute_prei(results_SVM$Observed, results_SVM$Predicted)
+summary(results_SVM)
+# Export (optionnel)
+#write.xlsx(results_SVM, "C:/Users/moste/OneDrive/Bureau/results_SVM.xlsx")
+###linear regression##
+set.seed(123)
+lm_model <- train(
+  WQI ~ ., 
+  data = train.data,
+  method = "lm",
+  trControl = trainControl("cv", number = 10)
+)
+
+# Résumé
+print(lm_model)
+
+# Prédictions
+predictions_LM <- predict(lm_model, test.data)
+
+# Évaluation
+RMSE(predictions_LM, test.data$WQI)
+MAE(predictions_LM, test.data$WQI)
+R2(predictions_LM, test.data$WQI)
+
+# Résultats
+results_LM <- data.frame(
+  Observed = test.data$WQI,
+  Predicted = predictions_LM
+)
+head(results_LM)
+results_LM$PREI <- compute_prei(results_LM$Observed, results_LM$Predicted)
+summary(results_LM)
+# Export (optionnel)
+# write.xlsx(results_LM, "C:/Users/moste/OneDrive/Bureau/results_LM.xlsx")
+
+###lasso regression###
+library(glmnet)
+
+set.seed(123)
+lasso_model <- train(
+  WQI ~ ., 
+  data = train.data,
+  method = "glmnet",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center", "scale"),
+  tuneLength = 10  # Teste 10 valeurs de lambda automatiquement
+)
+
+# Résumé
+print(lasso_model)
+lasso_model$bestTune
+
+# Prédictions
+predictions_LASSO <- predict(lasso_model, test.data)
+
+# Évaluation
+RMSE(predictions_LASSO, test.data$WQI)
+MAE(predictions_LASSO, test.data$WQI)
+R2(predictions_LASSO, test.data$WQI)
+
+# Résultats
+results_LASSO <- data.frame(
+  Observed = test.data$WQI,
+  Predicted = predictions_LASSO
+)
+head(results_LASSO)
+results_LASSO$PREI <- compute_prei(results_LASSO$Observed, results_LASSO$Predicted)
+summary(results_LASSO)
+# Export (optionnel)
+# write.xlsx(results_LASSO, "C:/Users/moste/OneDrive/Bureau/results_LASSO.xlsx")
+
 ###Predicted and Observed###
 XGBP<-ggplot(results_XGB, aes(y=Predicted, x=Observed))+
   geom_point()+
