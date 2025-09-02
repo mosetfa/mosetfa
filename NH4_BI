@@ -1,0 +1,105 @@
+##NH4_BI
+## -----------------------------
+## 0) Hypothèses d'entrée
+## - titan.out$sppmax :  TITAN déjà calculé
+## - base : data.frame avec colonnes taxons + (éventuellement) NH4
+## -----------------------------
+
+## 1) Construire la table TITAN filtrée (Purity & Reliability)
+titan <- as.data.frame(titan.out$sppmax)
+titan$Taxon <- rownames(titan)
+
+# On ne garde que l'essentiel
+titan <- titan[, c("Taxon", "ienv.cp", "zscore", "maxgrp", "purity", "reliability")]
+colnames(titan) <- c("Taxon", "Threshold", "Z", "maxgrp", "Purity", "Reliability")
+
+# Filtre fiabilité
+titan <- titan[!is.na(titan$Purity) & !is.na(titan$Reliability), ]
+titan_filt <- titan[titan$Purity >= 0.7 & titan$Reliability >= 0.7, ]
+
+# Direction z- (1) / z+ (2)
+titan_filt$Direction <- ifelse(titan_filt$maxgrp == 1, "z-", "z+")
+
+# bornes pour normalisation des seuils
+Tmin <- min(titan_filt$Threshold, na.rm = TRUE)
+Tmax <- max(titan_filt$Threshold, na.rm = TRUE)
+
+## 2) Définir la fonction de score (coefficients paramétrables)
+score_taxon <- function(direction, Ti, Zi, a_minus = 3, a_plus = 2, b = 2, Tmin, Tmax){
+  if(is.na(Ti) || is.na(Zi)) return(NA_real_)
+  tnorm <- (Ti - Tmin) / (Tmax - Tmin)
+  if(direction == "z-"){
+    s <- 10 - (tnorm * a_minus) - (b / Zi)
+  } else {
+    s <-  1 + (tnorm * a_plus ) - (b / Zi)
+  }
+  return(s)
+}
+
+# Calcul des scores taxon
+titan_filt$Score <- mapply(
+  score_taxon,
+  direction = titan_filt$Direction,
+  Ti        = titan_filt$Threshold,
+  Zi        = titan_filt$Z,
+  MoreArgs  = list(a_minus = 3, a_plus = 2, b = 2, Tmin = Tmin, Tmax = Tmax)
+)
+
+# On ne garde que Taxon + Score pour la suite
+taxon_scores <- titan_filt[, c("Taxon", "Score")]
+taxon_scores$Score <- round(taxon_scores$Score, 2)
+
+## 3) Construire la matrice communauté (colonnes = taxons)
+common_taxa <- intersect(colnames(base), taxon_scores$Taxon)
+
+if(length(common_taxa) == 0){
+  stop("Aucun taxon commun entre 'base' et la liste TITAN filtrée. Vérifie les noms (casse, orthographe).")
+}
+
+comm_all <- base[, common_taxa, drop = FALSE]
+
+## 4) Fonction pour calculer le NH4_BI d'une station
+compute_NH4_BI_for_row <- function(vec_abund, scores_df){
+  present_idx <- which(as.numeric(vec_abund) > 0)
+  if(length(present_idx) == 0) return(NA_real_)
+  present_taxa <- names(vec_abund)[present_idx]
+  m <- match(present_taxa, scores_df$Taxon)
+  sc <- scores_df$Score[m]
+  sc <- sc[!is.na(sc)]
+  if(length(sc) == 0) return(NA_real_)
+  return(round(mean(sc), 2))
+}
+
+## 5) Calcul pour TOUTES les stations
+NH4_BI_all <- apply(comm_all, 1, compute_NH4_BI_for_row, scores_df = taxon_scores)
+
+## 6) Classification qualité
+classify_quality <- function(bi){
+  if(is.na(bi)) return("Indéterminée")
+  if(bi >= 8)  return("Très bonne qualité")
+  if(bi >= 6)  return("Bonne qualité")
+  if(bi >= 4)  return("Qualité moyenne")
+  if(bi >= 2)  return("Mauvaise qualité")
+  return("Très mauvaise qualité")
+}
+qual_all <- vapply(NH4_BI_all, classify_quality, character(1))
+
+## 7) Noms de stations
+if("STATIONS" %in% colnames(base)){
+  station_names <- as.character(base$STATIONS)
+} else if(!is.null(rownames(base))) {
+  station_names <- rownames(base)
+} else {
+  station_names <- paste0("Station_", seq_len(nrow(base)))
+}
+
+## 8) Résultat final
+res_all <- data.frame(
+  Station = station_names,
+  NH4_BI  = NH4_BI_all,
+  Quality = qual_all,
+  row.names = NULL,
+  check.names = FALSE
+)
+
+print(res_all)
