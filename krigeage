@@ -1,0 +1,534 @@
+#krigeage
+# ============================================================
+# FULL CODE (PLOT ONLY): IPO ORDINARY KRIGING (Souk Ahras)
+# - Fix duplicate coordinates (aggregate IPO)
+# - Fit variogram
+# - LOOCV metrics: ME + RMSE (printed clearly)
+# - High-precision grid kriging
+# - Plot 2 maps (prediction + variance) with readable legend (10 values)
+# NO SAVING
+# ============================================================
+base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/base.csv")
+library(sf)
+library(sp)
+library(gstat)
+library(tmap)
+
+# ----------------------------
+# 1) SETTINGS (EDIT IF NEEDED)
+# ----------------------------
+shp_path <- "D:/moste/OneDrive/Bureau/SHAPE FILE/SHP/communes_algerie_2016-10/communes_algerie4/communes_algerie.shp"
+utm_epsg <- 32632
+
+# Precision: smaller = smoother but slower
+cellsize <- 50         # try 75 (faster) or 40 (smoother)
+
+# Kriging neighborhood
+nmax    <- 8
+nmin    <- 3
+maxdist <- 25000
+
+# Variogram computation
+v_cutoff <- 40000
+v_width  <- 2000
+
+# Variogram model (stable start)
+model_type   <- "Exp"
+model_range  <- 8000
+model_nugget <- 0.20
+
+# Legend sizing (outside)
+leg_outside_size <- 0.22
+leg_height <- 0.55     # a bit taller for 10 values
+
+# ----------------------------
+# 2) READ REGION + BUILD SITES (WGS84)
+# ----------------------------
+Souk_ahras <- st_read(shp_path)
+
+# base must contain columns: X (lon), Y (lat), IPO
+sites_ll <- st_as_sf(base, coords = c("X","Y"), crs = 4326)
+
+# Optional check: all inside?
+inside <- st_within(sites_ll, Souk_ahras, sparse = FALSE)
+base$inside_region <- apply(inside, 1, any)
+print(table(base$inside_region))
+
+# ----------------------------
+# 3) TRANSFORM TO UTM (METERS)
+# ----------------------------
+Souk_ahras_utm <- st_transform(Souk_ahras, utm_epsg)
+sites_utm <- st_transform(sites_ll, utm_epsg)
+
+sites_sp <- as(sites_utm, "Spatial")
+
+# ----------------------------
+# 4) FIX DUPLICATE COORDINATES (AGGREGATE IPO)
+# ----------------------------
+df <- data.frame(
+  X = coordinates(sites_sp)[,1],
+  Y = coordinates(sites_sp)[,2],
+  IPO = sites_sp$IPO
+)
+
+df2 <- aggregate(IPO ~ X + Y, data = df, FUN = mean)
+coordinates(df2) <- ~ X + Y
+proj4string(df2) <- proj4string(sites_sp)
+sites_sp2 <- df2
+
+cat("Duplicates after aggregation:", sum(duplicated(coordinates(sites_sp2))), "\n")
+cat("Unique locations used:", nrow(sites_sp2), "\n")
+
+# ----------------------------
+# 5) VARIOGRAM + MODEL FIT
+# ----------------------------
+evgm <- variogram(IPO ~ 1, sites_sp2, cutoff = v_cutoff, width = v_width)
+
+fvgm <- fit.variogram(
+  evgm,
+  vgm(model  = model_type,
+      psill  = var(sites_sp2$IPO, na.rm = TRUE),
+      range  = model_range,
+      nugget = model_nugget)
+)
+
+print(fvgm)
+plot(evgm, model = fvgm)
+
+# ----------------------------
+# 6) LOOCV (ME + RMSE) - PRINT CLEARLY
+# ----------------------------
+cv <- krige.cv(
+  IPO ~ 1,
+  locations = sites_sp2,
+  model = fvgm,
+  nfold = nrow(sites_sp2),   # Leave-one-out
+  nmax = nmax,
+  maxdist = maxdist
+)
+
+ME   <- mean(cv$residual, na.rm = TRUE)
+RMSE <- sqrt(mean(cv$residual^2, na.rm = TRUE))
+
+cat("=================================\n")
+cat("Kriging cross-validation results:\n")
+cat("Mean Error (ME)   =", round(ME, 3), "\n")
+cat("RMSE              =", round(RMSE, 3), "\n")
+cat("N (sites)         =", nrow(sites_sp2), "\n")
+cat("=================================\n")
+
+# ----------------------------
+# 7) GRID INSIDE POLYGON (HIGH PRECISION) + KRIGING
+# ----------------------------
+poly_sp <- as(Souk_ahras_utm, "Spatial")
+
+grd <- spsample(poly_sp, type = "regular", cellsize = cellsize)
+grd <- SpatialPixels(grd)
+
+krig <- krige(
+  IPO ~ 1,
+  sites_sp2,
+  newdata = grd,
+  model = fvgm,
+  nmax = nmax,
+  nmin = nmin,
+  maxdist = maxdist
+)
+
+cat("NA prediction:", sum(is.na(krig$var1.pred)), "\n")
+cat("NA variance:  ", sum(is.na(krig$var1.var)), "\n")
+
+# ----------------------------
+# 8) MAPS (READABLE LEGEND WITH 10 VALUES)
+# ----------------------------
+brks_ipo <- pretty(range(krig$var1.pred, na.rm = TRUE), n = 10)
+brks_var <- pretty(range(krig$var1.var,  na.rm = TRUE), n = 10)
+
+tmap_mode("plot")
+
+m_pred <- tm_shape(krig) +
+  tm_raster("var1.pred",
+            style = "fixed",
+            breaks = brks_ipo,
+            palette = "viridis",
+            title = "IPO") +
+  tm_shape(Souk_ahras_utm) + tm_borders(lwd = 2) +
+  tm_shape(as(sites_sp2, "sf")) + tm_dots(size = 0.06) +
+  tm_layout(
+    main.title = paste0("IPO (Ordinary Kriging) | RMSE = ", round(RMSE, 2)),
+    legend.outside = TRUE,
+    legend.outside.size = leg_outside_size,
+    legend.height = leg_height,
+    legend.frame = TRUE,
+    legend.bg.color = "white",
+    frame = FALSE
+  )
+
+m_var <- tm_shape(krig) +
+  tm_raster("var1.var",
+            style = "fixed",
+            breaks = brks_var,
+            palette = "viridis",
+            title = "Kriging variance") +
+  tm_shape(Souk_ahras_utm) + tm_borders(lwd = 2) +
+  tm_layout(
+    legend.outside = TRUE,
+    legend.outside.size = leg_outside_size,
+    legend.height = leg_height,
+    legend.frame = TRUE,
+    legend.bg.color = "white",
+    frame = FALSE
+  )
+
+# IMPORTANT: arrange TWO maps (do not arrange one map alone)
+tmap_arrange(m_pred, m_var)
+
+
+
+
+##article index
+# ============================================================
+# Ordinary Kriging - WQI_P (HIGH QUALITY) + RMSE text
+# WITHOUT plotting station points
+# ============================================================
+
+rm(list = ls())
+
+library(sf)
+library(sp)
+library(gstat)
+library(tmap)
+
+# ----------------------------
+# SETTINGS
+# ----------------------------
+article_path <- "D:/moste/OneDrive/Bureau/Bureau/Krigeage.csv"
+skikda_path  <- "D:/moste/OneDrive/Bureau/SHAPE FILE/SHP/communes_algerie_2016-10/article inv"
+utm_epsg <- 32632
+
+cellsize <- 200
+nmax    <- 20
+nmin    <- 3
+maxdist <- 80000
+
+v_cutoff <- 80000
+v_width  <- 5000
+model_type   <- "Exp"
+model_range  <- 30000
+model_nugget <- 0.10
+
+# High-quality export
+export_png <- TRUE
+out_png <- "WQI_P_Kriging_RMSE_nostations.png"
+png_width <- 5200
+png_height <- 2200
+png_res <- 600
+
+# Precision controls
+rmse_digits <- 3
+breaks_n <- 12
+
+# ----------------------------
+# DATA + STATIONS MEAN
+# ----------------------------
+article <- read.csv2(article_path)
+stopifnot(all(c("STATIONS","WQI_P","X","Y") %in% names(article)))
+
+article_station <- aggregate(cbind(WQI_P, X, Y) ~ STATIONS, data = article, FUN = mean)
+
+# ----------------------------
+# SHAPE + TRANSFORM
+# ----------------------------
+shp_file <- list.files(skikda_path, pattern="\\.shp$", full.names=TRUE)
+if (length(shp_file) == 0) stop("No .shp file found in skikda_path")
+Skikda <- st_read(shp_file[1], quiet=TRUE)
+
+sites_ll <- st_as_sf(article_station, coords = c("X","Y"), crs = 4326)
+Skikda_utm <- st_transform(Skikda, utm_epsg)
+sites_utm  <- st_transform(sites_ll, utm_epsg)
+sites_sp   <- as(sites_utm, "Spatial")
+
+# ----------------------------
+# VARIOGRAM + FIT
+# ----------------------------
+evgm <- variogram(WQI_P ~ 1, sites_sp, cutoff = v_cutoff, width = v_width)
+init_sill <- var(sites_sp$WQI_P, na.rm = TRUE)
+
+fvgm <- fit.variogram(
+  evgm,
+  vgm(model  = model_type,
+      psill  = init_sill,
+      range  = model_range,
+      nugget = model_nugget)
+)
+
+# ----------------------------
+# LOOCV RMSE (single value)
+# ----------------------------
+cv <- krige.cv(
+  WQI_P ~ 1,
+  locations = sites_sp,
+  model = fvgm,
+  nfold = nrow(sites_sp),
+  nmax = nmax,
+  nmin = nmin,
+  maxdist = maxdist
+)
+
+RMSE <- sqrt(mean(cv$residual^2, na.rm = TRUE))
+
+# ----------------------------
+# GRID + KRIGING
+# ----------------------------
+poly_sp <- as(Skikda_utm, "Spatial")
+grd <- spsample(poly_sp, type = "regular", cellsize = cellsize)
+grd <- SpatialPixels(grd)
+
+krig <- krige(
+  WQI_P ~ 1,
+  locations = sites_sp,
+  newdata = grd,
+  model = fvgm,
+  nmax = nmax,
+  nmin = nmin,
+  maxdist = maxdist
+)
+
+if (all(is.na(krig$var1.pred))) stop("All predictions are NA. Increase maxdist or reduce nmin.")
+
+# ----------------------------
+# MAP (NO STATIONS) + RMSE text
+# ----------------------------
+tmap_mode("plot")
+
+brks_pred <- pretty(range(krig$var1.pred, na.rm = TRUE), n = breaks_n)
+
+m_pred <- tm_shape(krig) +
+  tm_raster("var1.pred",
+            style = "fixed",
+            breaks = brks_pred,
+            palette = "viridis",
+            title = "WQI_P") +
+  tm_shape(Skikda_utm) + tm_borders(lwd = 2) +
+  tm_layout(
+    main.title = "WQI_P (Ordinary Kriging)",
+    main.title.size = 1.2,
+    legend.outside = TRUE,
+    legend.frame = TRUE,
+    legend.bg.color = "white",
+    frame = FALSE
+  ) +
+  tm_credits(paste0("LOOCV RMSE = ", formatC(RMSE, format = "f", digits = rmse_digits)),
+             position = c("LEFT", "BOTTOM"),
+             size = 1.0)
+
+# Export ultra sharp PNG
+if (export_png) {
+  png(out_png, width = png_width, height = png_height, res = png_res)
+  print(m_pred)
+  dev.off()
+}
+
+m_pred
+
+##keep only   waids
+# ============================================================
+# Ordinary Kriging - WQI_P or WA_WQI
+# FULL background (all communes) + interpolation ONLY in TIZA/TAM/ZHOR
+# ENHANCED PRECISION (finer grid + more classes + higher DPI)
+# Inverted palette (dark blue -> yellow), RMSE text, NO station points
+# ============================================================
+
+rm(list = ls())
+
+library(sf)
+library(sp)
+library(gstat)
+library(tmap)
+
+# ----------------------------
+# PATHS
+# ----------------------------
+article_path <- "D:/moste/OneDrive/Bureau/Bureau/Krigeage.csv"
+skikda_path  <- "D:/moste/OneDrive/Bureau/SHAPE FILE/SHP/communes_algerie_2016-10/article inv"
+
+# ----------------------------
+# VARIABLE
+# ----------------------------
+var_name <- "WQI_P"   # change to "WA_WQI" if needed
+
+# ----------------------------
+# ENHANCED PRECISION SETTINGS
+# ----------------------------
+utm_epsg <- 32632
+
+cellsize <- 75          # << finer grid (try 100 if heavy)
+nmax    <- 20
+nmin    <- 3
+maxdist <- 100000       # a bit larger for stability with fine grid
+
+v_cutoff <- 100000      # broader cutoff can stabilize variogram with small n
+v_width  <- 5000
+
+model_type   <- "Exp"
+model_range  <- 30000
+model_nugget <- 0.10
+
+# Export (very high quality)
+export_png <- TRUE
+out_png <- paste0(var_name, "_Kriging_ONLY_TIZA_TAM_ZHOR_ULTRA.png")
+png_width <- 8000
+png_height <- 3400
+png_res <- 900          # very sharp for high-quality journals
+
+# More precision in map display
+rmse_digits <- 5
+breaks_n <- 25          # more legend classes (smoother)
+
+# Inverted rainbow palette (dark blue -> yellow)
+my_palette <- c(
+  "#000066", "#0033CC", "#3366FF", "#7F66FF", "#CC66FF",
+           "#FF66B2", "#FF9A7A", "#FFC266", "#FFE066", "#FFFF66"
+)
+
+# Selected communes for interpolation mask
+target_communes <- c("TIZA", "TAM", "ZHOR")
+
+# ----------------------------
+# 1) READ DATA + MEAN PER STATION
+# ----------------------------
+article <- read.csv2(article_path)
+stopifnot(all(c("STATIONS", var_name, "X", "Y") %in% names(article)))
+
+station_df <- aggregate(
+  as.formula(paste0("cbind(", var_name, ", X, Y) ~ STATIONS")),
+  data = article,
+  FUN = mean
+)
+
+# ----------------------------
+# 2) READ SHAPEFILE (ALL COMMUNES)
+# ----------------------------
+shp_file <- list.files(skikda_path, pattern="\\.shp$", full.names=TRUE)
+if (length(shp_file) == 0) stop("No .shp file found in skikda_path")
+
+Skikda <- st_read(shp_file[1], quiet=TRUE) |> st_make_valid()
+stopifnot("name" %in% names(Skikda))
+
+# Mask = only communes with stations
+mask_sf <- Skikda[Skikda$name %in% target_communes, ]
+if (nrow(mask_sf) == 0) stop("No matching communes found in Skikda$name. Check spelling.")
+mask_sf <- st_union(mask_sf)
+
+# ----------------------------
+# 3) BUILD SITES + TRANSFORM TO UTM
+# ----------------------------
+sites_ll <- st_as_sf(station_df, coords = c("X","Y"), crs = 4326)
+
+Skikda_utm <- st_transform(Skikda, utm_epsg)
+mask_utm   <- st_transform(mask_sf, utm_epsg)
+sites_utm  <- st_transform(sites_ll, utm_epsg)
+
+sites_sp <- as(sites_utm, "Spatial")
+
+# Check stations inside mask
+inside_mask <- lengths(st_within(sites_utm, mask_utm)) > 0
+cat("Stations inside (TIZA/TAM/ZHOR) mask:", sum(inside_mask), "out of", length(inside_mask), "\n")
+if (sum(inside_mask) == 0) stop("No stations fall inside selected communes mask. Check CRS or names.")
+
+# ----------------------------
+# 4) VARIOGRAM + FIT
+# ----------------------------
+fml <- as.formula(paste0(var_name, " ~ 1"))
+evgm <- variogram(fml, sites_sp, cutoff = v_cutoff, width = v_width)
+
+init_sill <- var(sites_sp[[var_name]], na.rm = TRUE)
+
+fvgm <- fit.variogram(
+  evgm,
+  vgm(model  = model_type,
+      psill  = init_sill,
+      range  = model_range,
+      nugget = model_nugget)
+)
+
+# ----------------------------
+# 5) LOOCV RMSE
+# ----------------------------
+cv <- krige.cv(
+  fml,
+  locations = sites_sp,
+  model = fvgm,
+  nfold = nrow(sites_sp),
+  nmax = nmax,
+  nmin = nmin,
+  maxdist = maxdist
+)
+
+RMSE <- sqrt(mean(cv$residual^2, na.rm = TRUE))
+
+# ----------------------------
+# 6) GRID ONLY INSIDE MASK + KRIGING (ULTRA GRID)
+# ----------------------------
+mask_sp <- as(mask_utm, "Spatial")
+
+grd <- spsample(mask_sp, type = "regular", cellsize = cellsize)
+grd <- SpatialPixels(grd)
+cat("Grid cells inside mask:", length(grd), "\n")
+
+krig <- krige(
+  fml,
+  locations = sites_sp,
+  newdata = grd,
+  model = fvgm,
+  nmax = nmax,
+  nmin = nmin,
+  maxdist = maxdist
+)
+
+if (all(is.na(krig$var1.pred))) stop("All predictions are NA. Increase maxdist or use larger cellsize.")
+
+# ----------------------------
+# 7) MAP (FULL BACKGROUND + MASK OUTLINE)
+# ----------------------------
+tmap_mode("plot")
+
+brks_pred <- pretty(range(krig$var1.pred, na.rm = TRUE), n = breaks_n)
+
+m <- tm_shape(Skikda_utm) +
+  tm_borders(col = "grey70", lwd = 0.6) +
+  tm_shape(krig) +
+  tm_raster("var1.pred",
+            style = "fixed",
+            breaks = brks_pred,
+            palette = my_palette,
+            title = var_name) +
+  tm_shape(mask_utm) +
+  tm_borders(col = "black", lwd = 2) +
+  tm_layout(
+    main.title = paste0(var_name, " (Ordinary Kriging)"),
+    main.title.size = 1.2,
+    legend.outside = TRUE,
+    legend.frame = TRUE,
+    legend.bg.color = "white",
+    legend.text.size = 0.85,
+    legend.title.size = 1.0,
+    frame = FALSE
+  ) +
+  tm_credits(
+    paste0("LOOCV RMSE = ", formatC(RMSE, format = "f", digits = rmse_digits),
+           " | cellsize = ", cellsize, " m"),
+    position = c("LEFT","BOTTOM"),
+    size = 0.95
+  )
+
+# ----------------------------
+# EXPORT (ULTRA SHARP)
+# ----------------------------
+if (export_png) {
+  png(out_png, width = png_width, height = png_height, res = png_res)
+  print(m)
+  dev.off()
+}
+
+m
