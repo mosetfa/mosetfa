@@ -1,0 +1,378 @@
+###inverebrate article
+base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/Classeur2.csv")
+names(base)
+s=base[,2:42]
+# Bubble heatmap (samples ordered 1..N)
+# ----------------------------
+library(tidyverse)
+
+# sp : data frame/matrix (85 x 41) = rows = samples, cols = families
+sp_df <- as.data.frame(sp)
+sp_df[] <- lapply(sp_df, as.numeric)
+sp_df$sample_id <- seq_len(nrow(sp_df))
+
+abund <- sp_df[, setdiff(names(sp_df), "sample_id"), drop = FALSE]
+totals <- colSums(abund, na.rm = TRUE)
+family_levels <- names(sort(totals, decreasing = TRUE))
+
+# Long format + z-score intra-famille
+long <- abund %>%
+  as_tibble() %>%
+  mutate(sample_id = sp_df$sample_id) %>%
+  pivot_longer(-sample_id, names_to = "family", values_to = "abund") %>%
+  mutate(
+    family = factor(family, levels = family_levels),        # familles triées par abondance totale
+    sample_id = factor(sample_id, levels = 1:nrow(sp_df))   # échantillons 1..N
+  ) %>%
+  group_by(family) %>%
+  mutate(z = as.numeric(scale(abund))) %>%
+  ungroup()
+
+# Plot (tous les points >0 pour alléger)
+p <- ggplot(filter(long, abund > 0), aes(x = sample_id, y = family)) +
+  geom_point(aes(size = abund, fill = z), shape = 21, color = "grey15", alpha = 0.95) +
+  scale_size_area(max_size = 8, breaks = c(1, 5, 10, 20, 50), name = "Abundance") +
+  scale_fill_viridis_c(option = "C", name = "Within-family\nz-score") +
+  labs(
+    title = "Community Composition (41 families)",
+    subtitle = "Samples ordered numerically; dot size = abundance; fill = within-family z-score",
+    x = "Samples", y = "Families"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 7),
+    axis.text.y = element_text(size = 9),
+    plot.title = element_text(face = "bold"),
+    legend.title = element_text(face = "bold")
+  )
+
+p
+
+# Export HD (hauteur élevée pour 41 lignes)
+# ggsave("bubble_41_families_num/eric_order.png", p, width = 14, height = 12, dpi = 600)
+base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/Classeur2.csv")
+dim(base)
+head(base)
+names(base)
+base=base[,2:44]
+library(vegan)
+library(plotly)
+
+# 1️⃣ Séparer données espèces et Pollution
+donnees_especes <- base[, !(names(base) %in% "Filamentous_algal_bloom")]
+donnees_pollution <- factor(base$Filamentous_algal_bloom)
+
+# 🔹 Transformation Hellinger
+donnees_especes <- decostand(donnees_especes, method = "hellinger")
+
+# 2️⃣ NMDS en 3D (k=3)
+set.seed(123)
+nmds <- metaMDS(donnees_especes, distance = "bray",
+                k = 3, trymax = 200, autotransform = FALSE)
+
+cat("Stress du NMDS :", nmds$stress, "\n")
+
+# 3️⃣ Coordonnées pour le graphique 3D
+nmds_points <- as.data.frame(nmds$points)
+nmds_points$Filamentous_algal_bloom <- donnees_pollution
+
+# 4️⃣ Graphique NMDS 3D interactif
+plot_ly(nmds_points, x = ~MDS1, y = ~MDS2, z = ~MDS3, color = ~Filamentous_algal_bloom,
+        colors = c("red", "blue"),
+        type = "scatter3d", mode = "markers",
+        marker = list(size = 5)) %>%
+  layout(scene = list(
+    xaxis = list(title = "NMDS1"),
+    yaxis = list(title = "NMDS2"),
+    zaxis = list(title = "NMDS3")
+  ),
+  title = paste0("NMDS 3D - Stress = ", round(nmds$stress, 3)))
+
+# 5️⃣ PERMANOVA
+set.seed(123)
+permanova <- adonis2(donnees_especes_hell ~ donnees_pollution,
+                     method = "bray", permutations = 999)
+print(permanova)
+
+dist_bc <- vegdist(donnees_especes, method = "bray")
+bd <- betadisper(dist_bc , group = base$Filamentous_algal_bloom)
+anova(bd)
+# 🔹 Charger les packages nécessaires
+library(vegan)
+library(plotly)
+
+# 1️⃣ Aperçu des données
+head(base)
+str(base)
+
+# 2️⃣ Nettoyage : exclure NH4
+base_clean <- base[, !(names(base) %in% c("NH4"))]
+
+# 3️⃣ Séparer la matrice des espèces (sans variables environnementales)
+donnees_especes <- base_clean[, !(names(base_clean) %in% c("Filamentous_algal_bloom", "Bloom"))]
+
+# 4️⃣ Transformation de Hellinger
+donnees_especes_hell <- decostand(donnees_especes, method = "hellinger")
+
+# 5️⃣ NMDS 3D
+set.seed(123)
+nmds <- metaMDS(donnees_especes_hell, distance = "bray", k = 3, trymax = 200, autotransform = FALSE)
+
+# 6️⃣ Extraire les scores
+species_scores <- scores(nmds, display = "species")
+sites_scores   <- scores(nmds, display = "sites")
+
+# 7️⃣ Préparer les dataframes
+# Espèces
+species_df <- as.data.frame(species_scores)
+colnames(species_df) <- c("MDS1", "MDS2", "MDS3")
+species_df$label <- rownames(species_df)
+
+# Sites
+sites_df <- as.data.frame(sites_scores)
+colnames(sites_df) <- c("MDS1", "MDS2", "MDS3")
+sites_df$label <- rownames(sites_df)
+
+# 8️⃣ Tracer les sites (points bleu foncé) + espèces (texte noir)
+plot_ly() %>%
+  # ➕ Sites (1 seule couleur)
+  add_trace(data = sites_df,
+            x = ~MDS1, y = ~MDS2, z = ~MDS3,
+            type = 'scatter3d', mode = 'markers',
+            marker = list(size = 5, color = 'grey'),
+            name = 'Sites',
+            showlegend = FALSE) %>%
+  # ➕ Espèces (noms en noir)
+  add_trace(data = species_df,
+            x = ~MDS1, y = ~MDS2, z = ~MDS3,
+            type = 'scatter3d', mode = 'text',
+            text = ~label,
+            textfont = list(size = 11, color = 'black'),
+            name = 'Espèces',
+            showlegend = FALSE) %>%
+  # ➕ Mise en forme
+  layout(
+    title = paste0("NMDS 3D –  (Stress = ", round(nmds$stress, 3), ")"),
+    scene = list(
+      xaxis = list(title = "NMDS1"),
+      yaxis = list(title = "NMDS2"),
+      zaxis = list(title = "NMDS3")
+    )
+  )
+###GAM
+base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/Classeur2.csv")
+dim(base)
+head(base)
+names(base)
+base=base[,2:44]
+library(dplyr)
+library(tidyr)
+
+# Transformation abondances -> présence/absence
+base_pa <- base
+base_pa[,1:41] <- ifelse(base_pa[,1:41] > 0, 1, 0)
+
+# Passage en format long (une ligne = un échantillon + une espèce)
+base_long_pa <- base_pa %>%
+  pivot_longer(cols = 1:41, names_to = "espece", values_to = "presence")
+base_long_pa$Filamentous_algal_bloom=as.factor(base_long_pa$Filamentous_algal_bloom) 
+base_long_pa$espece=as.factor(base_long_pa$espece) 
+base_long_pa$presence=as.factor(base_long_pa$presence) 
+
+# S’assurer des bons types
+base_long_pa <- base_long_pa %>%
+  mutate(
+    presence = as.factor(presence),
+    espece = as.factor(espece),
+    Filamentous_algal_bloom = factor(Filamentous_algal_bloom, levels = c("NO", "YES")),
+    NH4 = as.numeric(NH4)
+  )
+library(mgcv)
+
+gam_pa <- gam(presence ~ espece + s(NH4) + Filamentous_algal_bloom, 
+              family = binomial(link = "logit"),
+              data = base_long_pa)
+
+summary(gam_pa)
+plot(gam_pa)
+library(GGally)
+ggcoef_model(
+  gam_pa,
+  exponentiate = TRUE,
+  tidy_fun = function(x, ...) broom::tidy(x, parametric = TRUE, ...)
+) +
+  ggtitle("Species Richness Modeling using Environmental Factors (Negative Binomial GAM)")
+#TITAN
+library(TITAN2)
+print(names(base))
+
+# Extraire la variable environnementale (NH4)
+env <- base$NH4
+
+# Extraire la matrice des taxons : ici toutes les colonnes sauf 'Pollution' et 'NH4'
+taxa_cols <- setdiff(names(base), c("Filamentous_algal_bloom", "NH4"))
+txa_filtered <- base[, taxa_cols]
+occurrences <- colSums(txa_filtered > 0)
+print(occurrences)
+# Vérifier que txa_filtered est bien une matrice ou data.frame numérique
+# Garder seulement les taxons avec fréquence >= 3
+txa_filtered <- txa_filtered[, occurrences >= 5]
+titan.out <- titan(env = env, txa = txa_filtered, minSplt = 5, nBoot = 500)
+summary(titan.out)
+head(titan.out$sppmax)
+##plot the result of TITAN
+library(ggplot2)
+library(dplyr)
+
+# Préparer les données en séparant les z- et z+ à partir de la colonne maxgrp
+# Ici, on considère maxgrp = 1 comme z-, maxgrp = 2 comme z+
+
+df <- titan.out$sppmax %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Taxon") %>%
+  mutate(
+    Direction = ifelse(maxgrp == 1, "z-", "z+"),
+    Threshold = ienv.cp,
+    Zscore = zscore,
+    Purity = purity,
+    Reliability = reliability,
+    Lower = `5%`,   # 5e quantile
+    Upper = `95%`   # 95e quantile
+  ) %>%
+  filter(Purity > 0.7 & Reliability > 0.7)  # filtrer taxa purs et fiables (ajuste si besoin)
+
+# Plot
+ggplot(df, aes(x = Threshold, y = reorder(Taxon, Threshold))) +
+  geom_point(aes(shape = Direction, size = abs(Zscore), fill = Direction), color = "black") +
+  geom_errorbarh(
+    aes(xmin = Lower, xmax = Upper, color = Direction),
+    height = 0.2
+  ) +
+  scale_shape_manual(values = c("z-" = 21, "z+" = 21)) +  # shape 21 supports fill
+  scale_fill_manual(values = c("z-" = "red", "z+" = "blue")) +
+  scale_color_manual(values = c("z-" = "red", "z+" = "blue"), guide = "none") + # for lines
+  scale_size_continuous(range = c(2, 6)) +
+  labs(
+    title = "TITAN Results: Taxa response to NH4",
+    x = "NH4 mg/l Threshold",
+    y = "Taxon",
+    size = "Z-score",
+    shape = "Response Direction",
+    fill = "Response Direction"  # legend title for color
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8)) +
+  guides(
+    shape = guide_legend(override.aes = list(fill = c("red", "blue")))
+  )
+
+##NH4_BI
+## -----------------------------
+## 0) Hypothèses d'entrée
+## - titan.out$sppmax : objet TITAN déjà calculé
+## - base : data.frame avec colonnes taxons + (éventuellement) NH4, Filamentous_algal_bloom
+## -----------------------------
+
+## 1) Construire la table TITAN filtrée (Purity & Reliability)
+titan <- as.data.frame(titan.out$sppmax)
+titan$Taxon <- rownames(titan)
+
+# On ne garde que l'essentiel
+titan <- titan[, c("Taxon", "ienv.cp", "zscore", "maxgrp", "purity", "reliability")]
+colnames(titan) <- c("Taxon", "Threshold", "Z", "maxgrp", "Purity", "Reliability")
+
+# Filtre fiabilité
+titan <- titan[!is.na(titan$Purity) & !is.na(titan$Reliability), ]
+titan_filt <- titan[titan$Purity >= 0.7 & titan$Reliability >= 0.7, ]
+
+# Direction z- (1) / z+ (2)
+titan_filt$Direction <- ifelse(titan_filt$maxgrp == 1, "z-", "z+")
+
+# bornes pour normalisation des seuils
+Tmin <- min(titan_filt$Threshold, na.rm = TRUE)
+Tmax <- max(titan_filt$Threshold, na.rm = TRUE)
+
+## 2) Définir la fonction de score (coefficients paramétrables)
+score_taxon <- function(direction, Ti, Zi, a_minus = 3, a_plus = 2, b = 2, Tmin, Tmax){
+  if(is.na(Ti) || is.na(Zi)) return(NA_real_)
+  tnorm <- (Ti - Tmin) / (Tmax - Tmin)
+  if(direction == "z-"){
+    s <- 10 - (tnorm * a_minus) - (b / Zi)
+  } else {
+    s <-  1 + (tnorm * a_plus ) - (b / Zi)
+  }
+  return(s)
+}
+
+# Calcul des scores taxon
+titan_filt$Score <- mapply(
+  score_taxon,
+  direction = titan_filt$Direction,
+  Ti        = titan_filt$Threshold,
+  Zi        = titan_filt$Z,
+  MoreArgs  = list(a_minus = 3, a_plus = 2, b = 2, Tmin = Tmin, Tmax = Tmax)
+)
+
+# On ne garde que Taxon + Score pour la suite
+taxon_scores <- titan_filt[, c("Taxon", "Score")]
+taxon_scores$Score <- round(taxon_scores$Score, 2)
+
+## 3) Construire la matrice communauté (colonnes = taxons)
+common_taxa <- intersect(colnames(base), taxon_scores$Taxon)
+
+if(length(common_taxa) == 0){
+  stop("Aucun taxon commun entre 'base' et la liste TITAN filtrée. Vérifie les noms (casse, orthographe).")
+}
+
+comm_all <- base[, common_taxa, drop = FALSE]
+
+## 4) Fonction pour calculer le NH4_BI d'une station
+compute_NH4_BI_for_row <- function(vec_abund, scores_df){
+  present_idx <- which(as.numeric(vec_abund) > 0)
+  if(length(present_idx) == 0) return(NA_real_)
+  present_taxa <- names(vec_abund)[present_idx]
+  m <- match(present_taxa, scores_df$Taxon)
+  sc <- scores_df$Score[m]
+  sc <- sc[!is.na(sc)]
+  if(length(sc) == 0) return(NA_real_)
+  return(round(mean(sc), 2))
+}
+
+## 5) Calcul pour TOUTES les stations
+NH4_BI_all <- apply(comm_all, 1, compute_NH4_BI_for_row, scores_df = taxon_scores)
+
+## 6) Classification qualité
+classify_quality <- function(bi){
+  if(is.na(bi)) return("Indéterminée")
+  if(bi >= 8)  return("Très bonne qualité")
+  if(bi >= 6)  return("Bonne qualité")
+  if(bi >= 4)  return("Qualité moyenne")
+  if(bi >= 2)  return("Mauvaise qualité")
+  return("Très mauvaise qualité")
+}
+qual_all <- vapply(NH4_BI_all, classify_quality, character(1))
+
+## 7) Noms de stations
+if("STATIONS" %in% colnames(base)){
+  station_names <- as.character(base$STATIONS)
+} else if(!is.null(rownames(base))) {
+  station_names <- rownames(base)
+} else {
+  station_names <- paste0("Station_", seq_len(nrow(base)))
+}
+
+## 8) Résultat final
+res_all <- data.frame(
+  Station = station_names,
+  NH4_BI  = NH4_BI_all,
+  Quality = qual_all,
+  row.names = NULL,
+  check.names = FALSE
+)
+
+print(res_all)
+NH4INDEX<-data.frame(res_all)
+summary(NH4INDEX)
+write.xlsx(NH4INDEX, file="D:/moste/OneDrive/Bureau/Bureau/NH4_INDEX.xlsx")
