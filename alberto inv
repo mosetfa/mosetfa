@@ -1,0 +1,770 @@
+data<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/Alberto/alberto.csv")
+data$station <- rep(1:(nrow(data)/6), each = 6)
+species_cols <- names(data)[1:62]
+env_cols <- c("pH", "Temperature", "Conductivity", "NO3", "PO4")
+library(dplyr)
+
+data_station <- data %>%
+  group_by(station) %>%
+  summarise(
+    across(all_of(species_cols), ~ sum(.x, na.rm = TRUE)),   # sum abundances across 6 replicates
+    across(all_of(env_cols), ~ mean(.x, na.rm = TRUE))      # or use first(.x) if truly identical
+  ) %>%
+  ungroup()
+
+dim(data_station)
+data_long_pa <- data_station %>%
+  pivot_longer(cols = 2:63, names_to = "espece", values_to = "abundance") %>%
+  mutate(
+    espece = factor(espece),
+    presence = ifelse(abundance > 0, 1, 0)
+  )
+  
+names(data_long_pa)
+library(mgcv)
+gam_data_pa <- gam(
+  presence ~
+    s(pH, k = 5) +
+    s(Temperature, k = 5) +
+    s(Conductivity, k = 5) +
+    s(NO3, k = 5) +
+    s(PO4, k = 5) +
+    s(espece, bs = "re"),
+  family = binomial(link = "logit"),
+  data = data_long_pa,
+  method = "REML"
+)
+
+
+summary(gam_data_pa)
+plot(gam_data_pa)
+
+##titan
+env <- data_station$Conductivity
+library(TITAN2)
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(dplyr)
+
+species_cols <- names(data)[1:62]
+env_cols <- c("pH", "Temperature", "Conductivity", "NO3", "PO4")
+
+data_station <- data %>%
+  group_by(station) %>%
+  summarise(
+    across(all_of(species_cols), ~ sum(.x, na.rm = TRUE)),
+    across(all_of(env_cols), ~ first(.x))   # use mean(.) if not identical
+  ) %>%
+  ungroup()
+
+dim(data_station)   # should be 16 x 68
+
+library(TITAN2)
+
+env <- data_station$Conductivity
+txa <- data_station[, species_cols]
+
+# ensure numeric
+txa <- as.data.frame(lapply(txa, as.numeric))
+
+# filter taxa: present in at least 5 stations
+occ <- colSums(txa > 0, na.rm = TRUE)
+txa_filtered <- txa[, occ >= 5]
+
+titan.out <- titan(env = env, txa = txa_filtered, minSplt = 5, nBoot = 500)
+
+summary(titan.out)
+head(titan.out$sppmax)
+
+library(ggplot2)
+library(tibble)
+
+df <- titan.out$sppmax %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Taxon") %>%
+  mutate(
+    Direction = ifelse(maxgrp == 1, "z-", "z+"),
+    Threshold = ienv.cp,
+    Zscore = zscore,
+    Purity = purity,
+    Reliability = reliability,
+    Lower = `5%`,
+    Upper = `95%`
+  ) %>%
+  filter(Purity > 0.7 & Reliability > 0.7)
+
+ggplot(df, aes(x = Threshold, y = reorder(Taxon, Threshold))) +
+  geom_point(aes(shape = Direction, size = abs(Zscore), fill = Direction), color = "black") +
+  geom_errorbarh(aes(xmin = Lower, xmax = Upper, color = Direction), height = 0.2) +
+  scale_shape_manual(values = c("z-" = 21, "z+" = 21)) +
+  scale_fill_manual(values = c("z-" = "red", "z+" = "blue")) +
+  scale_color_manual(values = c("z-" = "red", "z+" = "blue"), guide = "none") +
+  scale_size_continuous(range = c(2, 6)) +
+  labs(
+    title = "TITAN Results: Taxa response to Conductivity",
+    x = "Conductivity threshold",
+    y = "Taxon",
+    size = "Z-score",
+    shape = "Response direction",
+    fill = "Response direction"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8)) +
+  guides(shape = guide_legend(override.aes = list(fill = c("red", "blue"))))
+
+##COND_IND
+## COND_BI
+## -----------------------------
+## Inputs:
+## - titan.out$sppmax : TITAN output for Conductivity
+## - data_station     : station-level data.frame with taxa columns (wide)
+## -----------------------------
+
+## 1) Build filtered TITAN table (Purity & Reliability)
+titan <- as.data.frame(titan.out$sppmax)
+titan$Taxon <- rownames(titan)
+
+titan <- titan[, c("Taxon", "ienv.cp", "zscore", "maxgrp", "purity", "reliability")]
+colnames(titan) <- c("Taxon", "Threshold", "Z", "maxgrp", "Purity", "Reliability")
+
+titan <- titan[!is.na(titan$Purity) & !is.na(titan$Reliability), ]
+titan_filt <- titan[titan$Purity >= 0.7 & titan$Reliability >= 0.7, ]
+
+# Direction z- (1) / z+ (2)
+titan_filt$Direction <- ifelse(titan_filt$maxgrp == 1, "z-", "z+")
+
+# bounds for threshold normalization
+Tmin <- min(titan_filt$Threshold, na.rm = TRUE)
+Tmax <- max(titan_filt$Threshold, na.rm = TRUE)
+
+## 2) Define taxon scoring function (same as yours)
+score_taxon <- function(direction, Ti, Zi, a_minus = 3, a_plus = 2, b = 2, Tmin, Tmax){
+  if(is.na(Ti) || is.na(Zi)) return(NA_real_)
+  tnorm <- (Ti - Tmin) / (Tmax - Tmin)
+  if(direction == "z-"){
+    s <- 10 - (tnorm * a_minus) - (b / Zi)
+  } else {
+    s <-  1 + (tnorm * a_plus ) - (b / Zi)
+  }
+  return(s)
+}
+
+titan_filt$Score <- mapply(
+  score_taxon,
+  direction = titan_filt$Direction,
+  Ti        = titan_filt$Threshold,
+  Zi        = titan_filt$Z,
+  MoreArgs  = list(a_minus = 3, a_plus = 2, b = 2, Tmin = Tmin, Tmax = Tmax)
+)
+
+taxon_scores <- titan_filt[, c("Taxon", "Score")]
+taxon_scores$Score <- round(taxon_scores$Score, 2)
+
+## 3) Build community matrix (columns = taxa present in TITAN list)
+common_taxa <- intersect(colnames(data_station), taxon_scores$Taxon)
+
+if(length(common_taxa) == 0){
+  stop("No common taxa between 'data_station' and TITAN filtered list. Check names (case/spelling).")
+}
+
+comm_all <- data_station[, common_taxa, drop = FALSE]
+
+## 4) Compute COND_BI for one station
+compute_COND_BI_for_row <- function(vec_abund, scores_df){
+  present_idx <- which(as.numeric(vec_abund) > 0)
+  if(length(present_idx) == 0) return(NA_real_)
+  present_taxa <- names(vec_abund)[present_idx]
+  m <- match(present_taxa, scores_df$Taxon)
+  sc <- scores_df$Score[m]
+  sc <- sc[!is.na(sc)]
+  if(length(sc) == 0) return(NA_real_)
+  return(round(mean(sc), 2))
+}
+
+## 5) Compute for all stations
+COND_BI_all <- apply(comm_all, 1, compute_COND_BI_for_row, scores_df = taxon_scores)
+
+## 6) Classification (same thresholds; rename if you want)
+classify_quality <- function(bi){
+  if(is.na(bi)) return("Indéterminée")
+  if(bi >= 8)  return("Très bonne qualité")
+  if(bi >= 6)  return("Bonne qualité")
+  if(bi >= 4)  return("Qualité moyenne")
+  if(bi >= 2)  return("Mauvaise qualité")
+  return("Très mauvaise qualité")
+}
+qual_all <- vapply(COND_BI_all, classify_quality, character(1))
+
+## 7) Station names
+if("STATIONS" %in% colnames(data_station)){
+  station_names <- as.character(data_station$STATIONS)
+} else if("station" %in% colnames(data_station)){
+  station_names <- as.character(data_station$station)
+} else if(!is.null(rownames(data_station))) {
+  station_names <- rownames(data_station)
+} else {
+  station_names <- paste0("Station_", seq_len(nrow(data_station)))
+}
+
+## 8) Final result table
+res_all <- data.frame(
+  Station = station_names,
+  COND_BI = COND_BI_all,
+  Quality = qual_all,
+  row.names = NULL,
+  check.names = FALSE
+)
+
+print(res_all)
+CONDINDEX <- data.frame(res_all)
+summary(CONDINDEX)
+
+###PO43 
+## ---------------------------------
+## 0) Build station-level table (same as you did)
+## ---------------------------------
+library(dplyr)
+library(TITAN2)
+library(tibble)
+library(ggplot2)
+
+species_cols <- names(data)[1:62]
+env_cols <- c("pH", "Temperature", "Conductivity", "NO3", "PO4")
+
+data_station <- data %>%
+  group_by(station) %>%
+  summarise(
+    across(all_of(species_cols), ~ sum(.x, na.rm = TRUE)),
+    across(all_of(env_cols), ~ first(.x))   # use mean(.) if not identical
+  ) %>%
+  ungroup()
+
+dim(data_station)  # should be 16 x 68
+
+
+## ---------------------------------
+## 1) TITAN on PO4
+## ---------------------------------
+env <- data_station$PO4
+txa <- data_station[, species_cols]
+
+txa <- as.data.frame(lapply(txa, as.numeric))
+
+occ <- colSums(txa > 0, na.rm = TRUE)
+txa_filtered <- txa[, occ >= 5]
+
+titan.out_PO4 <- titan(env = env, txa = txa_filtered, minSplt = 5, nBoot = 500)
+
+summary(titan.out_PO4)
+head(titan.out_PO4$sppmax)
+
+
+## ---------------------------------
+## 2) Plot TITAN results (PO4)
+## ---------------------------------
+df <- titan.out_PO4$sppmax %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Taxon") %>%
+  mutate(
+    Direction = ifelse(maxgrp == 1, "z-", "z+"),
+    Threshold = ienv.cp,
+    Zscore = zscore,
+    Purity = purity,
+    Reliability = reliability,
+    Lower = `5%`,
+    Upper = `95%`
+  ) %>%
+  filter(Purity > 0.7 & Reliability > 0.7)
+
+ggplot(df, aes(x = Threshold, y = reorder(Taxon, Threshold))) +
+  geom_point(aes(shape = Direction, size = abs(Zscore), fill = Direction), color = "black") +
+  geom_errorbarh(aes(xmin = Lower, xmax = Upper, color = Direction), height = 0.2) +
+  scale_shape_manual(values = c("z-" = 21, "z+" = 21)) +
+  scale_fill_manual(values = c("z-" = "red", "z+" = "blue")) +
+  scale_color_manual(values = c("z-" = "red", "z+" = "blue"), guide = "none") +
+  scale_size_continuous(range = c(2, 6)) +
+  labs(
+    title = "TITAN Results: Taxa response to PO4",
+    x = "PO4 threshold",
+    y = "Taxon",
+    size = "Z-score",
+    shape = "Response direction",
+    fill = "Response direction"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8)) +
+  guides(shape = guide_legend(override.aes = list(fill = c("red", "blue"))))
+
+
+## ---------------------------------
+## PO4_BI
+## -----------------------------
+## Inputs:
+## - titan.out_PO4$sppmax : TITAN output for PO4
+## - data_station         : station-level data.frame with taxa columns (wide)
+## -----------------------------
+
+## 1) Build filtered TITAN table (Purity & Reliability)
+titan <- as.data.frame(titan.out_PO4$sppmax)
+titan$Taxon <- rownames(titan)
+
+titan <- titan[, c("Taxon", "ienv.cp", "zscore", "maxgrp", "purity", "reliability")]
+colnames(titan) <- c("Taxon", "Threshold", "Z", "maxgrp", "Purity", "Reliability")
+
+titan <- titan[!is.na(titan$Purity) & !is.na(titan$Reliability), ]
+titan_filt <- titan[titan$Purity >= 0.7 & titan$Reliability >= 0.7, ]
+
+if(nrow(titan_filt) == 0){
+  stop("No taxa passed Purity/Reliability filter for PO4. Try 0.6/0.6.")
+}
+
+# Direction z- (1) / z+ (2)
+titan_filt$Direction <- ifelse(titan_filt$maxgrp == 1, "z-", "z+")
+
+# bounds for threshold normalization
+Tmin <- min(titan_filt$Threshold, na.rm = TRUE)
+Tmax <- max(titan_filt$Threshold, na.rm = TRUE)
+
+## 2) Define taxon scoring function (robust version)
+score_taxon <- function(direction, Ti, Zi, a_minus = 3, a_plus = 2, b = 2, Tmin, Tmax){
+  if(is.na(Ti) || is.na(Zi) || Zi == 0) return(NA_real_)
+  
+  denom <- (Tmax - Tmin)
+  if(is.na(denom) || denom == 0){
+    tnorm <- 0.5  # if all thresholds equal, set middle value
+  } else {
+    tnorm <- (Ti - Tmin) / denom
+  }
+  
+  if(direction == "z-"){
+    s <- 10 - (tnorm * a_minus) - (b / abs(Zi))
+  } else {
+    s <-  1 + (tnorm * a_plus ) - (b / abs(Zi))
+  }
+  return(s)
+}
+
+titan_filt$Score <- mapply(
+  score_taxon,
+  direction = titan_filt$Direction,
+  Ti        = titan_filt$Threshold,
+  Zi        = titan_filt$Z,
+  MoreArgs  = list(a_minus = 3, a_plus = 2, b = 2, Tmin = Tmin, Tmax = Tmax)
+)
+
+taxon_scores <- titan_filt[, c("Taxon", "Score")]
+taxon_scores$Score <- round(taxon_scores$Score, 2)
+
+## 3) Build community matrix (columns = taxa present in TITAN list)
+common_taxa <- intersect(colnames(data_station), taxon_scores$Taxon)
+
+if(length(common_taxa) == 0){
+  stop("No common taxa between 'data_station' and TITAN filtered list. Check names.")
+}
+
+comm_all <- data_station[, common_taxa, drop = FALSE]
+
+## 4) Compute PO4_BI for one station
+compute_PO4_BI_for_row <- function(vec_abund, scores_df){
+  present_idx <- which(as.numeric(vec_abund) > 0)
+  if(length(present_idx) == 0) return(NA_real_)
+  present_taxa <- names(vec_abund)[present_idx]
+  m <- match(present_taxa, scores_df$Taxon)
+  sc <- scores_df$Score[m]
+  sc <- sc[!is.na(sc)]
+  if(length(sc) == 0) return(NA_real_)
+  round(mean(sc), 2)
+}
+
+## 5) Compute for all stations
+PO4_BI_all <- apply(comm_all, 1, compute_PO4_BI_for_row, scores_df = taxon_scores)
+
+## 6) Classification
+classify_quality <- function(bi){
+  if(is.na(bi)) return("Indéterminée")
+  if(bi >= 8)  return("Très bonne qualité")
+  if(bi >= 6)  return("Bonne qualité")
+  if(bi >= 4)  return("Qualité moyenne")
+  if(bi >= 2)  return("Mauvaise qualité")
+  "Très mauvaise qualité"
+}
+qual_all <- vapply(PO4_BI_all, classify_quality, character(1))
+
+## 7) Station names
+station_names <- as.character(data_station$station)
+
+## 8) Final result table
+PO4INDEX <- data.frame(
+  Station = station_names,
+  PO4_BI  = PO4_BI_all,
+  Quality = qual_all,
+  row.names = NULL,
+  check.names = FALSE
+)
+
+print(PO4INDEX)
+summary(PO4INDEX)
+
+
+###calculating WA_WQI
+pH_min <- 5.5
+pH_max <- 8.5
+Temp_max <- 30
+EC_max   <- 1100
+NO3_max  <- 25
+PO4_max  <- 1
+library(dplyr)
+
+# Taxa columns = everything BEFORE pH
+species_cols <- names(data)[1:62]
+
+# Physico-chemical parameters
+env_cols <- c("pH", "Temperature", "Conductivity", "NO3", "PO4")
+library(dplyr)
+
+# Taxa columns = everything BEFORE pH
+species_cols <- names(data)[1:62]
+
+# Physico-chemical parameters
+env_cols <- c("pH", "Temperature", "Conductivity", "NO3", "PO4")
+dim(data_station)
+head(data_station[, c("station", env_cols)])
+dim(data_station)
+View(data_station)
+library(dplyr)
+
+# --- Standards ---
+pH_min <- 5.5
+pH_max <- 8.5
+Temp_max <- 30
+EC_max   <- 1100
+NO3_max  <- 25
+PO4_max  <- 1
+
+# --- 1) Keep only needed columns (16 stations) ---
+wqi_dat <- data_station %>%
+  select(station, pH, Temperature, Conductivity, NO3, PO4)
+
+# --- 2) Define standards vector (S) for max-type parameters ---
+S <- c(
+  Temperature  = Temp_max,
+  Conductivity = EC_max,
+  NO3          = NO3_max,
+  PO4          = PO4_max
+)
+
+# --- 3) Compute unit weights (Wi) and normalize ---
+Wi_raw <- 1 / S
+Wi <- Wi_raw / sum(Wi_raw)   # sum(Wi) = 1
+
+# --- 4) Quality ratings (qi) ---
+# 4a) max-type parameters: qi = 100 * (C / S)
+qi_max <- wqi_dat %>%
+  transmute(
+    Temperature  = 100 * (Temperature / Temp_max),
+    Conductivity = 100 * (Conductivity / EC_max),
+    NO3          = 100 * (NO3 / NO3_max),
+    PO4          = 100 * (PO4 / PO4_max)
+  )
+
+# 4b) pH rating (range with ideal = 7)
+# Using common WA-WQI style: q_pH = 100 * |pH - 7| / |limit - 7|
+# where "limit" is pH_min if pH < 7 else pH_max
+q_pH <- with(wqi_dat, {
+  denom <- ifelse(pH < 7, abs(pH_min - 7), abs(pH_max - 7))
+  100 * abs(pH - 7) / denom
+})
+
+# --- 5) Weighted sub-indices and final WQI ---
+# For pH we need a weight too. In WA-WQI, weight is often 1/standard.
+# Since pH has a range, we use half-range as a proxy standard:
+pH_proxy <- (pH_max - pH_min) / 2  # = 1.5
+Wi_pH_raw <- 1 / pH_proxy
+
+# Re-normalize weights including pH
+Wi_all_raw <- c(Wi_pH_raw, Wi_raw)
+Wi_all <- Wi_all_raw / sum(Wi_all_raw)
+names(Wi_all) <- c("pH", names(S))
+
+# Weighted sums
+WQI <- as.numeric(
+  Wi_all["pH"] * q_pH +
+    Wi_all["Temperature"]  * qi_max$Temperature +
+    Wi_all["Conductivity"] * qi_max$Conductivity +
+    Wi_all["NO3"]          * qi_max$NO3 +
+    Wi_all["PO4"]          * qi_max$PO4
+)
+
+# --- 6) Output table ---
+WQI_table <- wqi_dat %>%
+  mutate(
+    WA_WQI = round(WQI, 2)
+  )
+
+print(WQI_table)
+summary(WQI_table$WA_WQI)
+
+##before GAM
+library(dplyr)
+pH_min <- 5.5
+pH_max <- 8.5
+Temp_max <- 30
+EC_max   <- 1100
+NO3_max  <- 25
+PO4_max  <- 1
+data_station_wqi <- data_station %>%
+  mutate(
+    # quality ratings (qi)
+    q_Temp = 100 * (Temperature / Temp_max),
+    q_EC   = 100 * (Conductivity / EC_max),
+    q_NO3  = 100 * (NO3 / NO3_max),
+    q_PO4  = 100 * (PO4 / PO4_max),
+    
+    # pH rating (ideal = 7; scaled by distance to nearest bound)
+    q_pH = {
+      denom <- ifelse(pH < 7, abs(pH_min - 7), abs(pH_max - 7))
+      100 * abs(pH - 7) / denom
+    }
+  )
+# weights (1/standard) and normalize, include pH with proxy standard = half range
+S <- c(Temp = Temp_max, EC = EC_max, NO3 = NO3_max, PO4 = PO4_max)
+Wi_raw <- 1 / S
+pH_proxy <- (pH_max - pH_min) / 2
+Wi_all_raw <- c(pH = 1 / pH_proxy, Wi_raw)
+Wi_all <- Wi_all_raw / sum(Wi_all_raw)
+data_station_wqi <- data_station_wqi %>%
+  mutate(
+    WA_WQI = Wi_all["pH"]   * q_pH +
+      Wi_all["Temp"] * q_Temp +
+      Wi_all["EC"]   * q_EC +
+      Wi_all["NO3"]  * q_NO3 +
+      Wi_all["PO4"]  * q_PO4
+  )
+
+library(tidyr)
+data_long_pa <- data_station_wqi %>%
+  pivot_longer(cols = 2:63, names_to = "espece", values_to = "abundance") %>%
+  mutate(
+    espece = factor(espece),
+    presence = ifelse(abundance > 0, 1, 0)
+  )
+
+library(mgcv)
+
+gam_wqi <- gam(
+  presence ~
+    s(WA_WQI, k = 5) +
+    s(espece, bs = "re"),
+  family = binomial(link = "logit"),
+  data = data_long_pa,
+  method = "REML"
+)
+
+summary(gam_wqi)
+plot(gam_wqi, pages = 1)
+
+##TITAN
+library(dplyr)
+library(TITAN2)
+library(tibble)
+library(ggplot2)
+
+# -----------------------------
+# 1) Build station-level table
+# -----------------------------
+species_cols <- names(data)[1:62]
+env_cols <- c("pH", "Temperature", "Conductivity", "NO3", "PO4")
+
+data_station <- data %>%
+  group_by(station) %>%
+  summarise(
+    across(all_of(species_cols), ~ sum(.x, na.rm = TRUE)),
+    across(all_of(env_cols), ~ first(.x))   # use mean(.) if not identical
+  ) %>%
+  ungroup()
+
+dim(data_station)  # should be 16 x 68
+
+
+# -----------------------------
+# 2) Compute WA_WQI on data_station
+# -----------------------------
+pH_min <- 5.5
+pH_max <- 8.5
+Temp_max <- 30
+EC_max   <- 1100
+NO3_max  <- 25
+PO4_max  <- 1
+
+# quality ratings
+data_station <- data_station %>%
+  mutate(
+    q_Temp = 100 * (Temperature / Temp_max),
+    q_EC   = 100 * (Conductivity / EC_max),
+    q_NO3  = 100 * (NO3 / NO3_max),
+    q_PO4  = 100 * (PO4 / PO4_max),
+    q_pH   = {
+      denom <- ifelse(pH < 7, abs(pH_min - 7), abs(pH_max - 7))
+      100 * abs(pH - 7) / denom
+    }
+  )
+
+# weights (1/standard), include pH as proxy (half-range)
+S <- c(Temp = Temp_max, EC = EC_max, NO3 = NO3_max, PO4 = PO4_max)
+Wi_raw <- 1 / S
+pH_proxy <- (pH_max - pH_min) / 2
+Wi_all_raw <- c(pH = 1 / pH_proxy, Wi_raw)
+Wi_all <- Wi_all_raw / sum(Wi_all_raw)
+
+# final WA_WQI
+data_station <- data_station %>%
+  mutate(
+    WA_WQI = Wi_all["pH"]   * q_pH +
+      Wi_all["Temp"] * q_Temp +
+      Wi_all["EC"]   * q_EC +
+      Wi_all["NO3"]  * q_NO3 +
+      Wi_all["PO4"]  * q_PO4
+  )
+# -----------------------------
+# 3) TITAN using WA_WQI as gradient
+# -----------------------------
+env <- data_station$WA_WQI
+txa <- data_station[, species_cols]
+txa <- as.data.frame(lapply(txa, as.numeric))
+
+occ <- colSums(txa > 0, na.rm = TRUE)
+txa_filtered <- txa[, occ >= 5]
+
+titan.out_WQI <- titan(env = env, txa = txa_filtered, minSplt = 5, nBoot = 500)
+
+summary(titan.out_WQI)
+head(titan.out_WQI$sppmax)
+# -----------------------------
+# 4) Plot TITAN results (same style)
+# -----------------------------
+df <- titan.out_WQI$sppmax %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Taxon") %>%
+  mutate(
+    Direction = ifelse(maxgrp == 1, "z-", "z+"),
+    Threshold = ienv.cp,
+    Zscore = zscore,
+    Purity = purity,
+    Reliability = reliability,
+    Lower = `5%`,
+    Upper = `95%`
+  ) %>%
+  filter(Purity > 0.6 & Reliability > 0.6)
+
+ggplot(df, aes(x = Threshold, y = reorder(Taxon, Threshold))) +
+  geom_point(
+    aes(shape = Direction, size = abs(Zscore), fill = Direction),
+    color = "black"
+  ) +
+  geom_errorbarh(
+    aes(xmin = Lower, xmax = Upper, color = Direction),
+    height = 0.2
+  ) +
+  scale_shape_manual(values = c("z-" = 21, "z+" = 21)) +
+  scale_fill_manual(values = c("z-" = "red", "z+" = "blue")) +
+  scale_color_manual(values = c("z-" = "red", "z+" = "blue"), guide = "none") +
+  scale_size_continuous(range = c(2, 6)) +
+  labs(
+    title = "TITAN Results: Taxa response to WA_WQI",
+    x = "WA_WQI threshold",
+    y = "Taxon",
+    size = "Z-score",
+    shape = "Response direction",
+    fill = "Response direction"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8))
+
+#WA_WQI_ BI
+titan <- as.data.frame(titan.out_WQI$sppmax)
+titan$Taxon <- rownames(titan)
+
+titan <- titan[, c("Taxon","ienv.cp","zscore","maxgrp","purity","reliability")]
+colnames(titan) <- c("Taxon","Threshold","Z","maxgrp","Purity","Reliability")
+
+titan_filt <- titan[
+  titan$Purity >= 0.6 & titan$Reliability >= 0.6, 
+]
+titan_filt$Direction <- ifelse(titan_filt$maxgrp == 1, "z-", "z+")
+Tmin <- min(titan_filt$Threshold, na.rm = TRUE)
+Tmax <- max(titan_filt$Threshold, na.rm = TRUE)
+
+score_taxon <- function(direction, Ti, Zi,
+                        a_minus = 3, a_plus = 2, b = 2,
+                        Tmin, Tmax){
+  
+  if(is.na(Ti) || is.na(Zi) || Zi == 0) return(NA_real_)
+  
+  # safe normalization
+  denom <- Tmax - Tmin
+  tnorm <- ifelse(denom == 0, 0.5, (Ti - Tmin) / denom)
+  
+  if(direction == "z-"){
+    s <- 10 - (tnorm * a_minus) - (b / abs(Zi))
+  } else {
+    s <-  1 + (tnorm * a_plus ) - (b / abs(Zi))
+  }
+  s
+}
+titan_filt$Score <- mapply(
+  score_taxon,
+  direction = titan_filt$Direction,
+  Ti        = titan_filt$Threshold,
+  Zi        = titan_filt$Z,
+  MoreArgs  = list(a_minus = 3, a_plus = 2, b = 2,
+                   Tmin = Tmin, Tmax = Tmax)
+)
+
+taxon_scores <- titan_filt[, c("Taxon","Score")]
+taxon_scores$Score <- round(taxon_scores$Score, 2)
+common_taxa <- intersect(colnames(data_station), taxon_scores$Taxon)
+
+comm_all <- data_station[, common_taxa, drop = FALSE]
+comm_all <- as.data.frame(lapply(comm_all, as.numeric))
+compute_WA_WQI_BI <- function(vec_abund, scores_df){
+  present_idx <- which(vec_abund > 0)
+  if(length(present_idx) == 0) return(NA_real_)
+  
+  taxa_present <- names(vec_abund)[present_idx]
+  m <- match(taxa_present, scores_df$Taxon)
+  
+  sc <- scores_df$Score[m]
+  sc <- sc[!is.na(sc)]
+  
+  if(length(sc) == 0) return(NA_real_)
+  round(mean(sc), 2)
+}
+
+WA_WQI_BI_all <- apply(
+  comm_all, 1,
+  compute_WA_WQI_BI,
+  scores_df = taxon_scores
+)
+classify_quality <- function(bi){
+  if(is.na(bi)) return("Indéterminée")
+  if(bi >= 8) return("Très bonne qualité")
+  if(bi >= 6) return("Bonne qualité")
+  if(bi >= 4) return("Qualité moyenne")
+  if(bi >= 2) return("Mauvaise qualité")
+  "Très mauvaise qualité"
+}
+
+qual_all <- vapply(WA_WQI_BI_all, classify_quality, character(1))
+WA_WQI_INDEX <- data.frame(
+  Station = data_station$station,
+  WA_WQI_BI = WA_WQI_BI_all,
+  Quality = qual_all
+)
+
+print(WA_WQI_INDEX)
+summary(WA_WQI_INDEX)
+
+
+
+
