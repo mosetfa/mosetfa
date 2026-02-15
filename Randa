@@ -7,7 +7,7 @@ Here are some ideas to get you started:
 
 - 🔭 I’m currently working on predicting water quality indices ...
 ##RANDA
-dataframe <- read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/Classeur3.csv",  header= T, check.names = F)
+dataframe <- read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/Classeur3.csv")
 WQI_P<-((p$WQI_D1*37.85844)/76.00867)+((p$WQI_D2*15.59)/76.00867)+((p$WQI_D3*13.93347)/76.00867)+((p$WQI_D4*8.63296)/76.00867)
 #
 names(dataframe)
@@ -147,7 +147,20 @@ results_WA_WQI <- data.frame(
 )
 
 print(results_WA_WQI)
+pred_lasso_test  <- as.numeric(pred_lasso_test)
+pred_ridge_test  <- as.numeric(pred_ridge_test)
+pred_enet_test   <- as.numeric(pred_enet_test)
 
+# Create dataframe
+predictions_WA_WQI <- data.frame(
+  Index = "WA_WQI",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
+
+head(predictions_WA_WQI)
 
 
 ##FOR WQI_P
@@ -276,8 +289,19 @@ results_WQI_P <- data.frame(
 )
 
 print(results_WQI_P)
+pred_lasso_test  <- as.numeric(pred_lasso_test)
+pred_ridge_test  <- as.numeric(pred_ridge_test)
+pred_enet_test   <- as.numeric(pred_enet_test)
 
+predictions_WQI_P <- data.frame(
+  Index = "WQI_P",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
 
+head(predictions_WQI_P)
 
 
 
@@ -383,9 +407,19 @@ results_CCME <- data.frame(
 )
 
 print(results_CCME)
+pred_lasso_test  <- as.numeric(pred_lasso_test)
+pred_ridge_test  <- as.numeric(pred_ridge_test)
+pred_enet_test   <- as.numeric(pred_enet_test)
 
+predictions_CCME <- data.frame(
+  Index = "CCME",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
 
-
+head(predictions_CCME)
 
 #EWQI
 # Load libraries
@@ -489,8 +523,19 @@ results_EWQI <- data.frame(
 )
 
 print(results_EWQI)
+pred_lasso_test  <- as.numeric(pred_lasso_test)
+pred_ridge_test  <- as.numeric(pred_ridge_test)
+pred_enet_test   <- as.numeric(pred_enet_test)
 
+predictions_EWQI <- data.frame(
+  Index = "EWQI",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
 
+head(predictions_EWQI)
 
 #GWQI
 # Load libraries
@@ -594,9 +639,19 @@ results_GWQI <- data.frame(
 )
 
 print(results_GWQI)
+pred_lasso_test  <- as.numeric(pred_lasso_test)
+pred_ridge_test  <- as.numeric(pred_ridge_test)
+pred_enet_test   <- as.numeric(pred_enet_test)
 
+predictions_GWQI <- data.frame(
+  Index = "GWQI",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
 
-
+head(predictions_GWQI)
 
 ##WQI_D1
 # Load libraries
@@ -700,6 +755,19 @@ results_WQI_D1 <- data.frame(
 )
 
 print(results_WQI_D1)
+pred_lasso_test  <- as.numeric(pred_lasso_test)
+pred_ridge_test  <- as.numeric(pred_ridge_test)
+pred_enet_test   <- as.numeric(pred_enet_test)
+
+predictions_WQI_D1 <- data.frame(
+  Index = "WQI_D1",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
+
+head(predictions_WQI_D1)
 
 
 
@@ -805,8 +873,19 @@ results_WQI_D2 <- data.frame(
 )
 
 print(results_WQI_D2)
+pred_lasso_test  <- as.numeric(pred_lasso_test)
+pred_ridge_test  <- as.numeric(pred_ridge_test)
+pred_enet_test   <- as.numeric(pred_enet_test)
 
+predictions_WQI_D2 <- data.frame(
+  Index = "WQI_D2",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
 
+head(predictions_WQI_D2)
 
 ##WQI_D3
 # Load libraries
@@ -910,8 +989,19 @@ results_WQI_D3 <- data.frame(
 )
 
 print(results_WQI_D3)
+pred_lasso_test  <- as.numeric(pred_lasso_test)
+pred_ridge_test  <- as.numeric(pred_ridge_test)
+pred_enet_test   <- as.numeric(pred_enet_test)
 
+predictions_WQI_D3 <- data.frame(
+  Index = "WQI_D3",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
 
+head(predictions_WQI_D3)
 
 
 ###WQI_D4
@@ -1021,5 +1111,529 @@ results_WQI_D4 <- data.frame(
 )
 
 print(results_WQI_D4)
+pred_lasso_test  <- as.numeric(pred_lasso_test)
+pred_ridge_test  <- as.numeric(pred_ridge_test)
+pred_enet_test   <- as.numeric(pred_enet_test)
 
--->
+predictions_WQI_D4 <- data.frame(
+  Index = "WQI_D4",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
+
+head(predictions_WQI_D4)
+
+all_predictions <- bind_rows(
+  predictions_WA_WQI,
+  predictions_WQI_P,
+  predictions_CCME,
+  predictions_EWQI,
+  predictions_GWQI,
+  predictions_WQI_D1,
+  predictions_WQI_D2,
+  predictions_WQI_D3,
+  predictions_WQI_D4
+)
+
+head(all_predictions)
+write.xlsx(all_predictions, file="D:/moste/OneDrive/Bureau/all_predictions.xlsx")
+#REGRESSION ACTUAL PREDICTED VALUES
+actual <- read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/actual predicted values.csv")
+dim(actual)
+head(actual)
+library(ggplot2)
+library(patchwork)  # for arranging multiple plots
+
+# Split the data by Index
+actual_list <- split(actual, actual$Index)
+
+# Function to create regression plot for a specific algorithm, line in red, with legend and confidence interval
+plot_regression <- function(df, pred_col, algorithm_name) {
+  lm_model <- lm(df[[pred_col]] ~ df$Actual)
+  r2 <- summary(lm_model)$r.squared
+  
+  ggplot(df, aes(x = Actual, y = .data[[pred_col]])) +
+    geom_point(color = "steelblue", size = 2) +
+    geom_smooth(method = "lm", color = "red", aes(linetype = algorithm_name), se = TRUE, fill = "pink", alpha = 0.2) +
+    labs(title = df$Index[1],
+         subtitle = paste0("R² = ", round(r2, 3)),
+         x = "Actual",
+         y = "Predicted",
+         linetype = "Algorithm") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 10),
+          plot.subtitle = element_text(size = 9),
+          legend.position = "bottom")
+}
+
+# ------------------------
+# 1. Lasso plots
+# ------------------------
+plots_lasso <- lapply(actual_list, function(df) plot_regression(df, "Lasso", "Lasso"))
+lasso_grid <- wrap_plots(plots_lasso, ncol = 3)  # 3 columns x 3 rows
+
+# ------------------------
+# 2. Ridge plots
+# ------------------------
+plots_ridge <- lapply(actual_list, function(df) plot_regression(df, "Ridge", "Ridge"))
+ridge_grid <- wrap_plots(plots_ridge, ncol = 3)
+
+# ------------------------
+# 3. Elastic Net plots
+# ------------------------
+plots_enet <- lapply(actual_list, function(df) plot_regression(df, "Elastic_Net", "Elastic Net"))
+enet_grid <- wrap_plots(plots_enet, ncol = 3)
+
+# ------------------------
+# Display the figures
+# ------------------------
+lasso_grid
+ridge_grid
+enet_grid
+
+
+
+
+###create a dataframe for all indices 
+# Add Index name to each result table
+results_WA_WQI$Index   <- "WA_WQI"
+results_WQI_P$Index   <- "WQI_P"
+results_WQI_D1$Index  <- "WQI_D1"
+results_WQI_D2$Index  <- "WQI_D2"
+results_WQI_D3$Index  <- "WQI_D3"
+results_WQI_D4$Index  <- "WQI_D4"
+results_CCME$Index    <- "CCME"
+results_GWQI$Index    <- "GWQI"
+results_EWQI$Index    <- "EWQI"
+
+# Combine all tables
+final_results <- rbind(
+  results_WA_WQI,
+  results_WQI_P,
+  results_WQI_D1,
+  results_WQI_D2,
+  results_WQI_D3,
+  results_WQI_D4,
+  results_CCME,
+  results_GWQI,
+  results_EWQI
+)
+
+# Reorder columns for better presentation
+final_results <- final_results[, c("Index","Model",
+                                   "RMSE_Train","RMSE_Test",
+                                   "MAE_Train","MAE_Test",
+                                   "R2_Train","R2_Test")]
+
+print(final_results)
+dim(final_results)
+write.xlsx(final_results, file="D:/moste/OneDrive/Bureau/final_results.xlsx")
+
+##rmse, mae , R²
+metric <- read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/final_results.csv",  header= T, check.names = F)
+dim(metric)
+head(metric)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Select Train and Test metrics for RMSE and MAE
+metric_bars <- metric %>%
+  dplyr::select(Index, Model,
+                RMSE_Train, RMSE_Test,
+                MAE_Train, MAE_Test) %>%
+  pivot_longer(
+    cols = -c(Index, Model),
+    names_to = c("Metric", "Dataset"),
+    names_sep = "_",
+    values_to = "Value"
+  ) %>%
+  mutate(MetricDataset = paste(Metric, Dataset, sep = "_"))
+library(ggplot2)
+library(dplyr)
+
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+# Keep only RMSE for Train and Test
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# Prepare RMSE data
+metric_RMSE <- metric %>%
+  dplyr::select(Index, Model, RMSE_Train, RMSE_Test) %>%
+  pivot_longer(
+    cols = -c(Index, Model),
+    names_to = "Dataset",
+    names_pattern = "RMSE_(.*)",
+    values_to = "Value"
+  )
+metric_MAE <- metric %>%
+  dplyr::select(Index, Model, MAE_Train, MAE_Test) %>%
+  pivot_longer(
+    cols = -c(Index, Model),
+    names_to = "Dataset",
+    names_pattern = "MAE_(.*)",
+    values_to = "Value"
+  )
+
+# Plot for WQI_P using your preferred code style
+R_WQI_P=ggplot(data = metric_RMSE %>% filter(Index == "WQI_P"),
+       aes(x = Model, y = Value, fill = Dataset)) +coord_flip()+
+  
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  
+  geom_text(aes(label = round(Value, 2)), 
+            vjust = -0.5, color = "black",
+            position = position_dodge(0.9), size = 3.5) +
+  
+  scale_fill_brewer(palette = "Paired") +
+  
+  theme_minimal(base_size = 14) +
+  
+  labs(title = "WQI_P - RMSE Train vs Test",
+       x = "Algorithm",
+       y = "RMSE",
+       fill = "Dataset")
+M_WQI_P=ggplot(data = metric_MAE %>% filter(Index == "WQI_P"),
+               aes(x = Model, y = Value, fill = Dataset)) +coord_flip()+
+  
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  
+  geom_text(aes(label = round(Value, 2)), 
+            vjust = -0.5, color = "black",
+            position = position_dodge(0.9), size = 3.5) +
+  
+  scale_fill_brewer(palette = "Paired") +
+  
+  theme_minimal(base_size = 14) +
+  
+  labs(title = "WQI_P - MAE Train vs Test",
+       x = "Algorithm",
+       y = "MAE",
+       fill = "Dataset")
+grid.arrange(R_WQI_P,M_WQI_P, ncol = 1)
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+
+# Prepare RMSE data
+metric_RMSE <- metric %>%
+  select(Index, Model, RMSE_Train, RMSE_Test) %>%
+  pivot_longer(cols = -c(Index, Model),
+               names_to = "Dataset",
+               names_pattern = "RMSE_(.*)",
+               values_to = "Value")
+
+# Prepare MAE data
+metric_MAE <- metric %>%
+  select(Index, Model, MAE_Train, MAE_Test) %>%
+  pivot_longer(cols = -c(Index, Model),
+               names_to = "Dataset",
+               names_pattern = "MAE_(.*)",
+               values_to = "Value")
+
+# WQI_P
+R_WQI_P <- ggplot(metric_RMSE %>% filter(Index == "WQI_P"),
+                  aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WQI_P - RMSE Train vs Test", x="Algorithm", y="RMSE", fill="Dataset")
+
+M_WQI_P <- ggplot(metric_MAE %>% filter(Index == "WQI_P"),
+                  aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WQI_P - MAE Train vs Test", x="Algorithm", y="MAE", fill="Dataset")
+
+A=grid.arrange(R_WQI_P, M_WQI_P, ncol=1)
+
+
+# WQI_D1
+R_WQI_D1 <- ggplot(metric_RMSE %>% filter(Index == "WQI_D1"),
+                   aes(x = Model, y = Value, fill = Dataset)) + 
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WQI_D1 - RMSE Train vs Test", x="Algorithm", y="RMSE", fill="Dataset")
+
+M_WQI_D1 <- ggplot(metric_MAE %>% filter(Index == "WQI_D1"),
+                   aes(x = Model, y = Value, fill = Dataset)) + 
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WQI_D1 - MAE Train vs Test", x="Algorithm", y="MAE", fill="Dataset")
+
+B=grid.arrange(R_WQI_D1, M_WQI_D1, ncol=1)
+
+
+# WQI_D2
+R_WQI_D2 <- ggplot(metric_RMSE %>% filter(Index == "WQI_D2"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WQI_D2 - RMSE Train vs Test", x="Algorithm", y="RMSE", fill="Dataset")
+
+M_WQI_D2 <- ggplot(metric_MAE %>% filter(Index == "WQI_D2"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WQI_D2 - MAE Train vs Test", x="Algorithm", y="MAE", fill="Dataset")
+
+C=grid.arrange(R_WQI_D2, M_WQI_D2, ncol=1)
+
+
+# WQI_D3
+R_WQI_D3 <- ggplot(metric_RMSE %>% filter(Index == "WQI_D3"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WQI_D3 - RMSE Train vs Test", x="Algorithm", y="RMSE", fill="Dataset")
+
+M_WQI_D3 <- ggplot(metric_MAE %>% filter(Index == "WQI_D3"),
+                   aes(x = Model, y = Value, fill = Dataset)) + 
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WQI_D3 - MAE Train vs Test", x="Algorithm", y="MAE", fill="Dataset")
+
+D=grid.arrange(R_WQI_D3, M_WQI_D3, ncol=1)
+
+
+# WQI_D4
+R_WQI_D4 <- ggplot(metric_RMSE %>% filter(Index == "WQI_D4"),
+                   aes(x = Model, y = Value, fill = Dataset)) + 
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WQI_D4 - RMSE Train vs Test", x="Algorithm", y="RMSE", fill="Dataset")
+
+M_WQI_D4 <- ggplot(metric_MAE %>% filter(Index == "WQI_D4"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WQI_D4 - MAE Train vs Test", x="Algorithm", y="MAE", fill="Dataset")
+
+E=grid.arrange(R_WQI_D4, M_WQI_D4, ncol=1)
+
+
+# CCME
+R_CCME <- ggplot(metric_RMSE %>% filter(Index == "CCME"),
+                 aes(x = Model, y = Value, fill = Dataset)) + 
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="CCME - RMSE Train vs Test", x="Algorithm", y="RMSE", fill="Dataset")
+
+M_CCME <- ggplot(metric_MAE %>% filter(Index == "CCME"),
+                 aes(x = Model, y = Value, fill = Dataset)) + 
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="CCME - MAE Train vs Test", x="Algorithm", y="MAE", fill="Dataset")
+
+F=grid.arrange(R_CCME, M_CCME, ncol=1)
+
+
+# EWQI
+R_EWQI <- ggplot(metric_RMSE %>% filter(Index == "EWQI"),
+                 aes(x = Model, y = Value, fill = Dataset)) + 
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="EWQI - RMSE Train vs Test", x="Algorithm", y="RMSE", fill="Dataset")
+
+M_EWQI <- ggplot(metric_MAE %>% filter(Index == "EWQI"),
+                 aes(x = Model, y = Value, fill = Dataset)) + 
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="EWQI - MAE Train vs Test", x="Algorithm", y="MAE", fill="Dataset")
+
+G=grid.arrange(R_EWQI, M_EWQI, ncol=1)
+
+
+# GWQI
+R_GWQI <- ggplot(metric_RMSE %>% filter(Index == "GWQI"),
+                 aes(x = Model, y = Value, fill = Dataset)) + 
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="GWQI - RMSE Train vs Test", x="Algorithm", y="RMSE", fill="Dataset")
+
+M_GWQI <- ggplot(metric_MAE %>% filter(Index == "GWQI"),
+                 aes(x = Model, y = Value, fill = Dataset)) + 
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="GWQI - MAE Train vs Test", x="Algorithm", y="MAE", fill="Dataset")
+
+H=grid.arrange(R_GWQI, M_GWQI, ncol=1)
+
+##WA_WQI
+R_WA_WQI <- ggplot(metric_RMSE %>% filter(Index == "WA_WQI"),
+                 aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WA_WQI - RMSE Train vs Test", x="Algorithm", y="RMSE", fill="Dataset")
+
+M_WA_WQI <- ggplot(metric_MAE %>% filter(Index == "WA_WQI"),
+                 aes(x = Model, y = Value, fill = Dataset)) + 
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  geom_text(aes(label = round(Value,2)), vjust = -0.5, color="black",
+            position = position_dodge(0.9), size=3.5) +
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal(base_size=14) +
+  labs(title="WA_WQI - MAE Train vs Test", x="Algorithm", y="MAE", fill="Dataset")
+
+I=grid.arrange(R_WA_WQI, M_WA_WQI, ncol=1)
+grid.arrange(M_WQI_D1, M_WQI_D2, M_WQI_D3,M_WQI_D4,M_WQI_P, M_CCME,M_GWQI, M_EWQI,M_WA_WQI ,ncol=3)
+
+##GLM
+MODELCCME <- ggcoef_model(glm_CCME, exponentiate = TRUE) + 
+  ggtitle("Estimated Effects of Predictor Variables on CCME Using GLM + Pearson Correlation Matrix") +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+MODELCCME
+F1 <- image_read("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/CORRELATION CCME.tiff")
+grob_A <- rasterGrob(F1, interpolate = TRUE)
+grob_A <- arrangeGrob(
+  grobTree(grob_A))
+
+C1=grid.arrange(MODELCCME,grob_A, ncol = 2)
+
+#WA_WQI
+MODELWA_WQI <- ggcoef_model(glm_WA_WQI, exponentiate = TRUE) + 
+  ggtitle("Estimated Effects of Predictor Variables on WA_WQI Using GLM + Pearson Correlation Matrix") +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+MODELWA_WQI
+F2 <- image_read("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/CORRELATION MATRIX OF WA_WQI.tiff")
+grob_B <- rasterGrob(F2, interpolate = TRUE)
+grob_B <- arrangeGrob(
+  grobTree(grob_B))
+
+C2=grid.arrange(MODELWA_WQI,grob_B, ncol = 2)
+#WQI_P
+MODELWQI_P <- ggcoef_model(glm_WQI_P, exponentiate = TRUE) + 
+  ggtitle("Estimated Effects of Predictor Variables on WQI_P Using GLM + Pearson Correlation Matrix") +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+MODELWQI_P
+F3 <- image_read("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/CORRELATION WQI_P.tiff")
+grob_C <- rasterGrob(F3, interpolate = TRUE)
+grob_C <- arrangeGrob(
+  grobTree(grob_C))
+
+C3=grid.arrange(MODELWQI_P,grob_C, ncol = 2)
+#WQI_D1
+MODELWQI_D1 <- ggcoef_model(glm_WQI_D1, exponentiate = TRUE) + 
+  ggtitle("Estimated Effects of Predictor Variables on WQI_D1 Using GLM + Pearson Correlation Matrix") +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+MODELWQI_D1
+F4 <- image_read("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/CORRELATION WQI_D1.tiff")
+grob_D <- rasterGrob(F4, interpolate = TRUE)
+grob_D <- arrangeGrob(
+  grobTree(grob_D))
+
+grid.arrange(MODELWQI_D1,grob_D, ncol = 2)
+
+#WQI_D2
+MODELWQI_D2 <- ggcoef_model(glm_WQI_D2, exponentiate = TRUE) + 
+  ggtitle("Estimated Effects of Predictor Variables on WQI_D2 Using GLM + Pearson Correlation Matrix") +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+MODELWQI_D2
+F5 <- image_read("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/CORRELATION WQI_D2.tiff")
+grob_E <- rasterGrob(F5, interpolate = TRUE)
+grob_E <- arrangeGrob(
+  grobTree(grob_E))
+
+grid.arrange(MODELWQI_D2,grob_E, ncol = 2)
+#WQI_D3
+MODELWQI_D3 <- ggcoef_model(glm_WQI_D3, exponentiate = TRUE) + 
+  ggtitle("Estimated Effects of Predictor Variables on WQI_D3 Using GLM + Pearson Correlation Matrix") +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+MODELWQI_D3
+F6 <- image_read("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/CORRELATION WQI_D3.tiff")
+grob_F <- rasterGrob(F6, interpolate = TRUE)
+grob_F <- arrangeGrob(
+  grobTree(grob_F))
+
+grid.arrange(MODELWQI_D3,grob_F, ncol = 2)
+#WQI_D4
+MODELWQI_D4 <- ggcoef_model(glm_WQI_D4, exponentiate = TRUE) + 
+  ggtitle("Estimated Effects of Predictor Variables on WQI_D4 Using GLM + Pearson Correlation Matrix") +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+MODELWQI_D4
+F7 <- image_read("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/CORRELATION MATRIX WQI_D4.tiff")
+grob_G <- rasterGrob(F7, interpolate = TRUE)
+grob_G <- arrangeGrob(
+  grobTree(grob_G))
+
+grid.arrange(MODELWQI_D4,grob_G, ncol = 2)
+#GWQI
+MODELGWQI <- ggcoef_model(glm_GWQI, exponentiate = TRUE) + 
+  ggtitle("Estimated Effects of Predictor Variables on GWQI Using GLM + Pearson Correlation Matrix") +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+MODELGWQI
+F8 <- image_read("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/CORRELATION GWQI.tiff")
+grob_H <- rasterGrob(F8, interpolate = TRUE)
+grob_H <- arrangeGrob(
+  grobTree(grob_H))
+
+grid.arrange(MODELGWQI,grob_H, ncol = 2)
+#EWQI
+MODELEWQI <- ggcoef_model(glm_EWQI, exponentiate = TRUE) + 
+  ggtitle("Estimated Effects of Predictor Variables on EWQI Using GLM + Pearson Correlation Matrix") +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+MODELEWQI
+F9 <- image_read("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/CORRELATION EWQI.tiff")
+grob_I <- rasterGrob(F9, interpolate = TRUE)
+grob_I <- arrangeGrob(
+  grobTree(grob_I))
+
+grid.arrange(MODELEWQI,grob_I, ncol = 2)
