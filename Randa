@@ -10,6 +10,8 @@ Here are some ideas to get you started:
 dataframe <- read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/Classeur3.csv")
 WQI_P<-((p$WQI_D1*37.85844)/76.00867)+((p$WQI_D2*15.59)/76.00867)+((p$WQI_D3*13.93347)/76.00867)+((p$WQI_D4*8.63296)/76.00867)
 #
+metric <- read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/final_results.csv")
+predicted=read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/actual predicted values.csv")
 names(dataframe)
 dim(dataframe)
 randa=dataframe
@@ -19,11 +21,20 @@ names(randa)
 ##ALGORITHMS FOR PREDICTING WA_WQI
 # Load necessary libraries
 ### WA_WQI
+## WA_WQI: Lasso, Ridge, Elastic Net
+## ---------------------------
+
 library(caret)
 library(glmnet)
-library(Metrics)
 library(dplyr)
-library(openxlsx)  # for write.xlsx
+library(openxlsx)
+
+# ---------------------------
+# 0. PREI Function
+# ---------------------------
+compute_prei <- function(observed, predicted) {
+  ((observed - as.numeric(predicted)) / observed) * 100
+}
 
 # ---------------------------
 # 1. Prepare Data
@@ -31,11 +42,9 @@ library(openxlsx)  # for write.xlsx
 data_model <- randa %>%
   dplyr::select(WA_WQI, NO3, Period)
 
-# Convert Period to factor
 data_model$Period <- as.factor(data_model$Period)
 
-# Check missing values
-sum(is.na(data_model))
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
 
 # ---------------------------
 # 2. Train-Test Split
@@ -43,47 +52,75 @@ sum(is.na(data_model))
 set.seed(123)
 trainIndex <- createDataPartition(data_model$WA_WQI, p = 0.7, list = FALSE)
 trainData <- data_model[trainIndex, ]
-testData <- data_model[-trainIndex, ]
+testData  <- data_model[-trainIndex, ]
 
 # ---------------------------
 # 3. Prepare matrices for glmnet
 # ---------------------------
 x_train <- model.matrix(WA_WQI ~ NO3 + Period, data = trainData)[,-1]
-y_train <- trainData$WA_WQI
+y_train <- as.numeric(trainData$WA_WQI)
 
 x_test <- model.matrix(WA_WQI ~ NO3 + Period, data = testData)[,-1]
-y_test <- testData$WA_WQI
+y_test <- as.numeric(testData$WA_WQI)
 
 # ---------------------------
-# 4. Lasso, Ridge, Elastic Net
+# 4. Fit Lasso, Ridge, Elastic Net
 # ---------------------------
 set.seed(123)
 lasso_model <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
 ridge_model <- cv.glmnet(x_train, y_train, alpha = 0, nfolds = 5)
 enet_model  <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
 
-# Predictions
-pred_lasso_test <- predict(lasso_model, s = "lambda.min", newx = x_test)
-pred_ridge_test <- predict(ridge_model, s = "lambda.min", newx = x_test)
-pred_enet_test  <- predict(enet_model, s = "lambda.min", newx = x_test)
-
-# 5. PREI per sample
 # ---------------------------
+# 5. Predictions
+# ---------------------------
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
 
-# Convert predictions to numeric first
-pred_lasso_test <- as.numeric(pred_lasso_test)
-pred_ridge_test <- as.numeric(pred_ridge_test)
-pred_enet_test  <- as.numeric(pred_enet_test)
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
 
-compute_prei <- function(observed, predicted) {
-  ((observed - predicted) / observed) * 100
-}
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
 
+# ---------------------------
+# 6. Metrics (Base R)
+# ---------------------------
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc   <- function(obs, pred) cor(obs, pred)^2
+
+results_WA_WQI <- data.frame(
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
+)
+
+print(results_WA_WQI)
+
+# ---------------------------
+# 7. PREI per sample
+# ---------------------------
 prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
 prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
 prei_enet_test  <- compute_prei(y_test, pred_enet_test)
 
-# Create PREI table with proper column names
 PREI_WA_WQI <- data.frame(
   Observed = y_test,
   PREI_Lasso = prei_lasso_test,
@@ -91,56 +128,9 @@ PREI_WA_WQI <- data.frame(
   PREI_ElasticNet = prei_enet_test
 )
 
-head(PREI_WA_WQI)
-
-# Save to Excel
-write.xlsx(PREI_WA_WQI, file = "D:/moste/OneDrive/Bureau/PREI_WA_WQI.xlsx")
-
-# Preview table
-head(PREI_WA_WQI)
-
 # ---------------------------
-# 6. Summary Metrics Table (no vectors)
+# 8. Predictions Table
 # ---------------------------
-results_WA_WQI <- data.frame(
-  Model = c("Lasso","Ridge","Elastic Net"),
-  RMSE_Train = c(rmse_lasso_train, rmse_ridge_train, rmse_enet_train),
-  RMSE_Test  = c(rmse_lasso_test, rmse_ridge_test, rmse_enet_test),
-  MAE_Train  = c(mae_lasso_train, mae_ridge_train, mae_enet_train),
-  MAE_Test   = c(mae_lasso_test, mae_ridge_test, mae_enet_test),
-  R2_Train   = c(r2_lasso_train, r2_ridge_train, r2_enet_train),
-  R2_Test    = c(r2_lasso_test, r2_ridge_test, r2_enet_test)
-)
-
-# Save summary metrics
-write.xlsx(results_WA_WQI, file="D:/moste/OneDrive/Bureau/results_WA_WQI.xlsx")
-print(results_WA_WQI)
-
-# ---------------------------
-# 7. Predictions Table
-# ---------------------------
-pred_lasso_test  <- as.numeric(pred_lasso_test)
-pred_ridge_test  <- as.numeric(pred_ridge_test)
-pred_enet_test   <- as.numeric(pred_enet_test)
-
-predictions_WA_WQI <- data.frame(
-  Index = "WA_WQI",
-  Actual = y_test,
-  Lasso = pred_lasso_test,
-  Ridge = pred_ridge_test,
-  Elastic_Net = pred_enet_test
-)
-
-write.xlsx(predictions_WA_WQI, file="D:/moste/OneDrive/Bureau/predictions_WA_WQI.xlsx")
-head(predictions_WA_WQI)
-
-write.xlsx(results_WA_WQI, file="D:/moste/OneDrive/Bureau/results_WA_WQI.xlsx")
-
-pred_lasso_test  <- as.numeric(pred_lasso_test)
-pred_ridge_test  <- as.numeric(pred_ridge_test)
-pred_enet_test   <- as.numeric(pred_enet_test)
-
-# Create dataframe
 predictions_WA_WQI <- data.frame(
   Index = "WA_WQI",
   Actual = y_test,
@@ -152,146 +142,116 @@ predictions_WA_WQI <- data.frame(
 head(predictions_WA_WQI)
 
 ##FOR WQI_P
-# ---------------------------
-# WQI_P Regression Analysis with Lasso, Ridge, Elastic Net
-# ---------------------------
+## ---------------------------
+## WQI_P: Lasso, Ridge, Elastic Net
+## ---------------------------
 
-library(caret)      # For ML workflow
-library(glmnet)     # For Lasso, Ridge, Elastic Net
-library(Metrics)    # For RMSE, MAE
-library(dplyr)      # Data manipulation
-library(openxlsx)   # Export to Excel
+library(caret)
+library(glmnet)
+library(dplyr)
+library(openxlsx)
+
+# ---------------------------
+# 0. PREI Function
+# ---------------------------
+compute_prei <- function(observed, predicted) {
+  ((observed - as.numeric(predicted)) / observed) * 100
+}
 
 # ---------------------------
 # 1. Prepare Data
 # ---------------------------
-
-# Select predictors and target
 data_model <- randa %>%
   dplyr::select(WQI_P, HCO3, SO4, Mg2, Period)
 
-# Convert Period to factor
 data_model$Period <- as.factor(data_model$Period)
 
-# Check missing values
-sum(is.na(data_model))  # Should be 0
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
 
+# ---------------------------
+# 2. Train-Test Split
+# ---------------------------
 set.seed(123)
 trainIndex <- createDataPartition(data_model$WQI_P, p = 0.7, list = FALSE)
 trainData <- data_model[trainIndex, ]
-testData <- data_model[-trainIndex, ]
+testData  <- data_model[-trainIndex, ]
 
 # ---------------------------
-# 2. Prepare matrices for glmnet
+# 3. Prepare matrices for glmnet
 # ---------------------------
 x_train <- model.matrix(WQI_P ~ HCO3 + SO4 + Mg2 + Period, data = trainData)[,-1]
-y_train <- trainData$WQI_P
+y_train <- as.numeric(trainData$WQI_P)
 
 x_test <- model.matrix(WQI_P ~ HCO3 + SO4 + Mg2 + Period, data = testData)[,-1]
-y_test <- testData$WQI_P
+y_test <- as.numeric(testData$WQI_P)
 
 # ---------------------------
-# 3. PREI function
-# ---------------------------
-compute_prei <- function(observed, predicted) {
-  ((observed - predicted) / observed) * 100
-}
-
-# ---------------------------
-# 4. Lasso Regression
+# 4. Fit Lasso, Ridge, Elastic Net
 # ---------------------------
 set.seed(123)
 lasso_model <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
-pred_lasso_train <- predict(lasso_model, s = "lambda.min", newx = x_train)
-pred_lasso_test  <- predict(lasso_model, s = "lambda.min", newx = x_test)
-
-# Metrics
-rmse_lasso_train <- rmse(y_train, pred_lasso_train)
-rmse_lasso_test  <- rmse(y_test, pred_lasso_test)
-
-mae_lasso_train <- mae(y_train, pred_lasso_train)
-mae_lasso_test  <- mae(y_test, pred_lasso_test)
-
-r2_lasso_train <- cor(y_train, pred_lasso_train)^2
-r2_lasso_test  <- cor(y_test, pred_lasso_test)^2
-
-# ---------------------------
-# 5. Ridge Regression
-# ---------------------------
-set.seed(123)
 ridge_model <- cv.glmnet(x_train, y_train, alpha = 0, nfolds = 5)
-pred_ridge_train <- predict(ridge_model, s = "lambda.min", newx = x_train)
-pred_ridge_test  <- predict(ridge_model, s = "lambda.min", newx = x_test)
-
-# Metrics
-rmse_ridge_train <- rmse(y_train, pred_ridge_train)
-rmse_ridge_test  <- rmse(y_test, pred_ridge_test)
-
-mae_ridge_train <- mae(y_train, pred_ridge_train)
-mae_ridge_test  <- mae(y_test, pred_ridge_test)
-
-r2_ridge_train <- cor(y_train, pred_ridge_train)^2
-r2_ridge_test  <- cor(y_test, pred_ridge_test)^2
+enet_model  <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
 
 # ---------------------------
-# 6. Elastic Net
+# 5. Predictions
 # ---------------------------
-set.seed(123)
-enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
-pred_enet_train <- predict(enet_model, s = "lambda.min", newx = x_train)
-pred_enet_test  <- predict(enet_model, s = "lambda.min", newx = x_test)
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
 
-# Metrics
-rmse_enet_train <- rmse(y_train, pred_enet_train)
-rmse_enet_test  <- rmse(y_test, pred_enet_test)
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
 
-mae_enet_train <- mae(y_train, pred_enet_train)
-mae_enet_test  <- mae(y_test, pred_enet_test)
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
 
-r2_enet_train <- cor(y_train, pred_enet_train)^2
-r2_enet_test  <- cor(y_test, pred_enet_test)^2
+# ---------------------------
+# 6. Metrics (Base R)
+# ---------------------------
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc   <- function(obs, pred) cor(obs, pred)^2
+
+results_WQI_P <- data.frame(
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
+)
+
+print(results_WQI_P)
 
 # ---------------------------
 # 7. PREI per sample
 # ---------------------------
-pred_lasso_test <- as.numeric(pred_lasso_test)
-pred_ridge_test <- as.numeric(pred_ridge_test)
-pred_enet_test  <- as.numeric(pred_enet_test)
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
 
-prei_lasso_test_WQI_P <- compute_prei(y_test, pred_lasso_test)
-prei_ridge_test_WQI_P <- compute_prei(y_test, pred_ridge_test)
-prei_enet_test_WQI_P  <- compute_prei(y_test, pred_enet_test)
-
-# Store PREI per sample in a separate data.frame
 PREI_WQI_P <- data.frame(
   Observed = y_test,
-  PREI_Lasso = prei_lasso_test_WQI_P,
-  PREI_Ridge = prei_ridge_test_WQI_P,
-  PREI_ElasticNet = prei_enet_test_WQI_P
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
 )
 
-# Save PREI per sample to Excel
-write.xlsx(PREI_WQI_P, file = "D:/moste/OneDrive/Bureau/PREI_WQI_P.xlsx")
-
 # ---------------------------
-# 8. Summary Metrics Table
-# ---------------------------
-results_WQI_P <- data.frame(
-  Model = c("Lasso","Ridge","Elastic Net"),
-  RMSE_Train = c(rmse_lasso_train, rmse_ridge_train, rmse_enet_train),
-  RMSE_Test  = c(rmse_lasso_test, rmse_ridge_test, rmse_enet_test),
-  MAE_Train  = c(mae_lasso_train, mae_ridge_train, mae_enet_train),
-  MAE_Test   = c(mae_lasso_test, mae_ridge_test, mae_enet_test),
-  R2_Train   = c(r2_lasso_train, r2_ridge_train, r2_enet_train),
-  R2_Test    = c(r2_lasso_test, r2_ridge_test, r2_enet_test),
-  PREI_Test  = c(prei_lasso_test_WQI_P, prei_ridge_test_WQI_P, prei_enet_test_WQI_P)
-)
-
-print(results_WQI_P)
-write.xlsx(results_WQI_P, file = "D:/moste/OneDrive/Bureau/results_WQI_P.xlsx")
-
-# ---------------------------
-# 9. Predictions Table
+# 8. Predictions Table
 # ---------------------------
 predictions_WQI_P <- data.frame(
   Index = "WQI_P",
@@ -301,19 +261,25 @@ predictions_WQI_P <- data.frame(
   Elastic_Net = pred_enet_test
 )
 
-head(predictions_WQI_P)
+head(predictions_WQI_P) 
 
 ##CCME
 # Load libraries
-# ---------------------------
-# CCME Regression Analysis with Lasso, Ridge, Elastic Net
-# ---------------------------
+## ---------------------------
+## CCME: Lasso, Ridge, Elastic Net
+## ---------------------------
 
 library(caret)
 library(glmnet)
-library(Metrics)
 library(dplyr)
 library(openxlsx)
+
+# ---------------------------
+# 0. PREI Function
+# ---------------------------
+compute_prei <- function(observed, predicted) {
+  ((observed - as.numeric(predicted)) / observed) * 100
+}
 
 # ---------------------------
 # 1. Prepare Data
@@ -321,119 +287,94 @@ library(openxlsx)
 data_model <- randa %>%
   dplyr::select(CCME, K, Period)
 
-# Convert Period to factor
 data_model$Period <- as.factor(data_model$Period)
 
-# Check missing values
-sum(is.na(data_model))
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
 
-# Train-Test Split
+# ---------------------------
+# 2. Train-Test Split
+# ---------------------------
 set.seed(123)
 trainIndex <- createDataPartition(data_model$CCME, p = 0.7, list = FALSE)
 trainData <- data_model[trainIndex, ]
-testData <- data_model[-trainIndex, ]
+testData  <- data_model[-trainIndex, ]
 
 # ---------------------------
-# 2. Prepare matrices for glmnet
+# 3. Prepare matrices for glmnet
 # ---------------------------
 x_train <- model.matrix(CCME ~ K + Period, data = trainData)[,-1]
-y_train <- trainData$CCME
+y_train <- as.numeric(trainData$CCME)
 
 x_test <- model.matrix(CCME ~ K + Period, data = testData)[,-1]
-y_test <- testData$CCME
+y_test <- as.numeric(testData$CCME)
 
 # ---------------------------
-# 3. PREI Function
-# ---------------------------
-compute_prei <- function(observed, predicted) {
-  ((observed - predicted) / observed) * 100
-}
-
-# ---------------------------
-# 4. Lasso Regression
+# 4. Fit Lasso, Ridge, Elastic Net
 # ---------------------------
 set.seed(123)
 lasso_model <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
-pred_lasso_train <- predict(lasso_model, s = "lambda.min", newx = x_train)
-pred_lasso_test  <- predict(lasso_model, s = "lambda.min", newx = x_test)
-
-rmse_lasso_train <- rmse(y_train, pred_lasso_train)
-rmse_lasso_test  <- rmse(y_test, pred_lasso_test)
-mae_lasso_train <- mae(y_train, pred_lasso_train)
-mae_lasso_test  <- mae(y_test, pred_lasso_test)
-r2_lasso_train <- cor(y_train, pred_lasso_train)^2
-r2_lasso_test  <- cor(y_test, pred_lasso_test)^2
-
-# ---------------------------
-# 5. Ridge Regression
-# ---------------------------
-set.seed(123)
 ridge_model <- cv.glmnet(x_train, y_train, alpha = 0, nfolds = 5)
-pred_ridge_train <- predict(ridge_model, s = "lambda.min", newx = x_train)
-pred_ridge_test  <- predict(ridge_model, s = "lambda.min", newx = x_test)
-
-rmse_ridge_train <- rmse(y_train, pred_ridge_train)
-rmse_ridge_test  <- rmse(y_test, pred_ridge_test)
-mae_ridge_train <- mae(y_train, pred_ridge_train)
-mae_ridge_test  <- mae(y_test, pred_ridge_test)
-r2_ridge_train <- cor(y_train, pred_ridge_train)^2
-r2_ridge_test  <- cor(y_test, pred_ridge_test)^2
+enet_model  <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
 
 # ---------------------------
-# 6. Elastic Net
+# 5. Predictions
 # ---------------------------
-set.seed(123)
-enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
-pred_enet_train <- predict(enet_model, s = "lambda.min", newx = x_train)
-pred_enet_test  <- predict(enet_model, s = "lambda.min", newx = x_test)
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
 
-rmse_enet_train <- rmse(y_train, pred_enet_train)
-rmse_enet_test  <- rmse(y_test, pred_enet_test)
-mae_enet_train <- mae(y_train, pred_enet_train)
-mae_enet_test  <- mae(y_test, pred_enet_test)
-r2_enet_train <- cor(y_train, pred_enet_train)^2
-r2_enet_test  <- cor(y_test, pred_enet_test)^2
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
+
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
+
+# ---------------------------
+# 6. Metrics (Base R)
+# ---------------------------
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc   <- function(obs, pred) cor(obs, pred)^2
+
+results_CCME <- data.frame(
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
+)
+
+print(results_CCME)
 
 # ---------------------------
 # 7. PREI per sample
 # ---------------------------
-pred_lasso_test <- as.numeric(pred_lasso_test)
-pred_ridge_test <- as.numeric(pred_ridge_test)
-pred_enet_test  <- as.numeric(pred_enet_test)
-
-prei_lasso_test_CCME <- compute_prei(y_test, pred_lasso_test)
-prei_ridge_test_CCME <- compute_prei(y_test, pred_ridge_test)
-prei_enet_test_CCME  <- compute_prei(y_test, pred_enet_test)
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
 
 PREI_CCME <- data.frame(
   Observed = y_test,
-  PREI_Lasso = prei_lasso_test_CCME,
-  PREI_Ridge = prei_ridge_test_CCME,
-  PREI_ElasticNet = prei_enet_test_CCME
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
 )
 
-# Export PREI per sample
-write.xlsx(PREI_CCME, file = "D:/moste/OneDrive/Bureau/PREI_CCME.xlsx")
-
 # ---------------------------
-# 8. Summary Metrics Table
-# ---------------------------
-results_CCME <- data.frame(
-  Model = c("Lasso","Ridge","Elastic Net"),
-  RMSE_Train = c(rmse_lasso_train, rmse_ridge_train, rmse_enet_train),
-  RMSE_Test  = c(rmse_lasso_test, rmse_ridge_test, rmse_enet_test),
-  MAE_Train  = c(mae_lasso_train, mae_ridge_train, mae_enet_train),
-  MAE_Test   = c(mae_lasso_test, mae_ridge_test, mae_enet_test),
-  R2_Train   = c(r2_lasso_train, r2_ridge_train, r2_enet_train),
-  R2_Test    = c(r2_lasso_test, r2_ridge_test, r2_enet_test),
-  PREI_Test  = c(prei_lasso_test_CCME, prei_ridge_test_CCME, prei_enet_test_CCME)
-)
-
-print(results_CCME)
-write.xlsx(results_CCME, file = "D:/moste/OneDrive/Bureau/results_CCME.xlsx")
-
-# ---------------------------
-# 9. Predictions Table
+# 8. Predictions Table
 # ---------------------------
 predictions_CCME <- data.frame(
   Index = "CCME",
@@ -444,12 +385,25 @@ predictions_CCME <- data.frame(
 )
 
 head(predictions_CCME)
+write.xlsx(predictions_CCME, file = "D:/moste/OneDrive/Bureau/predictions_CCME.xlsx", overwrite = TRUE)
+
+# ---------------------------
 #EWQI
+## ---------------------------
+## EWQI: Lasso, Ridge, Elastic Net
+## ---------------------------
+
 library(caret)
 library(glmnet)
-library(Metrics)
 library(dplyr)
 library(openxlsx)
+
+# ---------------------------
+# 0. PREI Function
+# ---------------------------
+compute_prei <- function(observed, predicted) {
+  ((observed - as.numeric(predicted)) / observed) * 100
+}
 
 # ---------------------------
 # 1. Prepare Data
@@ -457,11 +411,9 @@ library(openxlsx)
 data_model <- randa %>%
   dplyr::select(EWQI, EC, Period)
 
-# Convert Period to factor
 data_model$Period <- as.factor(data_model$Period)
 
-# Check missing values
-sum(is.na(data_model))
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
 
 # ---------------------------
 # 2. Train-Test Split
@@ -469,110 +421,84 @@ sum(is.na(data_model))
 set.seed(123)
 trainIndex <- createDataPartition(data_model$EWQI, p = 0.7, list = FALSE)
 trainData <- data_model[trainIndex, ]
-testData <- data_model[-trainIndex, ]
+testData  <- data_model[-trainIndex, ]
 
 # ---------------------------
 # 3. Prepare matrices for glmnet
 # ---------------------------
 x_train <- model.matrix(EWQI ~ EC + Period, data = trainData)[,-1]
-y_train <- trainData$EWQI
+y_train <- as.numeric(trainData$EWQI)
 
 x_test <- model.matrix(EWQI ~ EC + Period, data = testData)[,-1]
-y_test <- testData$EWQI
+y_test <- as.numeric(testData$EWQI)
 
 # ---------------------------
-# 4. PREI Function
-# ---------------------------
-compute_prei <- function(observed, predicted) {
-  ((observed - predicted) / observed) * 100
-}
-
-# ---------------------------
-# 5. Lasso Regression
+# 4. Fit Lasso, Ridge, Elastic Net
 # ---------------------------
 set.seed(123)
 lasso_model <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
-pred_lasso_train <- predict(lasso_model, s = "lambda.min", newx = x_train)
-pred_lasso_test  <- predict(lasso_model, s = "lambda.min", newx = x_test)
-
-rmse_lasso_train <- rmse(y_train, pred_lasso_train)
-rmse_lasso_test  <- rmse(y_test, pred_lasso_test)
-mae_lasso_train <- mae(y_train, pred_lasso_train)
-mae_lasso_test  <- mae(y_test, pred_lasso_test)
-r2_lasso_train <- cor(y_train, pred_lasso_train)^2
-r2_lasso_test  <- cor(y_test, pred_lasso_test)^2
-
-# ---------------------------
-# 6. Ridge Regression
-# ---------------------------
-set.seed(123)
 ridge_model <- cv.glmnet(x_train, y_train, alpha = 0, nfolds = 5)
-pred_ridge_train <- predict(ridge_model, s = "lambda.min", newx = x_train)
-pred_ridge_test  <- predict(ridge_model, s = "lambda.min", newx = x_test)
-
-rmse_ridge_train <- rmse(y_train, pred_ridge_train)
-rmse_ridge_test  <- rmse(y_test, pred_ridge_test)
-mae_ridge_train <- mae(y_train, pred_ridge_train)
-mae_ridge_test  <- mae(y_test, pred_ridge_test)
-r2_ridge_train <- cor(y_train, pred_ridge_train)^2
-r2_ridge_test  <- cor(y_test, pred_ridge_test)^2
+enet_model  <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
 
 # ---------------------------
-# 7. Elastic Net
+# 5. Predictions
 # ---------------------------
-set.seed(123)
-enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
-pred_enet_train <- predict(enet_model, s = "lambda.min", newx = x_train)
-pred_enet_test  <- predict(enet_model, s = "lambda.min", newx = x_test)
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
 
-rmse_enet_train <- rmse(y_train, pred_enet_train)
-rmse_enet_test  <- rmse(y_test, pred_enet_test)
-mae_enet_train <- mae(y_train, pred_enet_train)
-mae_enet_test  <- mae(y_test, pred_enet_test)
-r2_enet_train <- cor(y_train, pred_enet_train)^2
-r2_enet_test  <- cor(y_test, pred_enet_test)^2
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
+
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
 
 # ---------------------------
-# 8. PREI per sample
+# 6. Metrics (Base R)
 # ---------------------------
-pred_lasso_test <- as.numeric(pred_lasso_test)
-pred_ridge_test <- as.numeric(pred_ridge_test)
-pred_enet_test  <- as.numeric(pred_enet_test)
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc   <- function(obs, pred) cor(obs, pred)^2
 
-prei_lasso_test_EWQI <- compute_prei(y_test, pred_lasso_test)
-prei_ridge_test_EWQI <- compute_prei(y_test, pred_ridge_test)
-prei_enet_test_EWQI  <- compute_prei(y_test, pred_enet_test)
-
-PREI_EWQI <- data.frame(
-  Observed = y_test,
-  PREI_Lasso = prei_lasso_test_EWQI,
-  PREI_Ridge = prei_ridge_test_EWQI,
-  PREI_ElasticNet = prei_enet_test_EWQI
-)
-
-write.xlsx(PREI_EWQI, file = "D:/moste/OneDrive/Bureau/PREI_EWQI.xlsx")
-
-# ---------------------------
-# 9. Summary Metrics Table
-# ---------------------------
 results_EWQI <- data.frame(
-  Model = c("Lasso","Ridge","Elastic Net"),
-  RMSE_Train = c(rmse_lasso_train, rmse_ridge_train, rmse_enet_train),
-  RMSE_Test  = c(rmse_lasso_test, rmse_ridge_test, rmse_enet_test),
-  MAE_Train  = c(mae_lasso_train, mae_ridge_train, mae_enet_train),
-  MAE_Test   = c(mae_lasso_test, mae_ridge_test, mae_enet_test),
-  R2_Train   = c(r2_lasso_train, r2_ridge_train, r2_enet_train),
-  R2_Test    = c(r2_lasso_test, r2_ridge_test, r2_enet_test),
-  PREI_Test  = c(prei_lasso_test_EWQI,
-                 prei_ridge_test_EWQI,
-                 prei_enet_test_EWQI)
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
 )
 
 print(results_EWQI)
-write.xlsx(results_EWQI, file = "D:/moste/OneDrive/Bureau/results_EWQI.xlsx")
 
 # ---------------------------
-# 10. Predictions Table
+# 7. PREI per sample
+# ---------------------------
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
+
+PREI_EWQI <- data.frame(
+  Observed = y_test,
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
+)
+
+# ---------------------------
+# 8. Predictions Table
 # ---------------------------
 predictions_EWQI <- data.frame(
   Index = "EWQI",
@@ -584,15 +510,21 @@ predictions_EWQI <- data.frame(
 
 head(predictions_EWQI)
 #GWQI
-# ---------------------------
-# GWQI Analysis
-# ---------------------------
+## ---------------------------
+## GWQI: Lasso, Ridge, Elastic Net
+## ---------------------------
 
 library(caret)
 library(glmnet)
-library(Metrics)
 library(dplyr)
 library(openxlsx)
+
+# ---------------------------
+# 0. PREI Function
+# ---------------------------
+compute_prei <- function(observed, predicted) {
+  ((observed - as.numeric(predicted)) / observed) * 100
+}
 
 # ---------------------------
 # 1. Prepare Data
@@ -600,11 +532,9 @@ library(openxlsx)
 data_model <- randa %>%
   dplyr::select(GWQI, EC, Period)
 
-# Convert Period to factor
 data_model$Period <- as.factor(data_model$Period)
 
-# Check missing values
-sum(is.na(data_model))
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
 
 # ---------------------------
 # 2. Train-Test Split
@@ -612,110 +542,84 @@ sum(is.na(data_model))
 set.seed(123)
 trainIndex <- createDataPartition(data_model$GWQI, p = 0.7, list = FALSE)
 trainData <- data_model[trainIndex, ]
-testData <- data_model[-trainIndex, ]
+testData  <- data_model[-trainIndex, ]
 
 # ---------------------------
 # 3. Prepare matrices for glmnet
 # ---------------------------
 x_train <- model.matrix(GWQI ~ EC + Period, data = trainData)[,-1]
-y_train <- trainData$GWQI
+y_train <- as.numeric(trainData$GWQI)
 
 x_test <- model.matrix(GWQI ~ EC + Period, data = testData)[,-1]
-y_test <- testData$GWQI
+y_test <- as.numeric(testData$GWQI)
 
 # ---------------------------
-# 4. PREI Function
-# ---------------------------
-compute_prei <- function(observed, predicted) {
-  ((observed - predicted) / observed) * 100
-}
-
-# ---------------------------
-# 5. Lasso Regression
+# 4. Fit Lasso, Ridge, Elastic Net
 # ---------------------------
 set.seed(123)
 lasso_model <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
-pred_lasso_train <- predict(lasso_model, s = "lambda.min", newx = x_train)
-pred_lasso_test  <- predict(lasso_model, s = "lambda.min", newx = x_test)
-
-rmse_lasso_train <- rmse(y_train, pred_lasso_train)
-rmse_lasso_test  <- rmse(y_test, pred_lasso_test)
-mae_lasso_train <- mae(y_train, pred_lasso_train)
-mae_lasso_test  <- mae(y_test, pred_lasso_test)
-r2_lasso_train <- cor(y_train, pred_lasso_train)^2
-r2_lasso_test  <- cor(y_test, pred_lasso_test)^2
-
-# ---------------------------
-# 6. Ridge Regression
-# ---------------------------
-set.seed(123)
 ridge_model <- cv.glmnet(x_train, y_train, alpha = 0, nfolds = 5)
-pred_ridge_train <- predict(ridge_model, s = "lambda.min", newx = x_train)
-pred_ridge_test  <- predict(ridge_model, s = "lambda.min", newx = x_test)
-
-rmse_ridge_train <- rmse(y_train, pred_ridge_train)
-rmse_ridge_test  <- rmse(y_test, pred_ridge_test)
-mae_ridge_train <- mae(y_train, pred_ridge_train)
-mae_ridge_test  <- mae(y_test, pred_ridge_test)
-r2_ridge_train <- cor(y_train, pred_ridge_train)^2
-r2_ridge_test  <- cor(y_test, pred_ridge_test)^2
+enet_model  <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
 
 # ---------------------------
-# 7. Elastic Net
+# 5. Predictions
 # ---------------------------
-set.seed(123)
-enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
-pred_enet_train <- predict(enet_model, s = "lambda.min", newx = x_train)
-pred_enet_test  <- predict(enet_model, s = "lambda.min", newx = x_test)
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
 
-rmse_enet_train <- rmse(y_train, pred_enet_train)
-rmse_enet_test  <- rmse(y_test, pred_enet_test)
-mae_enet_train <- mae(y_train, pred_enet_train)
-mae_enet_test  <- mae(y_test, pred_enet_test)
-r2_enet_train <- cor(y_train, pred_enet_train)^2
-r2_enet_test  <- cor(y_test, pred_enet_test)^2
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
+
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
 
 # ---------------------------
-# 8. PREI per sample
+# 6. Metrics (Base R)
 # ---------------------------
-pred_lasso_test <- as.numeric(pred_lasso_test)
-pred_ridge_test <- as.numeric(pred_ridge_test)
-pred_enet_test  <- as.numeric(pred_enet_test)
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc   <- function(obs, pred) cor(obs, pred)^2
 
-prei_lasso_test_GWQI <- compute_prei(y_test, pred_lasso_test)
-prei_ridge_test_GWQI <- compute_prei(y_test, pred_ridge_test)
-prei_enet_test_GWQI  <- compute_prei(y_test, pred_enet_test)
-
-PREI_GWQI <- data.frame(
-  Observed = y_test,
-  PREI_Lasso = prei_lasso_test_GWQI,
-  PREI_Ridge = prei_ridge_test_GWQI,
-  PREI_ElasticNet = prei_enet_test_GWQI
-)
-
-write.xlsx(PREI_GWQI, file = "D:/moste/OneDrive/Bureau/PREI_GWQI.xlsx")
-
-# ---------------------------
-# 9. Summary Metrics Table
-# ---------------------------
 results_GWQI <- data.frame(
-  Model = c("Lasso","Ridge","Elastic Net"),
-  RMSE_Train = c(rmse_lasso_train, rmse_ridge_train, rmse_enet_train),
-  RMSE_Test  = c(rmse_lasso_test, rmse_ridge_test, rmse_enet_test),
-  MAE_Train  = c(mae_lasso_train, mae_ridge_train, mae_enet_train),
-  MAE_Test   = c(mae_lasso_test, mae_ridge_test, mae_enet_test),
-  R2_Train   = c(r2_lasso_train, r2_ridge_train, r2_enet_train),
-  R2_Test    = c(r2_lasso_test, r2_ridge_test, r2_enet_test),
-  PREI_Test  = c(prei_lasso_test_GWQI,
-                 prei_ridge_test_GWQI,
-                 prei_enet_test_GWQI)
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
 )
 
 print(results_GWQI)
-write.xlsx(results_GWQI, file = "D:/moste/OneDrive/Bureau/results_GWQI.xlsx")
 
 # ---------------------------
-# 10. Predictions Table
+# 7. PREI per sample
+# ---------------------------
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
+
+PREI_GWQI <- data.frame(
+  Observed = y_test,
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
+)
+
+# ---------------------------
+# 8. Predictions Table
 # ---------------------------
 predictions_GWQI <- data.frame(
   Index = "GWQI",
@@ -727,12 +631,13 @@ predictions_GWQI <- data.frame(
 
 head(predictions_GWQI)
 
-
 ##WQI_D1
-# PREI (Test)
+## ---------------------------
+## WQI_D1: Lasso, Ridge, Elastic Net
+## ---------------------------
+
 library(caret)
 library(glmnet)
-library(Metrics)
 library(dplyr)
 library(openxlsx)
 
@@ -749,11 +654,9 @@ compute_prei <- function(observed, predicted) {
 data_model <- randa %>%
   dplyr::select(WQI_D1, HCO3, Period)
 
-# Convert Period to factor
 data_model$Period <- as.factor(data_model$Period)
 
-# Check missing values
-sum(is.na(data_model))  # Should be 0
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
 
 # ---------------------------
 # 2. Train-Test Split
@@ -761,116 +664,105 @@ sum(is.na(data_model))  # Should be 0
 set.seed(123)
 trainIndex <- createDataPartition(data_model$WQI_D1, p = 0.7, list = FALSE)
 trainData <- data_model[trainIndex, ]
-testData <- data_model[-trainIndex, ]
+testData  <- data_model[-trainIndex, ]
 
 # ---------------------------
 # 3. Prepare matrices for glmnet
 # ---------------------------
 x_train <- model.matrix(WQI_D1 ~ HCO3 + Period, data = trainData)[,-1]
-y_train <- trainData$WQI_D1
+y_train <- as.numeric(trainData$WQI_D1)
 
 x_test <- model.matrix(WQI_D1 ~ HCO3 + Period, data = testData)[,-1]
-y_test <- testData$WQI_D1
+y_test <- as.numeric(testData$WQI_D1)
 
 # ---------------------------
-# 4. Lasso Regression
+# 4. Fit Lasso, Ridge, Elastic Net
 # ---------------------------
 set.seed(123)
 lasso_model <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
-pred_lasso_train <- predict(lasso_model, s = "lambda.min", newx = x_train)
-pred_lasso_test  <- predict(lasso_model, s = "lambda.min", newx = x_test)
-
-# Metrics
-rmse_lasso_train <- rmse(y_train, pred_lasso_train)
-rmse_lasso_test  <- rmse(y_test, pred_lasso_test)
-mae_lasso_train  <- mae(y_train, pred_lasso_train)
-mae_lasso_test   <- mae(y_test, pred_lasso_test)
-r2_lasso_train   <- cor(y_train, pred_lasso_train)^2
-r2_lasso_test    <- cor(y_test, pred_lasso_test)^2
-
-# ---------------------------
-# 5. Ridge Regression
-# ---------------------------
-set.seed(123)
 ridge_model <- cv.glmnet(x_train, y_train, alpha = 0, nfolds = 5)
-pred_ridge_train <- predict(ridge_model, s = "lambda.min", newx = x_train)
-pred_ridge_test  <- predict(ridge_model, s = "lambda.min", newx = x_test)
-
-rmse_ridge_train <- rmse(y_train, pred_ridge_train)
-rmse_ridge_test  <- rmse(y_test, pred_ridge_test)
-mae_ridge_train  <- mae(y_train, pred_ridge_train)
-mae_ridge_test   <- mae(y_test, pred_ridge_test)
-r2_ridge_train   <- cor(y_train, pred_ridge_train)^2
-r2_ridge_test    <- cor(y_test, pred_ridge_test)^2
+enet_model  <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
 
 # ---------------------------
-# 6. Elastic Net
+# 5. Predictions
 # ---------------------------
-set.seed(123)
-enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
-pred_enet_train <- predict(enet_model, s = "lambda.min", newx = x_train)
-pred_enet_test  <- predict(enet_model, s = "lambda.min", newx = x_test)
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
 
-rmse_enet_train <- rmse(y_train, pred_enet_train)
-rmse_enet_test  <- rmse(y_test, pred_enet_test)
-mae_enet_train  <- mae(y_train, pred_enet_train)
-mae_enet_test   <- mae(y_test, pred_enet_test)
-r2_enet_train   <- cor(y_train, pred_enet_train)^2
-r2_enet_test    <- cor(y_test, pred_enet_test)^2
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
+
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
+
+# ---------------------------
+# 6. Metrics (Base R)
+# ---------------------------
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc   <- function(obs, pred) cor(obs, pred)^2
+
+results_WQI_D1 <- data.frame(
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
+)
+
+print(results_WQI_D1)
 
 # ---------------------------
 # 7. PREI per sample
 # ---------------------------
-prei_lasso_test_WQI_D1 <- compute_prei(y_test, pred_lasso_test)
-prei_ridge_test_WQI_D1 <- compute_prei(y_test, pred_ridge_test)
-prei_enet_test_WQI_D1  <- compute_prei(y_test, pred_enet_test)
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
 
 PREI_WQI_D1 <- data.frame(
   Observed = y_test,
-  PREI_Lasso = prei_lasso_test_WQI_D1,
-  PREI_Ridge = prei_ridge_test_WQI_D1,
-  PREI_ElasticNet = prei_enet_test_WQI_D1
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
 )
 
-# Save PREI per sample
-write.xlsx(PREI_WQI_D1, file = "D:/moste/OneDrive/Bureau/PREI_WQI_D1.xlsx")
+write.xlsx(PREI_WQI_D1, file = "D:/moste/OneDrive/Bureau/PREI_WQI_D1.xlsx", overwrite = TRUE)
 
 # ---------------------------
-# 8. Summary Metrics Table
-# ---------------------------
-results_WQI_D1 <- data.frame(
-  Model = c("Lasso", "Ridge", "Elastic Net"),
-  RMSE_Train = c(rmse_lasso_train, rmse_ridge_train, rmse_enet_train),
-  RMSE_Test  = c(rmse_lasso_test, rmse_ridge_test, rmse_enet_test),
-  MAE_Train  = c(mae_lasso_train, mae_ridge_train, mae_enet_train),
-  MAE_Test   = c(mae_lasso_test, mae_ridge_test, mae_enet_test),
-  R2_Train   = c(r2_lasso_train, r2_ridge_train, r2_enet_train),
-  R2_Test    = c(r2_lasso_test, r2_ridge_test, r2_enet_test)
-)
-
-# Save summary metrics
-write.xlsx(results_WQI_D1, file = "D:/moste/OneDrive/Bureau/results_WQI_D1.xlsx")
-print(results_WQI_D1)
-
-# ---------------------------
-# 9. Predictions Table
+# 8. Predictions Table
 # ---------------------------
 predictions_WQI_D1 <- data.frame(
   Index = "WQI_D1",
   Actual = y_test,
-  Lasso = as.numeric(pred_lasso_test),
-  Ridge = as.numeric(pred_ridge_test),
-  Elastic_Net = as.numeric(pred_enet_test)
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
 )
 
-write.xlsx(predictions_WQI_D1, file = "D:/moste/OneDrive/Bureau/predictions_WQI_D1.xlsx")
+write.xlsx(predictions_WQI_D1, file = "D:/moste/OneDrive/Bureau/predictions_WQI_D1.xlsx", overwrite = TRUE)
 head(predictions_WQI_D1)
 
 ##WQI_D2
-# Load libraries
+## ---------------------------
+## WQI_D2: Lasso, Ridge, Elastic Net
+## ---------------------------
+
 library(caret)
 library(glmnet)
-library(Metrics)
 library(dplyr)
 library(openxlsx)
 
@@ -887,11 +779,9 @@ compute_prei <- function(observed, predicted) {
 data_model <- randa %>%
   dplyr::select(WQI_D2, Mg2, Period)
 
-# Convert Period to factor
 data_model$Period <- as.factor(data_model$Period)
 
-# Check missing values
-sum(is.na(data_model))  # Should be 0
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
 
 # ---------------------------
 # 2. Train-Test Split
@@ -899,117 +789,125 @@ sum(is.na(data_model))  # Should be 0
 set.seed(123)
 trainIndex <- createDataPartition(data_model$WQI_D2, p = 0.7, list = FALSE)
 trainData <- data_model[trainIndex, ]
-testData <- data_model[-trainIndex, ]
+testData  <- data_model[-trainIndex, ]
 
 # ---------------------------
 # 3. Prepare matrices for glmnet
 # ---------------------------
 x_train <- model.matrix(WQI_D2 ~ Mg2 + Period, data = trainData)[,-1]
-y_train <- trainData$WQI_D2
+y_train <- as.numeric(trainData$WQI_D2)
 
 x_test <- model.matrix(WQI_D2 ~ Mg2 + Period, data = testData)[,-1]
-y_test <- testData$WQI_D2
+y_test <- as.numeric(testData$WQI_D2)
 
 # ---------------------------
-# 4. Lasso Regression
+# 4. Fit Lasso, Ridge, Elastic Net
 # ---------------------------
 set.seed(123)
 lasso_model <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
-pred_lasso_train <- predict(lasso_model, s = "lambda.min", newx = x_train)
-pred_lasso_test  <- predict(lasso_model, s = "lambda.min", newx = x_test)
-
-# Metrics
-rmse_lasso_train <- rmse(y_train, pred_lasso_train)
-rmse_lasso_test  <- rmse(y_test, pred_lasso_test)
-mae_lasso_train  <- mae(y_train, pred_lasso_train)
-mae_lasso_test   <- mae(y_test, pred_lasso_test)
-r2_lasso_train   <- cor(y_train, pred_lasso_train)^2
-r2_lasso_test    <- cor(y_test, pred_lasso_test)^2
-
-# ---------------------------
-# 5. Ridge Regression
-# ---------------------------
-set.seed(123)
 ridge_model <- cv.glmnet(x_train, y_train, alpha = 0, nfolds = 5)
-pred_ridge_train <- predict(ridge_model, s = "lambda.min", newx = x_train)
-pred_ridge_test  <- predict(ridge_model, s = "lambda.min", newx = x_test)
-
-rmse_ridge_train <- rmse(y_train, pred_ridge_train)
-rmse_ridge_test  <- rmse(y_test, pred_ridge_test)
-mae_ridge_train  <- mae(y_train, pred_ridge_train)
-mae_ridge_test   <- mae(y_test, pred_ridge_test)
-r2_ridge_train   <- cor(y_train, pred_ridge_train)^2
-r2_ridge_test    <- cor(y_test, pred_ridge_test)^2
+enet_model  <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
 
 # ---------------------------
-# 6. Elastic Net
+# 5. Predictions
 # ---------------------------
-set.seed(123)
-enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
-pred_enet_train <- predict(enet_model, s = "lambda.min", newx = x_train)
-pred_enet_test  <- predict(enet_model, s = "lambda.min", newx = x_test)
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
 
-rmse_enet_train <- rmse(y_train, pred_enet_train)
-rmse_enet_test  <- rmse(y_test, pred_enet_test)
-mae_enet_train  <- mae(y_train, pred_enet_train)
-mae_enet_test   <- mae(y_test, pred_enet_test)
-r2_enet_train   <- cor(y_train, pred_enet_train)^2
-r2_enet_test    <- cor(y_test, pred_enet_test)^2
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
+
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
+
+# ---------------------------
+# 6. Metrics (Base R)
+# ---------------------------
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc   <- function(obs, pred) cor(obs, pred)^2
+
+results_WQI_D2 <- data.frame(
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
+)
+
+print(results_WQI_D2)
 
 # ---------------------------
 # 7. PREI per sample
 # ---------------------------
-prei_lasso_test_WQI_D2 <- compute_prei(y_test, pred_lasso_test)
-prei_ridge_test_WQI_D2 <- compute_prei(y_test, pred_ridge_test)
-prei_enet_test_WQI_D2  <- compute_prei(y_test, pred_enet_test)
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
 
 PREI_WQI_D2 <- data.frame(
   Observed = y_test,
-  PREI_Lasso = prei_lasso_test_WQI_D2,
-  PREI_Ridge = prei_ridge_test_WQI_D2,
-  PREI_ElasticNet = prei_enet_test_WQI_D2
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
 )
 
-# Save PREI per sample
-write.xlsx(PREI_WQI_D2, file = "D:/moste/OneDrive/Bureau/PREI_WQI_D2.xlsx")
+write.xlsx(PREI_WQI_D2, file = "D:/moste/OneDrive/Bureau/PREI_WQI_D2.xlsx", overwrite = TRUE)
 
 # ---------------------------
-# 8. Summary Metrics Table
-# ---------------------------
-results_WQI_D2 <- data.frame(
-  Model = c("Lasso", "Ridge", "Elastic Net"),
-  RMSE_Train = c(rmse_lasso_train, rmse_ridge_train, rmse_enet_train),
-  RMSE_Test  = c(rmse_lasso_test, rmse_ridge_test, rmse_enet_test),
-  MAE_Train  = c(mae_lasso_train, mae_ridge_train, mae_enet_train),
-  MAE_Test   = c(mae_lasso_test, mae_ridge_test, mae_enet_test),
-  R2_Train   = c(r2_lasso_train, r2_ridge_train, r2_enet_train),
-  R2_Test    = c(r2_lasso_test, r2_ridge_test, r2_enet_test)
-)
-
-# Save summary metrics
-write.xlsx(results_WQI_D2, file = "D:/moste/OneDrive/Bureau/results_WQI_D2.xlsx")
-print(results_WQI_D2)
-
-# ---------------------------
-# 9. Predictions Table
+# 8. Predictions Table
 # ---------------------------
 predictions_WQI_D2 <- data.frame(
   Index = "WQI_D2",
   Actual = y_test,
-  Lasso = as.numeric(pred_lasso_test),
-  Ridge = as.numeric(pred_ridge_test),
-  Elastic_Net = as.numeric(pred_enet_test)
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
 )
 
-write.xlsx(predictions_WQI_D2, file = "D:/moste/OneDrive/Bureau/predictions_WQI_D2.xlsx")
+write.xlsx(predictions_WQI_D2, file = "D:/moste/OneDrive/Bureau/predictions_WQI_D2.xlsx", overwrite = TRUE)
 head(predictions_WQI_D2)
 
 ##WQI_D3
 # Load libraries
+## ---------------------------
+## WQI_D3: Lasso, Ridge, Elastic Net
+## ---------------------------
+
 library(caret)
 library(glmnet)
-library(Metrics)
 library(dplyr)
+library(openxlsx)
+
+# ---------------------------
+## ---------------------------
+## WQI_D3: Lasso, Ridge, Elastic Net
+## ---------------------------
+
+library(caret)
+library(glmnet)
+library(dplyr)
+library(openxlsx)
+
+# ---------------------------
+# 0. PREI Function
+# ---------------------------
+compute_prei <- function(observed, predicted) {
+  ((observed - as.numeric(predicted)) / observed) * 100
+}
 
 # ---------------------------
 # 1. Prepare Data
@@ -1017,11 +915,9 @@ library(dplyr)
 data_model <- randa %>%
   dplyr::select(WQI_D3, HCO3, Period)
 
-# Convert Period to factor
 data_model$Period <- as.factor(data_model$Period)
 
-# Check missing values
-sum(is.na(data_model))
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
 
 # ---------------------------
 # 2. Train-Test Split
@@ -1029,107 +925,113 @@ sum(is.na(data_model))
 set.seed(123)
 trainIndex <- createDataPartition(data_model$WQI_D3, p = 0.7, list = FALSE)
 trainData <- data_model[trainIndex, ]
-testData <- data_model[-trainIndex, ]
+testData  <- data_model[-trainIndex, ]
 
 # ---------------------------
 # 3. Prepare matrices for glmnet
 # ---------------------------
 x_train <- model.matrix(WQI_D3 ~ HCO3 + Period, data = trainData)[,-1]
-y_train <- trainData$WQI_D3
+y_train <- as.numeric(trainData$WQI_D3)
 
 x_test <- model.matrix(WQI_D3 ~ HCO3 + Period, data = testData)[,-1]
-y_test <- testData$WQI_D3
+y_test <- as.numeric(testData$WQI_D3)
 
 # ---------------------------
-# 4. Lasso Regression
+# 4. Fit Lasso, Ridge, Elastic Net
 # ---------------------------
 set.seed(123)
 lasso_model <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
-pred_lasso_train <- predict(lasso_model, s = "lambda.min", newx = x_train)
-pred_lasso_test  <- predict(lasso_model, s = "lambda.min", newx = x_test)
-
-# Metrics
-rmse_lasso_train <- rmse(y_train, pred_lasso_train)
-rmse_lasso_test  <- rmse(y_test, pred_lasso_test)
-
-mae_lasso_train <- mae(y_train, pred_lasso_train)
-mae_lasso_test  <- mae(y_test, pred_lasso_test)
-
-r2_lasso_train <- cor(y_train, pred_lasso_train)^2
-r2_lasso_test  <- cor(y_test, pred_lasso_test)^2
-
-# ---------------------------
-# 5. Ridge Regression
-# ---------------------------
-set.seed(123)
 ridge_model <- cv.glmnet(x_train, y_train, alpha = 0, nfolds = 5)
-pred_ridge_train <- predict(ridge_model, s = "lambda.min", newx = x_train)
-pred_ridge_test  <- predict(ridge_model, s = "lambda.min", newx = x_test)
-
-rmse_ridge_train <- rmse(y_train, pred_ridge_train)
-rmse_ridge_test  <- rmse(y_test, pred_ridge_test)
-
-mae_ridge_train <- mae(y_train, pred_ridge_train)
-mae_ridge_test  <- mae(y_test, pred_ridge_test)
-
-r2_ridge_train <- cor(y_train, pred_ridge_train)^2
-r2_ridge_test  <- cor(y_test, pred_ridge_test)^2
+enet_model  <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
 
 # ---------------------------
-# 6. Elastic Net
+# 5. Predictions
 # ---------------------------
-set.seed(123)
-enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
-pred_enet_train <- predict(enet_model, s = "lambda.min", newx = x_train)
-pred_enet_test  <- predict(enet_model, s = "lambda.min", newx = x_test)
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
 
-rmse_enet_train <- rmse(y_train, pred_enet_train)
-rmse_enet_test  <- rmse(y_test, pred_enet_test)
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
 
-mae_enet_train <- mae(y_train, pred_enet_train)
-mae_enet_test  <- mae(y_test, pred_enet_test)
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
 
-r2_enet_train <- cor(y_train, pred_enet_train)^2
-r2_enet_test  <- cor(y_test, pred_enet_test)^2
+# ---------------------------
+# 6. Metrics (Base R)
+# ---------------------------
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc   <- function(obs, pred) cor(obs, pred)^2
+
+results_WQI_D3 <- data.frame(
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
+)
+
+print(results_WQI_D3)
 
 # ---------------------------
 # 7. PREI per sample
 # ---------------------------
-prei_lasso_test_WQI_D3 <- compute_prei(y_test, pred_lasso_test)
-prei_ridge_test_WQI_D3 <- compute_prei(y_test, pred_ridge_test)
-prei_enet_test_WQI_D3  <- compute_prei(y_test, pred_enet_test)
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
 
-# Save PREI per sample to Excel
 PREI_WQI_D3 <- data.frame(
   Observed = y_test,
-  PREI_Lasso = prei_lasso_test_WQI_D3,
-  PREI_Ridge = prei_ridge_test_WQI_D3,
-  PREI_ElasticNet = prei_enet_test_WQI_D3
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
 )
 
-write.xlsx(PREI_WQI_D3, file="D:/moste/OneDrive/Bureau/PREI_WQI_D3.xlsx")
+write.xlsx(PREI_WQI_D3, file = "D:/moste/OneDrive/Bureau/PREI_WQI_D3.xlsx", overwrite = TRUE)
 
 # ---------------------------
-# 8. Summary Metrics Table (no PREI vectors here)
+# 8. Predictions Table
 # ---------------------------
-results_WQI_D3 <- data.frame(
-  Model = c("Lasso","Ridge","Elastic Net"),
-  RMSE_Train = c(rmse_lasso_train, rmse_ridge_train, rmse_enet_train),
-  RMSE_Test  = c(rmse_lasso_test, rmse_ridge_test, rmse_enet_test),
-  MAE_Train  = c(mae_lasso_train, mae_ridge_train, mae_enet_train),
-  MAE_Test   = c(mae_lasso_test, mae_ridge_test, mae_enet_test),
-  R2_Train   = c(r2_lasso_train, r2_ridge_train, r2_enet_train),
-  R2_Test    = c(r2_lasso_test, r2_ridge_test, r2_enet_test)
+predictions_WQI_D3 <- data.frame(
+  Index = "WQI_D3",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
 )
 
-print(results_WQI_D3)
-write.xlsx(results_WQI_D3, file="D:/moste/OneDrive/Bureau/results_WQI_D3.xlsx")
+write.xlsx(predictions_WQI_D3, file = "D:/moste/OneDrive/Bureau/predictions_WQI_D3.xlsx", overwrite = TRUE)
+head(predictions_WQI_D3)
 ###WQI_D4
-# Load libraries
+## ---------------------------
+## WQI_D4: Lasso, Ridge, Elastic Net
+## ---------------------------
+
 library(caret)
 library(glmnet)
-library(Metrics)
 library(dplyr)
+library(openxlsx)
+
+# ---------------------------
+# 0. PREI Function
+# ---------------------------
+compute_prei <- function(observed, predicted) {
+  ((observed - as.numeric(predicted)) / observed) * 100
+}
 
 # ---------------------------
 # 1. Prepare Data
@@ -1137,11 +1039,9 @@ library(dplyr)
 data_model <- randa %>%
   dplyr::select(WQI_D4, SO4, Period)
 
-# Convert Period to factor
 data_model$Period <- as.factor(data_model$Period)
 
-# Check missing values
-sum(is.na(data_model))
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
 
 # ---------------------------
 # 2. Train-Test Split
@@ -1149,113 +1049,87 @@ sum(is.na(data_model))
 set.seed(123)
 trainIndex <- createDataPartition(data_model$WQI_D4, p = 0.7, list = FALSE)
 trainData <- data_model[trainIndex, ]
-testData <- data_model[-trainIndex, ]
+testData  <- data_model[-trainIndex, ]
 
 # ---------------------------
 # 3. Prepare matrices for glmnet
 # ---------------------------
 x_train <- model.matrix(WQI_D4 ~ SO4 + Period, data = trainData)[,-1]
-y_train <- trainData$WQI_D4
+y_train <- as.numeric(trainData$WQI_D4)
 
 x_test <- model.matrix(WQI_D4 ~ SO4 + Period, data = testData)[,-1]
-y_test <- testData$WQI_D4
+y_test <- as.numeric(testData$WQI_D4)
 
 # ---------------------------
-# 4. Lasso Regression
+# 4. Fit Lasso, Ridge, Elastic Net
 # ---------------------------
 set.seed(123)
 lasso_model <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
-
-pred_lasso_train <- predict(lasso_model, s = "lambda.min", newx = x_train)
-pred_lasso_test  <- predict(lasso_model, s = "lambda.min", newx = x_test)
-
-rmse_lasso_train <- rmse(y_train, pred_lasso_train)
-rmse_lasso_test  <- rmse(y_test, pred_lasso_test)
-
-mae_lasso_train <- mae(y_train, pred_lasso_train)
-mae_lasso_test  <- mae(y_test, pred_lasso_test)
-
-r2_lasso_train <- cor(y_train, pred_lasso_train)^2
-r2_lasso_test  <- cor(y_test, pred_lasso_test)^2
-
-
-# ---------------------------
-# 5. Ridge Regression
-# ---------------------------
-set.seed(123)
 ridge_model <- cv.glmnet(x_train, y_train, alpha = 0, nfolds = 5)
-
-pred_ridge_train <- predict(ridge_model, s = "lambda.min", newx = x_train)
-pred_ridge_test  <- predict(ridge_model, s = "lambda.min", newx = x_test)
-
-rmse_ridge_train <- rmse(y_train, pred_ridge_train)
-rmse_ridge_test  <- rmse(y_test, pred_ridge_test)
-
-mae_ridge_train <- mae(y_train, pred_ridge_train)
-mae_ridge_test  <- mae(y_test, pred_ridge_test)
-
-r2_ridge_train <- cor(y_train, pred_ridge_train)^2
-r2_ridge_test  <- cor(y_test, pred_ridge_test)^2
-
+enet_model  <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
 
 # ---------------------------
-# 6. Elastic Net
+# 5. Predictions
 # ---------------------------
-set.seed(123)
-enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 5)
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
 
-pred_enet_train <- predict(enet_model, s = "lambda.min", newx = x_train)
-pred_enet_test  <- predict(enet_model, s = "lambda.min", newx = x_test)
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
 
-rmse_enet_train <- rmse(y_train, pred_enet_train)
-rmse_enet_test  <- rmse(y_test, pred_enet_test)
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
 
-mae_enet_train <- mae(y_train, pred_enet_train)
-mae_enet_test  <- mae(y_test, pred_enet_test)
+# ---------------------------
+# 6. Metrics (Base R)
+# ---------------------------
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc   <- function(obs, pred) cor(obs, pred)^2
 
-r2_enet_train <- cor(y_train, pred_enet_train)^2
-r2_enet_test  <- cor(y_test, pred_enet_test)^2
+results_WQI_D4 <- data.frame(
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
+)
 
+print(results_WQI_D4)
 
 # ---------------------------
 # 7. PREI per sample
 # ---------------------------
-prei_lasso_test_WQI_D4 <- compute_prei(y_test, pred_lasso_test)
-prei_ridge_test_WQI_D4 <- compute_prei(y_test, pred_ridge_test)
-prei_enet_test_WQI_D4  <- compute_prei(y_test, pred_enet_test)
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
 
-# Store PREI per sample in a separate data.frame
 PREI_WQI_D4 <- data.frame(
   Observed = y_test,
-  PREI_Lasso = prei_lasso_test_WQI_D4,
-  PREI_Ridge = prei_ridge_test_WQI_D4,
-  PREI_ElasticNet = prei_enet_test_WQI_D4
-)
-head(PREI_WQI_D4)
-# Save PREI per sample to Excel
-write.xlsx(PREI_WQI_D4, file = "D:/moste/OneDrive/Bureau/PREI_WQI_D4.xlsx")
-
-# ---------------------------
-# 8. Summary Metrics Table (do NOT include vectors)
-# ---------------------------
-results_WQI_D4 <- data.frame(
-  Model = c("Lasso","Ridge","Elastic Net"),
-  RMSE_Train = c(rmse_lasso_train, rmse_ridge_train, rmse_enet_train),
-  RMSE_Test  = c(rmse_lasso_test, rmse_ridge_test, rmse_enet_test),
-  MAE_Train  = c(mae_lasso_train, mae_ridge_train, mae_enet_train),
-  MAE_Test   = c(mae_lasso_test, mae_ridge_test, mae_enet_test),
-  R2_Train   = c(r2_lasso_train, r2_ridge_train, r2_enet_train),
-  R2_Test    = c(r2_lasso_test, r2_ridge_test, r2_enet_test)
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
 )
 
-print(results_WQI_D4)
-write.xlsx(results_WQI_D4, file = "D:/moste/OneDrive/Bureau/results_WQI_D4.xlsx")
+write.xlsx(PREI_WQI_D4, file = "D:/moste/OneDrive/Bureau/PREI_WQI_D4.xlsx", overwrite = TRUE)
 
-
-pred_lasso_test  <- as.numeric(pred_lasso_test)
-pred_ridge_test  <- as.numeric(pred_ridge_test)
-pred_enet_test   <- as.numeric(pred_enet_test)
-
+# ---------------------------
+# 8. Predictions Table
+# ---------------------------
 predictions_WQI_D4 <- data.frame(
   Index = "WQI_D4",
   Actual = y_test,
@@ -1264,22 +1138,9 @@ predictions_WQI_D4 <- data.frame(
   Elastic_Net = pred_enet_test
 )
 
+write.xlsx(predictions_WQI_D4, file = "D:/moste/OneDrive/Bureau/predictions_WQI_D4.xlsx", overwrite = TRUE)
 head(predictions_WQI_D4)
 
-all_predictions <- bind_rows(
-  predictions_WA_WQI,
-  predictions_WQI_P,
-  predictions_CCME,
-  predictions_EWQI,
-  predictions_GWQI,
-  predictions_WQI_D1,
-  predictions_WQI_D2,
-  predictions_WQI_D3,
-  predictions_WQI_D4
-)
-
-head(all_predictions)
-write.xlsx(all_predictions, file="D:/moste/OneDrive/Bureau/all_predictions.xlsx")
 #REGRESSION ACTUAL PREDICTED VALUES
 actual <- read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/RANDA/actual predicted values.csv")
 dim(actual)
@@ -2107,3 +1968,41 @@ cat("Mean bias: ", round(Bias_mean_EN_WQI_D1,2), "\n")
 cat("Mean 95% CI width: ", round(CI_width_mean_EN_WQI_D1,2), "\n")
 
 
+###TAYLOR DIAGRAM
+library(plotrix)
+
+# Algorithms, colors, and point shapes
+algorithms <- c("Lasso", "Ridge", "Elastic_Net")
+colors <- c("red", "blue", "green")
+pch_vals <- c(18, 17, 16)
+
+# Set plotting area: one plot at a time
+par(mfrow=c(1,1), mar=c(5,4,4,6), xpd=NA)  # wide margin for legend
+
+# Loop through each index
+for(idx in unique(predicted$Index)) {
+  
+  # Subset data for this index
+  idx_data <- predicted[predicted$Index == idx, ]
+  
+  # Ensure numeric vectors
+  obs <- as.numeric(idx_data$Actual)
+  mod_list <- lapply(algorithms, function(alg) as.numeric(idx_data[[alg]]))
+  
+  # Base Taylor diagram with first algorithm
+  taylor.diagram(ref = obs, model = mod_list[[1]],
+                 col = colors[1], pch = pch_vals[1],
+                 main = paste("Taylor Diagram -", idx),
+                 pos.cor = TRUE, show.gamma = TRUE, sd.arcs = TRUE)
+  
+  # Add remaining algorithms
+  for(i in 2:length(algorithms)){
+    taylor.diagram(ref = obs, model = mod_list[[i]],
+                   add = TRUE, col = colors[i], pch = pch_vals[i])
+  }
+  
+  # Add legend to the right
+  legend("topright", inset=c(-0.15,0),
+         legend = algorithms,
+         col = colors, pch = pch_vals,
+         title = "Algorithms", bty = "n", cex = 0.9, pt.cex = 1.2)
