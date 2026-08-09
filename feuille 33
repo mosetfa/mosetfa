@@ -1,0 +1,424 @@
+base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/Alberto/data.csv")
+data_station<-read.csv2("D:/moste/OneDrive/Bureau/data_station2.csv")
+head(base)
+library(vegan)
+library(vegan)
+# Convert grouping variables to factors
+base$Site <- factor(base$Site)
+base$Year <- factor(base$Year)
+base$Microhabitat <- factor(base$Microhabitat)
+
+# Community matrix (taxa only)
+comm <- base[, !(names(base) %in% c(
+  "Year",
+  "Site",
+  "Microhabitat",
+  "pH",
+  "Temperature",
+  "Conductivity",
+  "NO3",
+  "PO4"
+))]
+
+# Hellinger transformation
+comm_hel <- decostand(comm, method = "hellinger")
+
+# Partial RDA
+rda_partial <- rda(
+  comm_hel ~  NO3 + PO4 +
+    Condition(Site + Year + Microhabitat),
+  data = base
+)
+
+# Overall test
+anova(rda_partial, permutations = 999)
+
+# Test each environmental variable
+anova(rda_partial, by = "term", permutations = 999)
+
+# Test canonical axes
+anova(rda_partial, by = "axis", permutations = 999)
+
+# Variance explained
+summary(rda_partial)
+
+# Adjusted R²
+RsquareAdj(rda_partial)
+base=base[, 4:70]
+# Community matrix (macroinvertebrate families)
+comm <- base[, 1:62]
+# Environmental variables
+env <- base[, c("NO3", "PO4")]   # or your separate env data frame
+
+# Global model: both NO3 and PO4
+rda_global <- rda(comm ~ NO3 + PO4, data = env)
+anova(rda_global, permutations = 999)
+
+# Test each variable separately
+rda_NO3 <- rda(comm ~ NO3, data = env)
+anova(rda_NO3, permutations = 999)
+
+rda_PO4 <- rda(comm ~ PO4, data = env)
+anova(rda_PO4, permutations = 999)
+
+# Marginal effects (tests each term in the global model)
+anova_terms <- anova(rda_global, by = "term", permutations = 999)
+anova_terms
+# =========================
+# NO3 threshold (8 mg/L) community analysis (Bray-Curtis)
+# NMDS + Shepard + envfit + PERMANOVA + betadisper
+# =========================
+library(vegan)
+library(ggplot2)
+
+# ---- 1) Create NO3 group based on 8 mg/L ----
+base$NO3_group <- factor(ifelse(base$NO3 <= 8, "<=8", ">8"), levels = c("<=8", ">8"))
+
+table(base$NO3_group, useNA = "ifany")
+
+# ---- 2) Define the species (taxa) matrix ----
+# In your file, last columns are: pH, Temperature, Conductivity, NO3, PO4, and we just created NO3_group.
+# So species are everything EXCEPT those env columns.
+
+env_cols <- c("pH", "Temperature", "Conductivity", "NO3", "PO4", "NO3_group")
+species_cols <- setdiff(colnames(base), env_cols)
+
+matrice_especes <- base[, species_cols]
+
+# Safety: ensure numeric, replace NAs with 0 if needed (or use na.omit on rows)
+matrice_especes <- as.data.frame(lapply(matrice_especes, as.numeric))
+matrice_especes[is.na(matrice_especes)] <- 0
+
+# Optional (recommended for abundance data): Wisconsin double standardization
+# matrice_especes <- wisconsin(matrice_especes)
+
+# ---- 3) Bray-Curtis distance ----
+dist_bray <- vegdist(matrice_especes, method = "bray")
+
+# ---- 4) NMDS (Bray-Curtis) ----
+set.seed(123)
+nmds <- metaMDS(matrice_especes,
+                distance = "bray",
+                k = 2,
+                trymax = 200,
+                autotransform = FALSE,
+                trace = FALSE)
+
+nmds
+stress_value <- nmds$stress
+stress_value
+
+# Shepard / stress plot (base plot)
+stressplot(nmds)
+
+# ---- 5) NMDS plot with NO3 groups + stress ----
+scores_sites <- as.data.frame(scores(nmds, display = "sites"))
+scores_sites$NO3_group <- base$NO3_group
+scores_sites$NO3 <- base$NO3
+
+p_nmds <- ggplot(scores_sites, aes(x = NMDS1, y = NMDS2, color = NO3_group)) +
+  geom_point(size = 3, alpha = 0.9) +
+  stat_ellipse(level = 0.95) +
+  annotate("text",
+           x = min(scores_sites$NMDS1),
+           y = max(scores_sites$NMDS2),
+           label = paste0("Stress = ", round(stress_value, 3)),
+           hjust = 0, vjust = 1, size = 4) +
+  theme_bw() +
+  labs(title = "NMDS (Bray–Curtis) by NO3 threshold (8 mg/L)",
+       color = "NO3 group")
+
+print(p_nmds)
+
+# ---- 6) envfit: fit NO3 numeric + other env vars (optional) ----
+# envfit works with numeric variables directly; factors are handled as centroids.
+env_data <- base[, c("NO3", "PO4", "pH", "Temperature", "Conductivity", "NO3_group")]
+
+set.seed(123)
+fit <- envfit(nmds, env_data, perm = 999)
+fit
+plot(nmds, type = "n")
+points(nmds, display = "sites", col = as.numeric(base$NO3_group), pch = 16)
+ordihull(nmds, groups = base$NO3_group, draw = "polygon", col = as.numeric(base$NO3_group), alpha = 80)
+plot(fit, p.max = 0.05)  # shows only significant vectors/centroids (p<=0.05)
+
+# ---- 7) PERMANOVA (adonis2) for composition difference between NO3 groups ----
+# Use the Bray distance object with adonis2:
+set.seed(123)
+permanova <- adonis2(dist_bray ~ NO3_group, data = base, permutations = 999)
+permanova
+
+# Optional: PERMANOVA with NO3 numeric (gradient) instead of threshold groups
+set.seed(123)
+permanova_no3 <- adonis2(dist_bray ~ NO3, data = base, permutations = 999)
+permanova_no3
+
+# Optional: combine (careful interpretation)
+set.seed(123)
+permanova_combo <- adonis2(dist_bray ~ NO3_group + pH + Temperature + Conductivity + PO4, data = base, permutations = 999)
+permanova_combo
+
+# ---- 8) betadisper (test homogeneity of dispersion) ----
+bd <- betadisper(dist_bray, group = base$NO3_group)
+bd
+
+anova(bd)              # test difference in dispersion
+permutest(bd, perm=999)
+
+# Plot dispersions
+plot(bd)
+boxplot(bd, main = "Betadisper by NO3 group", xlab = "NO3 group", ylab = "Distance to centroid")
+ ##Permanova + strata
+base0 <- read.csv2("D:/moste/OneDrive/Bureau/Bureau/Alberto/data.csv")
+base0$Site <- factor(base0$Site)
+
+env <- base0[, c("Site","pH","Temperature","Conductivity","NO3","PO4")]
+
+species <- base0[, 4:64]
+# ---- 1) Create NO3 group based on 8 mg/L ----
+base0$NO3_group <- factor(ifelse(base$NO3 <= 8, "<=8", ">8"), levels = c("<=8", ">8"))
+set.seed(123)
+
+permanova_site <- adonis2(
+  dist_bray ~ NO3_group,
+  data = base0,
+  permutations = 999,
+  strata = base0$Site
+)
+
+permanova_site
+cap_mod <- capscale(
+  species ~ NO3_group + Condition(Site),
+  data = base0,
+  distance = "bray"
+)
+
+anova(cap_mod, permutations = 999)
+anova(cap_mod, by = "terms", permutations = 999)
+cap_mod <- capscale(
+  species ~ NO3 + Condition(Site),
+  data = base0,
+  distance = "bray"
+)
+
+anova(cap_mod, permutations = 999)
+anova(cap_mod, by = "terms", permutations = 999)
+bd <- betadisper(dist_bray,
+                 group = base0$NO3_group)
+anova(bd)
+
+permutest(bd)
+bd_site <- betadisper(dist_bray, group = base0$Site)
+
+anova(bd_site)
+
+permutest(bd_site, perm = 999)
+##GLM for indices 
+taxa <- c("Nematoda",
+          "Lumbriculidae",
+          "Helobdella",
+          "Dina",
+          "Leptoceridae",
+          "Hydropsychidae",
+          "Dryopidae",
+          "Asellus",
+          "Ischnura",
+          "Calopteryx",
+          "Aphelocheirus",
+          "Corbicula_fluminea")
+
+
+# Extract taxa matrix
+taxa_mat <- data_station[, taxa]
+
+# Replace NA with 0
+taxa_mat[is.na(taxa_mat)] <- 0
+
+# Apply Hellinger transformation
+taxa_hel <- decostand(taxa_mat, method = "hellinger")
+
+# Add back to dataframe
+data_hel <- cbind(data_station[, !names(data_station) %in% taxa],
+                  taxa_hel)
+glm_Shannon <- glm(
+  Shannon_H ~ .,
+  data = data_hel[, c("Shannon_H", taxa)],
+  family = gaussian()
+)
+glm_Shannon <- glm.nb(
+  Shannon_H ~ .,
+  data = data_hel[, c("Shannon_H", taxa)])
+
+summary(glm_Shannon)
+glm_Evenness <- glm.nb(
+  Evenness ~ .,
+  data = data_hel[, c("Evenness", taxa)])
+
+summary(glm_Evenness)
+glm_BMWP_ITA <- glm.nb(
+  BMWP_ITA ~ .,
+  data = data_hel[, c("BMWP_ITA", taxa)])
+summary(glm_BMWP_ITA)
+
+
+glm_ASPT_ITA <- glm.nb(
+  ASPT_ITA ~ .,
+  data = data_hel[, c("ASPT_ITA", taxa)]
+)
+summary(glm_ASPT_ITA)
+
+glm_BMWP_SPA <- glm.nb(
+  BMWP_SPA ~ .,
+  data = data_hel[, c("BMWP_SPA", taxa)]
+)
+summary(glm_BMWP_SPA)
+
+
+glm_ASPT_SPA <- glm.nb(
+  ASPT_SPA ~ .,
+  data = data_hel[, c("ASPT_SPA", taxa)]
+)
+summary(glm_ASPT_SPA)
+
+MODEL_BMWP_SPA=ggcoef_model(glm_BMWP_SPA, exponentiate = TRUE) + 
+  ggtitle("Effects of Taxa on BMWP_SPA")
+MODEL_BMWP_SPA
+#correlation
+data_cor <- data_station[, c(taxa, indices)]
+ggpairs(data_cor, method="spearman")
+
+###to calculate B diversity
+base<-read.csv2("D:/moste/OneDrive/Bureau/base.csv")
+DB2<-base %>%
+  group_by(NO3_group)%>%
+  summarise(across(c(Leuctra:Turbellaria),sum))
+DB3=DB2[,-1]
+beta.multi(DB3, func = "Soerensen")
+beta.multi(DB3, func = "jaccard")
+###ELASTIC NET 
+# Load libraries
+data_station<-read.csv2("D:/moste/OneDrive/Bureau/data_station2.csv")
+library(vegan)
+library(glmnet)
+# Load libraries
+library(vegan)
+library(glmnet)
+
+# TITAN-selected families (≥0.8 purity/reliability)
+titan_families <- c("Lumbriculidae", "Helobdella", "Asellus", "Leptoceridae", "Calopteryx")
+
+# Extract abundance matrix
+X <- data_station[, titan_families]
+
+# Apply Hellinger transformation
+X_hellinger <- decostand(X, method = "hellinger")
+
+# List of response indices available in your dataset
+indices <- c("Abundance", "Richness", "Shannon_H", "Simpson", 
+             "Evenness", "BMWP_ITA", "ASPT_ITA")
+
+# Run Elastic Net for each index
+results <- list()
+
+set.seed(123) # reproducibility
+for (idx in indices) {
+  y <- data_station[[idx]]
+  
+  cv_model <- cv.glmnet(as.matrix(X_hellinger), y,
+                        alpha = 0.5,        # Elastic Net mixing parameter
+                        nfolds = 16,        # leave-one-out CV since n=16
+                        standardize = FALSE)
+  
+  # Store coefficients at lambda.min
+  results[[idx]] <- coef(cv_model, s = "lambda.min")
+}
+
+# Inspect results for each index
+results$Simpson
+results$Evenness
+results$Shannon_H
+results$ASPT_ITA
+results$BMWP_ITA
+results$Richness
+results$Abundance
+
+#COMPARISON BETWEEN INDICES ELASTIC NET
+# Load libraries
+library(vegan)
+library(glmnet)
+
+# TITAN-selected families (≥0.8 purity/reliability)
+titan_families <- c("Lumbriculidae", "Helobdella", "Asellus", "Leptoceridae", "Calopteryx")
+
+# Predictor matrix (Hellinger transformed)
+X <- data_station[, titan_families]
+X_hellinger <- decostand(X, method = "hellinger")
+
+# Indices to test
+indices <- c("Abundance", "Richness", "Shannon_H", "Simpson", 
+             "Evenness", "BMWP_ITA", "ASPT_ITA")
+
+# Store CV models and summary results
+cv_models <- list()
+cv_errors <- data.frame(Index = indices, Min_CV_Error = NA, 
+                        Lambda_Min = NA, Lambda_1se = NA)
+
+set.seed(123) # reproducibility
+for (idx in indices) {
+  y <- data_station[[idx]]
+  
+  cv_model <- cv.glmnet(as.matrix(X_hellinger), y,
+                        alpha = 0.5,        # Elastic Net mixing parameter
+                        nfolds = 16,        # leave-one-out CV since n=16
+                        standardize = FALSE)
+  
+  cv_models[[idx]] <- cv_model
+  
+  # Record CV error and lambda values
+  cv_errors[cv_errors$Index == idx, "Min_CV_Error"] <- min(cv_model$cvm)
+  cv_errors[cv_errors$Index == idx, "Lambda_Min"]   <- cv_model$lambda.min
+  cv_errors[cv_errors$Index == idx, "Lambda_1se"]   <- cv_model$lambda.1se
+}
+
+# -----------------------------
+# Step 2: Inspect results
+# -----------------------------
+# Print summary table of CV errors and lambda values
+print(cv_errors)
+
+# Example: plot CV curve for each index
+par(mfrow = c(3,3)) # multi-panel layout
+for (idx in indices) {
+  plot(cv_models[[idx]], main = idx)
+}
+par(mfrow = c(1,1)) # reset layout
+
+#COEFFICIENT
+library(ggplot2)
+
+# Correct coefficients from your outputs
+coef_data <- data.frame(
+  Index = rep(c("Simpson", "Evenness", "ASPT_ITA"), each = 5),
+  Taxon = rep(c("Lumbriculidae", "Helobdella", "Asellus", "Leptoceridae", "Calopteryx"), times = 3),
+  Coefficient = c(
+    # Simpson
+    0, 0, 0.353609047, 0, -0.008372478,
+    # Evenness
+    0, 0, 0.2349171301, 0, -0.0003594322,
+    # ASPT_ITA
+    -0.0362174, 0, 0, 0.3374106, 0.3134171
+  )
+)
+
+# Lollipop plot (bars + dots)
+ggplot(coef_data, aes(x = Taxon, y = Coefficient, color = Index)) +
+  geom_segment(aes(x = Taxon, xend = Taxon, y = 0, yend = Coefficient),
+               position = position_dodge(width = 0.6), linewidth = 1) +
+  geom_point(position = position_dodge(width = 0.6), size = 3) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  facet_wrap(~Index, ncol = 1) +
+  labs(title = "Elastic Net Coefficients by Index",
+       y = "Coefficient (Effect on Index)",
+       x = "Taxon") +
+  theme_minimal() +coord_flip()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
