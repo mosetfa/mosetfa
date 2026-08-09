@@ -1,0 +1,359 @@
+base<-read.csv2("D:/moste/OneDrive/Bureau/base.csv",  header= T, check.names = F)
+NO2 <- 0.03
+NO3 <- 2
+NH4 <- 0.5
+PO4 <- 0.1
+DCO=6
+DBO5=3
+pH=9
+base=base[,c("NO2", "No3", "NH4", "PO4", "DCO", "DBO5", "pH")]
+df <- data.frame(NO2, NO3, NH4, PO4, DCO, DBO5, pH)
+print(df)
+df <- data.frame(
+  NO2 = rep(NO2, 24),
+  NO3 = rep(NO3, 24),
+  NH4 = rep(NH4, 24),
+  PO4 = rep(PO4, 24),
+  DCO = rep(DCO, 24),
+  DBO5 = rep(DBO5, 24),
+  pH = rep(pH, 24)
+)
+base2<-df
+base1=base
+
+###Step 2: calculating the WA_WQI
+S<-1/base2
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+K<-1/ES
+K
+WI<-K/base2
+WI
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+###We calculate the ratio of the value to the standard value, then multiply it by 100(there is an exception for O2_DISOLVED and PH(if is it selection).
+q1<-base[,1:6]/base2[,1:6]
+q1<-q1*100
+head(q1)
+View(q1)
+##if you want to extract the results...
+#write.xlsx(q1, file="D:/moste/OneDrive/Bureau/q1.xlsx")
+###this part is an exception for Ph but we dont need to run it only if we have selected PH##
+pH<-base[,(7)]-7#
+pH<-qPH/2
+pH<-qPH*100
+pH
+pH<-data.frame(pH)
+pH
+# adds Saturation and O2_Dissous as eithenth colmn of q1
+q1$pH <- pH
+head(q1)
+##applied the equation
+AW_WQI<-q1*WI
+AW_WQI
+sum(AW_WQI[1, ], na.rm = TRUE)##summarize per sample
+AW_WQI <- rowSums(AW_WQI, na.rm = TRUE)
+summary(AW_WQI)
+#if you want transform as a data frame 
+AW_WQI<-data.frame(AW_WQI)
+AW_WQI
+write.xlsx(AW_WQI, file="D:/moste/OneDrive/Bureau/AW_WQI.xlsx")
+
+##OPI
+# Fonctions de classification selon les plages corrigées
+get_class_dbo5 <- function(x) {
+  if (x < 2) return(5)
+  else if (x < 5.1) return(4)
+  else if (x < 10.1) return(3)
+  else if (x < 15.1) return(2)
+  else return(1)
+}
+
+get_class_nh4 <- function(x) {
+  if (x < 0.1) return(5)
+  else if (x < 1) return(4)
+  else if (x < 2.5) return(3)
+  else if (x < 6.1) return(2)
+  else return(1)
+}
+
+get_class_no2 <- function(x) {
+  x <- x * 1000  # convertir mg/L → µg/L
+  if (x < 5) return(5)
+  else if (x < 11) return(4)
+  else if (x < 51) return(3)
+  else if (x < 151) return(2)
+  else return(1)
+}
+
+get_class_po4 <- function(x) {
+  x <- x * 1000  # convertir mg/L → µg/L
+  if (x < 15) return(5)
+  else if (x < 76) return(4)
+  else if (x < 251) return(3)
+  else if (x < 901) return(2)
+  else return(1)
+}
+
+# Appliquer les fonctions sur chaque ligne
+base$IPO_DBO5 <- sapply(base$DBO5, get_class_dbo5)
+base$IPO_NH4  <- sapply(base$NH4, get_class_nh4)
+base$IPO_NO2  <- sapply(base$NO2, get_class_no2)
+base$IPO_PO4  <- sapply(base$PO4, get_class_po4)
+
+# Calcul de l'IPO moyen
+base$IPO <- rowMeans(base[, c("IPO_DBO5", "IPO_NH4", "IPO_NO2", "IPO_PO4")], na.rm = TRUE)
+
+# Attribution d'une classe qualitative
+base$IPO_Qual <- cut(base$IPO,
+                     breaks = c(-Inf, 1.9, 2.9, 3.9, 4.5, 5.1),
+                     labels = c("very high organic pollution",
+                                "high organic pollution",
+                                "moderate organic pollution",
+                                "low organic pollution",
+                                "no organic pollution"),
+                     right = FALSE)
+
+# Afficher les résultats
+head(base[, c("DBO5", "NH4", "NO2", "PO4", "IPO", "IPO_Qual")])
+IPO<-data.frame(base$IPO)
+IPO*
+write.xlsx(IPO, file="D:/moste/OneDrive/Bureau/IPO.xlsx")
+ ##WQPI
+# Étape 1 : Normalisation de WA_WQI
+base$WA_WQI_norm <- 1 - pmin(base$AW_WQI, 100) / 100
+
+# Étape 2 : Normalisation de l'IPO
+base$IPO_norm <- (base$IPO - 1) / 4
+
+# Étape 3 : Calcul du WQPI avec α = β = 0.5
+alpha <- 0.5
+beta <- 0.5
+
+base$WQPI <- alpha * base$IPO_norm + beta * base$WA_WQI_norm
+
+# Affichage du résultat final
+head(base[, c("AW_WQI", "WA_WQI_norm", "IPO", "IPO_norm", "WQPI")])
+WQPI<-data.frame(base$WQPI)
+WQPI
+write.xlsx(WQPI, file="D:/moste/OneDrive/Bureau/WQPI.xlsx")
+glm_WQPI=glm( WQPI    ~ NH4+NO2+pH+DCO +DBO5+No3+ PO4+Mg+Na+Cl+EC+T+Ca    , family = "gaussian", data=base) 
+glm_WQPI=glm.nb( AW_WQI    ~ NH4+NO2+pH+DCO +DBO5+No3+ PO4+Mg+Na+Cl+EC+T+Ca    , data=base) 
+
+summary(glm_WQPI)
+summary(glm_IPO)
+summary(glm_AW_WQI)
+##bakhouch
+base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/HEATMAPS.csv")
+colnames(base)[colnames(base) == "Ble.dur"]    <- "Durum_wheat"
+colnames(base)[colnames(base) == "Ble.tendre"] <- "Soft_wheat"
+colnames(base)[colnames(base) == "Orge"]       <- "Barley"
+colnames(base)[colnames(base) == "Avena"]      <- "Oat"
+meta <- base[, c("Farms", "Durum_wheat", "Soft_wheat", "Barley", "Oat")]
+species <- base[, 2:42]
+library(vegan)
+species_hel <- decostand(species, method = "hellinger")
+kruskal.test(Richness ~ Farms, data = meta)
+ggplot(meta, aes(x = factor(Farms), y = Richness,color=Farms)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.2, alpha = 0.5) +
+  labs(
+    title = "Richness by Farms",
+    subtitle = "Kruskal–Wallis: p = 0.4433 | epsilon² ≈ 0.00",
+    x = "Farms",
+    y = "Richness"
+  ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+kruskal.test(Richness ~ Ble.dur, data = meta)
+kruskal.test(Richness ~ Ble.tendre, data = meta)
+kruskal.test(Richness ~ Orge, data = meta)
+kruskal.test(Richness ~ Avena, data = meta)
+
+beta <- vegdist(species, method = "bray")
+nmds <- metaMDS(species_hel, distance = "bray", k = 2)
+plot(nmds)
+ordisurf(nmds, meta$Ble.dur)
+adonis2(species_hel ~ Fermes + Ble.dur + Ble.tendre + Orge + Avena,
+        data = meta, method = "bray")
+library(indicspecies)
+multipatt(species, meta$Fermes, func = "IndVal.g")
+res <- multipatt(species, meta$Avena, func = "IndVal.g")
+summary(res)
+
+###PCA+PERMANOVA
+library(vegan)
+
+Abundance <- rowSums(species, na.rm = TRUE)
+
+Richness <- specnumber(species)               # number of taxa present
+H <- diversity(species, index = "shannon")    # Shannon
+Simp <- diversity(species, index = "simpson") # Simpson (1 - D in vegan)
+E <- H / log(Richness)                        # Evenness (Pielou), beware Richness=0
+E[!is.finite(E)] <- NA
+meta <- base[, c("Farms","Durum_wheat","Soft_wheat","Barley","Oat")]
+
+meta$Richness  <- Richness
+meta$Abundance <- Abundance
+meta$H         <- H
+meta$E         <- E
+meta$Simp      <- Simp
+indices <- meta[, c("Richness","Abundance","H","E","Simp")]
+library(ggplot2)
+library(FactoMineR)
+library(factoextra)
+
+# active (numeric) + passive (categorical)
+pca_data <- data.frame(
+  Richness  = meta$Richness,
+  Abundance = meta$Abundance,
+  H         = meta$H,
+  E         = meta$E,
+  Simp      = meta$Simp,
+  Farms       = factor(meta$Farms)
+)
+res.pca <- PCA(pca_data, scale.unit = TRUE, quali.sup = 6, graph = FALSE)
+fviz_pca_ind(
+  res.pca,
+  habillage = "Farms",     # uses the passive column name
+  addEllipses = TRUE,
+  ellipse.level = 0.68,
+  repel = TRUE
+) +
+  ggtitle("PCA of biodiversity indices (categorical variables as passive)")
+
+###permanova
+library(vegan)
+
+library(FactoMineR)
+library(factoextra)
+
+pca_data <- data.frame(
+  Richness  = meta$Richness,
+  Abundance = meta$Abundance,
+  H         = meta$H,
+  E         = meta$E,
+  Simp      = meta$Simp,
+  Farms       = factor(meta$Farms),
+  Durum_wheat = factor(meta$Durum_wheat),
+  Soft_wheat  = factor(meta$Soft_wheat),
+  Barley      = factor(meta$Barley),
+  Oat         = factor(meta$Oat)
+)
+
+res.pca <- PCA(pca_data, scale.unit = TRUE, quali.sup = 6:10, graph = FALSE)
+
+indices <- meta[, c("Richness","Abundance","H","E","Simp")]
+indices_scaled <- scale(indices)
+
+adonis2(indices_scaled ~ Farms, data = meta, method = "euclidean")
+adonis2(indices_scaled ~ Durum_wheat, data = meta, method = "euclidean")
+adonis2(indices_scaled ~ Soft_wheat, data = meta, method = "euclidean")
+adonis2(indices_scaled ~ Barley, data = meta, method = "euclidean")
+adonis2(indices_scaled ~ Oat, data = meta, method = "euclidean")
+fviz_pca_biplot(
+  res.pca,
+  habillage = "Farms",
+  addEllipses = TRUE,
+  ellipse.level = 0.68,
+  repel = TRUE
+) +
+  ggtitle("PCA of biodiversity indices by farms") +
+  labs(
+    subtitle = "PERMANOVA: R² = 0.94, p = 0.001"
+  )
+
+fviz_pca_biplot(
+  res.pca,
+  habillage = "Durum_wheat",
+  addEllipses = TRUE,
+  ellipse.level = 0.68,
+  repel = TRUE
+) +
+  ggtitle("PCA of biodiversity indices by durum wheat presence") +
+  labs(subtitle = "PERMANOVA: R² = 0.64, p = 0.003")
+
+fviz_pca_biplot(
+  res.pca,
+  habillage = "Soft_wheat",
+  addEllipses = TRUE,
+  ellipse.level = 0.68,
+  repel = TRUE
+) +
+  ggtitle("PCA of biodiversity indices by soft wheat presence") +
+  labs(subtitle = "PERMANOVA: R² = 0.64, p = 0.001")
+
+
+fviz_pca_biplot(
+  res.pca,
+  habillage = "Barley",
+  addEllipses = TRUE,
+  ellipse.level = 0.68,
+  repel = TRUE
+) +
+  ggtitle("PCA of biodiversity indices by barley presence") +
+  labs(subtitle = "PERMANOVA: R² = 0.13, p = 0.279 (not significant)")
+
+fviz_pca_biplot(
+  res.pca,
+  habillage = "Oat",
+  addEllipses = TRUE,
+  ellipse.level = 0.68,
+  repel = TRUE
+) +
+  ggtitle("PCA of biodiversity indices by oat presence") +
+  labs(subtitle = "PERMANOVA: R² = 0.64, p = 0.004")
+
+library(ggplot2)
+
+perm_results <- data.frame(
+  Variable = c("Farms", "Durum wheat", "Soft wheat", "Barley", "Oat"),
+  R2 = c(0.93746, 0.64110, 0.64110, 0.12791, 0.63718),
+  p  = c(0.001, 0.003, 0.001, 0.279, 0.004)
+)
+
+ggplot(perm_results, aes(x = reorder(Variable, R2), y = R2)) +
+  geom_col() +
+  coord_flip() +
+  geom_text(aes(label = paste0("p = ", p)), hjust = -0.1, size = 3) +
+  labs(
+    title = "PERMANOVA effect sizes on biodiversity indices",
+    subtitle = "R² = variance explained (higher = stronger group effect)",
+    x = "",
+    y = "R²"
+  ) +
+  theme_bw() +
+  ylim(0, 1)
+
+###glm
+species <- base[, 2:38]     # insect taxa
+species[] <- lapply(species, as.numeric)
+env <- data.frame(
+  Farms       = factor(base$Farms),
+  Durum_wheat = factor(base$Durum_wheat),
+  Soft_wheat  = factor(base$Soft_wheat),
+  Oat         = factor(base$Oat)
+)
+library(MASS)
+
+glm_results <- lapply(colnames(species), function(sp) {
+  
+  formula <- as.formula(
+    paste(sp, "~ Farms + Durum_wheat + Soft_wheat + Oat")
+  )
+  
+  model <- glm.nb(formula, data = cbind(species, env))
+  a <- anova(model, test = "Chisq")
+  
+  data.frame(
+    Species = sp,
+    Farms_p       = a["Farms", "Pr(>Chi)"],
+    Durum_p       = a["Durum_wheat", "Pr(>Chi)"],
+    Soft_p        = a["Soft_wheat", "Pr(>Chi)"],
+    Oat_p         = a["Oat", "Pr(>Chi)"]
+  )
+})
+
+glm_results <- do.call(rbind, glm_results)
+summary(glm_results)
