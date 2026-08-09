@@ -1,0 +1,227 @@
+# Charger les bibliothèques nécessaires
+library(ggplot2)
+library(viridis)
+library(sf)
+library(sp)
+library(gstat)
+miko<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/base.csv")
+algeria_bassin <- st_read("D:/moste/OneDrive/Bureau/SHAPE FILE/SHP/B-V-Algerie/B-V-Algerie/B-V-Algerie 2/B-V-Algerie/Grand bassin versan algerie.shp")
+algeria_shapefile <- st_read("D:/moste/OneDrive/Bureau/SHAPE FILE/SHP/DZA_adm/DZA_adm2/DZA_adm/DZA_adm1.shp")
+seybouse_bassin <- algeria_bassin[algeria_bassin$NOM == "Seybouse", ]
+Souk_ahras <- st_read("D:/moste/OneDrive/Bureau/SHAPE FILE/SHP/communes_algerie_2016-10/communes_algerie4/communes_algerie.shp")
+Souk_ahras <- algeria_shapefile[algeria_shapefile$NAME_1 == "Souk Ahras", ]
+#Convertir ton fichier `base` en un objet spatial `sf` avec le CRS WGS 84
+base_sf <- st_as_sf(base, coords = c("X", "Y"), crs = 4326)
+
+# Vérifier le CRS de `base_sf`
+st_crs(base_sf)
+# Transformer `base_sf` dans le CRS de Souk Ahras (WGS 84)
+base_sf_transformed <- st_transform(base_sf, crs = 4326)
+
+# Vérifier le nouveau CRS
+st_crs(base_sf_transformed)
+# Superposition de la carte avec les points de ton fichier `base`
+plot3 <- ggplot() +
+  geom_sf(data = Souk_ahras, fill = "lightblue", color = "darkblue", size = 0.8) +
+  geom_sf(data = base_sf_transformed, aes(color = WQPI    ), size = 2) +
+  labs(
+    title = "Carte de la Wilaya de Souk Ahras avec Points de Données",
+    subtitle = "Points projetés sur la carte de Souk Ahras"
+  ) +
+  theme_minimal()
+
+# Afficher la carte
+print(plot3)
+ 
+###le juste krigeage###
+# Charger les données
+ase <- read.csv2("D:/moste/OneDrive/Bureau/Bureau/krigeage.csv")
+algeria_shapefile <- st_read("D:/moste/OneDrive/Bureau/SHAPE FILE/SHP/DZA_adm/DZA_adm2/DZA_adm/DZA_adm1.shp")
+
+# Extraire les données de Souk Ahras à partir du shapefile
+Souk_ahras <- algeria_shapefile[algeria_shapefile$NAME_1 == "Souk Ahras", ]
+
+# Convertir Souk Ahras en Spatial
+Souk_ahras_sp <- as(Souk_ahras, "Spatial")
+
+# Convertir ton fichier `base` en un objet spatial `sf` avec le CRS WGS 84
+base_sf <- st_as_sf(miko, coords = c("X", "Y"), crs = 4326)
+
+# Vérifier le CRS de `base_sf`
+st_crs(base_sf)
+
+# Transformer `base_sf` dans le CRS de Souk Ahras (WGS 84)
+base_sf_transformed <- st_transform(base_sf, crs = 4326)
+
+# Vérifier le nouveau CRS
+st_crs(base_sf_transformed)
+
+# Créer un maillage régulier à l'intérieur de la zone de Souk Ahras
+# Obtenir les limites de Souk Ahras (en spatial)
+bbox_souk <- st_bbox(Souk_ahras)  # Extraire les limites de la région
+
+# Créer une grille avec un maillage régulier à l'intérieur de la bounding box de Souk Ahras
+grid <- spsample(Souk_ahras_sp, n = 10000, type = "regular")
+
+# Vérifier le nombre de points dans grid
+length(grid)
+
+# Créer un data.frame avec le bon nombre de lignes correspondant aux points dans grid
+grid_df <- data.frame(AW_WQI    = rep(NA, length(grid)))
+
+# Créer un SpatialPointsDataFrame avec la grille et le data.frame
+grid_spdf <- SpatialPointsDataFrame(grid, grid_df)
+
+# Créer un objet SpatialPointsDataFrame à partir de `base_sf`
+base_sp <- as_Spatial(base_sf_transformed)
+
+# Calculer le variogramme
+variogram_model <- variogram(log(AW_WQI     ) ~ 1, base_sp)
+
+# Visualiser le variogramme
+plot(variogram_model)
+
+# Ajuster un modèle de variogramme (modèle sphérique ici, ajuster selon tes données)
+vgm_model <- vgm(1, "Sph", 100, 1)  # Ajuste ces paramètres si nécessaire
+
+# Effectuer le krigeage
+krige_result <- krige(log(AW_WQI  ) ~ 1, base_sp, grid_spdf, model = vgm_model)
+
+# Convertir les résultats du krigeage en dataframe
+krige_result_df <- as.data.frame(krige_result)
+
+# Appliquer l'exponentielle pour obtenir les prédictions de WQI
+krige_result_df$WQI <- exp(krige_result_df$var1.pred)
+
+# Extraire les coordonnées de l'objet krige_result
+coords <- coordinates(krige_result)  # Cette fonction extrait les coordonnées x et y
+
+# Ajouter les coordonnées au dataframe
+krige_result_df$x <- coords[, 1]  # Coordonnée x
+krige_result_df$y <- coords[, 2]  # Coordonnée y
+
+# Vérifier si les colonnes 'x' et 'y' sont bien ajoutées
+head(krige_result_df)
+
+# Créer la carte de l'interpolation avec ggplot
+ggplot(krige_result_df, aes(x = x, y = y, fill = WQI_IPO)) +
+  geom_raster() +
+  scale_fill_viridis_c(option = "C") +
+  coord_equal() +
+  labs(
+    title = "WQI Interpolation by Kriging",
+    x = "Longitude", y = "Latitude", fill = "WQI"
+  ) +
+  theme_minimal()
+
+
+####IDW
+base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/base.csv")
+Souk_ahras <- st_read("D:/moste/OneDrive/Bureau/SHAPE FILE/SHP/communes_algerie_2016-10/communes_algerie4/communes_algerie.shp")
+library(sf)
+library(sp)
+library(gstat)
+library(ggplot2)
+library(viridis)
+
+# Charger base et Souk Ahras
+base_sf <- st_as_sf(base, coords = c("X", "Y"), crs = 4326)
+
+
+# Transformer en UTM
+base_sf_utm <- st_transform(base_sf, crs = 32631)
+Souk_ahras_utm <- st_transform(Souk_ahras, crs = 32631)
+
+# Créer grille
+Souk_ahras_sp <- as(Souk_ahras_utm, "Spatial")
+grid <- spsample(Souk_ahras_sp, n = 50000, type = "regular")
+grid_df <- data.frame(id = 1:length(grid))
+grid_spdf <- SpatialPointsDataFrame(grid, grid_df)
+
+# Conversion base
+base_sp <- as_Spatial(base_sf_utm)
+
+# IDW interpolation
+idw_result <- idw(formula = IPO ~ 1, locations = base_sp, newdata = grid_spdf, idp = 2)
+
+# Résultats
+idw_result_df <- as.data.frame(idw_result)
+coords <- coordinates(idw_result)
+idw_result_df$x <- coords[, 1]
+idw_result_df$y <- coords[, 2]
+
+# Carte
+ggplot() +
+  geom_raster(data = idw_result_df, aes(x = x, y = y, fill = var1.pred)) +
+  geom_sf(data = Souk_ahras_utm, fill = NA, color = "black", size = 0.5) +
+  scale_fill_viridis_c(name = "AW_WQI", option = "C") +
+  coord_sf(crs = 32631) +
+  labs(
+    title = "IDW Interpolation of OPI on Medjerda",
+    x = "Longitude (m)",
+    y = "Latitude (m)",
+    fill = "OPI"
+  ) +
+  theme_minimal()
+
+#carte avec les points des stations
+ggplot() +
+  # Carte interpolée
+  geom_raster(data = idw_result_df, aes(x = x, y = y, fill = var1.pred)) +
+  
+  # Contour de la wilaya
+  geom_sf(data = Souk_ahras_utm, fill = NA, color = "black", size = 0.5) +
+  
+  # Points des stations (base_sf_utm vient de base)
+  geom_sf(data = base_sf_utm, color = "red", size = 2) +
+  
+  # Ajouter les noms/id des stations (basé sur la colonne "id")
+  geom_text(
+    data = base_sf_utm,
+    aes(
+      x = st_coordinates(base_sf_utm)[, 1],
+      y = st_coordinates(base_sf_utm)[, 2],
+      label = id
+    ),
+    color = "black", size = 3, vjust = -1
+  ) +
+  
+  scale_fill_viridis_c(name = "OPI", option = "C") +
+  coord_sf(crs = 32631) +
+  labs(
+    title = "IDW Interpolation of OPI in Souk Ahras",
+    x = "Longitude (m)",
+    y = "Latitude (m)",
+    fill = "OPI"
+  ) +
+  theme_minimal()
+####RMSE###
+observed_values <- base_sp$WA_WQI
+predicted_values <- idw_result_df$var1.preddifferences <- (observed_values - predicted_values)^2
+
+# Calculer la moyenne des différences
+mean_squared_error <- mean(differences, na.rm = TRUE)
+
+# Calculer le RMSE
+rmse <- sqrt(mean_squared_error)
+print(paste("RMSE:", rmse))
+###RMSE WQPI
+# Créer un SpatialPoints object pour les coordonnées observées
+base_coords <- coordinates(base_sp)
+
+# Associer les points de `idw_result_df` aux points observés par une recherche de plus proche voisin
+distances <- spDists(base_coords, coordinates(idw_result), longlat = TRUE)
+
+# Trouver les indices des points les plus proches
+nearest_points <- apply(distances, 1, which.min)
+
+# Maintenant, associer les prédictions les plus proches aux observations
+predicted_values <- idw_result_df$var1.pred[nearest_points]
+
+# Calculer les erreurs quadratiques
+differences <- (observed_values - predicted_values)^2
+
+# Calculer le RMSE
+mean_squared_error <- mean(differences, na.rm = TRUE)
+rmse <- sqrt(mean_squared_error)
+print(paste("RMSE:", rmse))
