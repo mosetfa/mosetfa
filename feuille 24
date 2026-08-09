@@ -1,0 +1,113 @@
+dataframe <- read.csv2("D:/moste/OneDrive/Bureau/Bureau/Alberto/alberto.csv",  header= T, check.names = F)
+
+library(ncdf4)
+library(chron)
+library(RColorBrewer)
+library(lattice)
+library(raster)
+library(sf) 
+library(ncdf4)
+library(raster)
+library(rasterVis)
+library(RColorBrewer)
+### Obtaining climatic variables from WorldClim
+#### Load the raster files
+setwd("~/Dropbox/_Papers/_Proseriata western mediterranean/(1) Analyses/(0) Data/maps/wc2.1_30s_bio")
+
+maps <- list.files(pattern = "\\.tif$", all.files = TRUE, full.names = TRUE) 
+
+#### Stack the raster into one map
+
+rasStack <- stack(maps)
+
+
+#### Extract the information after the localities
+
+rasClim <- raster::extract(rasStack, st.raster,
+                           buffer = 10000, exact =T,
+                           df = T, fun = 'mean')
+
+row.names(rasClim) <- station3$code
+
+colnames(rasClim) <- c("ID","BIO1_Mean_Temp",
+                       "BIO10_Temp_Warmest_Quarter",
+                       "BIO11_Temp_Coldest_Quarter",
+                       "BIO12_Annual_Precipitation",
+                       "BIO13_Precip_ Wettest_Month",
+                       "BIO14_Precip_Driest_Month",
+                       "BIO15_Precip_Seasonality",
+                       "BIO16_Precip_Wettest Quarter",
+                       "BIO17_Precipitation of Driest Quarter",
+                       "BIO18_Precipitation of Warmest Quarter",
+                       "BIO19_Precipitation of Coldest Quarter",
+                       "BIO2_Mean_Diurnal_Range",
+                       "BIO3_Isothermality",
+                       "BIO4_Temp_Seasonality",
+                       "BIO5_Max_Temp_Warmest_Month",
+                       "BIO6_Min_Temp_Coldest_Month",
+                       "BIO7_Temp_Range",
+                       "BIO8_Temp_Wettest_Quarter",
+                       "BIO9_Temp_Driest_Quarter")
+
+write.table(rasClim,"Station_climatic.csv", dec=".", sep= ";")
+
+data.geo.localities <- cbind(station,rasValue); head(data.locality)
+#
+#    
+#    write.table(data.geo.localities, "data/Dataset_localities.csv",sep=";",dec=".")
+#
+#    rm(maps,rasStack,rasValue, data.geo.localities)
+#
+#
+# data.locality <- read.csv2("data/Dataset_localities.csv")
+#    
+#
+
+
+rm(maps)
+##### SATOUUR##
+library(raster)
+library(sp)
+
+# Étape 1 : Liste des fichiers
+maps <- list.files(path = "D:/moste/Downloads/TIFF", pattern = "\\.tif$", full.names = TRUE)
+
+# Étape 2 : Charger et empiler les fichiers raster
+rasStack <- stack(maps)
+
+# Étape 3 : Charger les stations
+# Extraction correcte des coordonnées sous forme de matrice
+stations <- sator[, c("DecimalLatitude", "decimalLongitude")]
+stations <- df  # Assurez-vous que df contient Latitude et Longitude
+st.raster <- SpatialPoints(coords = stations, proj4string = CRS(proj4string(rasStack)))
+
+# Étape 4 : Extraire les données climatiques
+rasClim <- raster::extract(rasStack, st.raster, df = TRUE)
+
+# Étape 5 : Renommer les colonnes
+colnames(rasClim) <- c("ID", 
+                       "BIO1_Mean_Temp",
+                       "BIO2_Mean_Diurnal_Range",
+                       "BIO3_Isothermality",
+                       "BIO4_Temp_Seasonality",
+                       "BIO5_Max_Temp_Warmest_Month",
+                       "BIO6_Min_Temp_Coldest_Month",
+                       "BIO7_Temp_Range",
+                       "BIO8_Temp_Wettest_Quarter",
+                       "BIO9_Temp_Driest_Quarter",
+                       "BIO10_Temp_Warmest_Quarter",
+                       "BIO11_Temp_Coldest_Quarter",
+                       "BIO12_Annual_Precipitation",
+                       "BIO13_Precip_Wettest_Month",
+                       "BIO14_Precip_Driest_Month",
+                       "BIO15_Precip_Seasonality",
+                       "BIO16_Precip_Wettest_Quarter",
+                       "BIO17_Precipitation_of_Driest_Quarter",
+                       "BIO18_Precipitation_of_Warmest_Quarter",
+                       "BIO19_Precipitation_of_Coldest_Quarter")
+
+# Étape 6 : Sauvegarder les résultats
+write.xlsx(rasClim, file="D:/moste/Downloads/s.xlsx")
+###
+base<-read.csv2("D:/moste/OneDrive/Bureau/SATOUR/DATA.csv",  header= T, check.names = F)
+df<-read.csv2("D:/moste/OneDrive/Bureau/SATOUR/rasClim.csv",  header= T, check.names = F)
