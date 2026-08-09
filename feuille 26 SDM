@@ -1,0 +1,124 @@
+##SDM
+library(usdm)
+library(dismo)
+library(sf)
+library(ggplot2)
+library(tidyverse)
+library(randomForest)
+library(caret)
+library(terra)  # ou raster
+library(raster)
+library(dplyr)
+data<-read.csv2("D:/moste/OneDrive/Bureau/SATOUR/seybouse_final.csv")
+data_seybouse <- data[data$Locality == "Seybouse", ]
+algeria_bassin <- st_read("D:/moste/OneDrive/Bureau/SHAPE FILE/SHP/B-V-Algerie/B-V-Algerie/B-V-Algerie 2/B-V-Algerie/Grand bassin versan algerie.shp")
+seybouse_bassin <- algeria_bassin[algeria_bassin$NOM == "Seybouse", ]
+ggplot() +
+  geom_sf(data = seybouse_bassin, fill = "skyblue", color = "blue") +
+  theme_minimal() +
+  labs(title = "Bassin de Seybouse")
+# Créer un objet spatial pour les stations de Seybouse
+stations_sf <- st_as_sf(data_seybouse, coords = c("X", "Y"), crs = 4326)
+
+# Visualiser la carte du bassin de Seybouse avec les stations projetées
+ggplot() +
+  geom_sf(data = seybouse_bassin, fill = "skyblue", color = "blue") +  # Carte du bassin
+  geom_sf(data = stations_sf, aes(color = "red"), size = 3) +  # Ajouter les stations
+  theme_minimal() +
+  labs(title = "Bassin de Seybouse avec stations", color = "Stations") +
+  theme(legend.position = "none")
+
+env_data <- data_seybouse[, c("BIO1_Mean_Temp", "BIO2_Mean_Diurnal_Range", 
+                              "BIO4_Temp_Seasonality", "BIO13_Precip_Wettest_Month", 
+                              "BIO15_Precip_Seasonality", "Altitude", "Dist_to_Medit_m", 
+                              "type")]  # Ajouter 'type'
+
+# Vérifier que 'type' est bien dans les données
+head(env_data)
+data_seybouse$type <- as.factor(data_seybouse$type)
+
+# Sélectionner les variables environnementales (avec type)
+env_data <- data_seybouse[, c("BIO1_Mean_Temp", "BIO2_Mean_Diurnal_Range", 
+                              "BIO4_Temp_Seasonality", "BIO13_Precip_Wettest_Month", 
+                              "BIO15_Precip_Seasonality", "Altitude", "Dist_to_Medit_m", 
+                              "type")]  # Inclure 'type' comme variable
+
+# Vérifier les données environnementales
+head(env_data)
+
+# Modèle GLM avec 'type' comme facteur
+glm_model <- glm(Sympecma.fusca ~ BIO1_Mean_Temp + BIO2_Mean_Diurnal_Range + 
+                   BIO4_Temp_Seasonality + BIO13_Precip_Wettest_Month + 
+                   BIO15_Precip_Seasonality + Altitude + Dist_to_Medit_m + type, 
+                 data = data_seybouse, family = binomial)
+rf_model <- randomForest(Sympecma.fusca ~ BIO1_Mean_Temp + BIO2_Mean_Diurnal_Range + 
+                           BIO4_Temp_Seasonality + BIO13_Precip_Wettest_Month + 
+                           BIO15_Precip_Seasonality + Altitude + Dist_to_Medit_m + type, 
+                         data = data_seybouse)
+
+# Vérification du modèle GLM
+summary(glm_model)
+
+# Vérification du modèle RF
+print(rf_model)
+
+
+library(tidyverse)
+
+data_long <- data_seybouse %>%
+  pivot_longer(
+    cols = c(
+      Sympecma.fusca, Lestes.barbarus, Platycnemis.subdilatata, Ischnura.graellsii,
+      Coenagrion.caerulescens, Coenagrion.puella, Enallagma.deserti, Erythromma.lindenii,
+      Anax.parthenope, Orthetrum.chrysostigma, Crocothemis.erythraea, Sympetrum.fonscolombii,
+      Trithemis.annulata, Chalcolestes.viridis, Anax.imperator, Orthetrum.coerulescens,
+      Orthetrum.nitidinerve, Trithemis.kirbyi, Calopteryx.haemorrhoidalis, Sympetrum.meridionale,
+      Sympetrum.striolatum, Calopteryx.exul, Ischnura.pumilio, Gomphus.lucasii,
+      Onychogomphus.costae, Aeshna.mixta, Lestes.virens, Ceriagrion.tenellum,
+      Trithemis.arteriosa, Lestes.numidicus, Diplacodes.lefebvrii, Brachythemis.impartita,
+      Orthetrum.cancellatum, Onychogomphus.forcipatus, Onychogomphus.uncatus,
+      Coenagrion.mercuriale, Erythromma.viridulum, Aeshna.cyanea, Boyeria.irene,
+      Coenagrion.scitulum, Sympetrum.sinaiticum
+    ),
+    names_to = "species",
+    values_to = "presence"
+  )
+glm_global <- glm(Species ~ Altitude + Dist_to_Medit_m + type +
+                    BIO1_Mean_Temp + BIO2_Mean_Diurnal_Range + BIO4_Temp_Seasonality +
+                    BIO13_Precip_Wettest_Month + BIO15_Precip_Seasonality,
+                  data = data_long, family = binomial)
+
+# Résumé du modèle
+summary(glm_global)
+model4=ggcoef_model(glm_global, exponentiate = TRUE) + 
+  ggtitle("Binomial GLM")
+model4
+data<-read.csv2("D:/moste/OneDrive/Bureau/SATOUR/DATA.csv")
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+library(mgcv)  # For GAM smoothing
+
+# Step 1: Compute species richness per year
+richness_per_year <- data_seybouse %>%
+  group_by(Year) %>%
+  summarise(Species_Richness = n_distinct(Species))
+
+# View result
+print(richness_per_year)
+
+# Step 2: Plot species richness over time with LOESS smoothing
+ggplot(richness_per_year, aes(x = Year, y = Species_Richness)) +
+  geom_point(color = "blue", size = 3) +
+  geom_smooth(method = "loess", se = TRUE, color = "darkred", span = 0.75) +
+  theme_minimal() +
+  labs(title = "Species Richness Over Years",
+       x = "Year",
+       y = "Species Richness")
+
+# Optional Step 3: Fit a GAM model for trend analysis
+gam_model <- gam(Species_Richness ~ s(Year), data = richness_per_year)
+summary(gam_model)
+
+# Plot the GAM fitted curve
+plot(gam_model, se = TRUE, col = "darkgreen", shade = TRUE, main = "GAM Fit of Species Richness Trend")
