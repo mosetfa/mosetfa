@@ -1,0 +1,2440 @@
+##Monte carlo for randa paper WQI_D4
+# ==========================================================
+# 9. Monte Carlo Cross-Validation (100 repetitions)
+# ==========================================================
+
+library(caret)
+library(glmnet)
+library(dplyr)
+library(openxlsx)
+
+set.seed(123)
+
+n.sim <- 100
+
+# Metric functions
+rmse_calc <- function(obs, pred){
+  sqrt(mean((obs - pred)^2))
+}
+
+mae_calc <- function(obs, pred){
+  mean(abs(obs - pred))
+}
+
+r2_calc <- function(obs, pred){
+  cor(obs, pred)^2
+}
+
+# Empty results table
+MC_results <- data.frame()
+
+# ==========================================================
+# Monte Carlo loop
+# ==========================================================
+
+for(i in 1:n.sim){
+  
+  ## Random train/test split (70/30)
+  
+  trainIndex <- createDataPartition(
+    data_model$WQI_D4,
+    p = 0.70,
+    list = FALSE
+  )
+  
+  trainData <- data_model[trainIndex, ]
+  testData  <- data_model[-trainIndex, ]
+  
+  ## Design matrices
+  
+  x_train <- model.matrix(
+    WQI_D4 ~ HCO3 + Period,
+    data = trainData
+  )[,-1]
+  
+  y_train <- trainData$WQI_D4
+  
+  x_test <- model.matrix(
+    WQI_D4 ~ HCO3 + Period,
+    data = testData
+  )[,-1]
+  
+  y_test <- testData$WQI_D4
+  
+  ## Models (10-fold CV)
+  
+  lasso <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 1,
+    nfolds = 10
+  )
+  
+  ridge <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0,
+    nfolds = 10
+  )
+  
+  enet <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0.5,
+    nfolds = 10
+  )
+  
+  ## Predictions
+  
+  pred_lasso <- as.numeric(
+    predict(lasso,
+            s = "lambda.min",
+            newx = x_test)
+  )
+  
+  pred_ridge <- as.numeric(
+    predict(ridge,
+            s = "lambda.min",
+            newx = x_test)
+  )
+  
+  pred_enet <- as.numeric(
+    predict(enet,
+            s = "lambda.min",
+            newx = x_test)
+  )
+  
+  ## Save metrics
+  
+  MC_results <- rbind(
+    
+    MC_results,
+    
+    data.frame(
+      Iteration = i,
+      Model = "Lasso",
+      RMSE = rmse_calc(y_test,pred_lasso),
+      MAE  = mae_calc(y_test,pred_lasso),
+      R2   = r2_calc(y_test,pred_lasso)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Ridge",
+      RMSE = rmse_calc(y_test,pred_ridge),
+      MAE  = mae_calc(y_test,pred_ridge),
+      R2   = r2_calc(y_test,pred_ridge)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Elastic Net",
+      RMSE = rmse_calc(y_test,pred_enet),
+      MAE  = mae_calc(y_test,pred_enet),
+      R2   = r2_calc(y_test,pred_enet)
+    )
+    
+  )
+  
+}
+
+
+
+
+MC_summary <-
+  
+  MC_results %>%
+  
+  group_by(Model) %>%
+  
+  summarise(
+    
+    Mean_RMSE = mean(RMSE),
+    Median_RMSE = median(RMSE),
+    SD_RMSE = sd(RMSE),
+    RMSE_Lower95 = quantile(RMSE,0.025),
+    RMSE_Upper95 = quantile(RMSE,0.975),
+    
+    Mean_MAE = mean(MAE),
+    Median_MAE = median(MAE),
+    SD_MAE = sd(MAE),
+    MAE_Lower95 = quantile(MAE,0.025),
+    MAE_Upper95 = quantile(MAE,0.975),
+    
+    Mean_R2 = mean(R2),
+    Median_R2 = median(R2),
+    SD_R2 = sd(R2),
+    R2_Lower95 = quantile(R2,0.025),
+    R2_Upper95 = quantile(R2,0.975)
+    
+  )
+
+MC_summary_WQI_D4=MC_summary
+MC_results_WQI_D4=MC_results
+library(ggplot2)
+
+WQI_D4_RMSE=ggplot(MC_results,
+       aes(x = RMSE,
+           fill = Model)) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of RMSE for WQI_D4",
+    x = "RMSE",
+    y = "Density"
+  )
+
+WQI_D4_MAE=ggplot(MC_results,
+       aes(x = MAE,
+           fill = Model)) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of MAE for WQI_D4",
+    x = "MAE",
+    y = "Density"
+  )
+
+WQI_D4_R2=ggplot(MC_results,
+       aes(x = R2,
+           fill = Model)) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of R² for WQI_D4",
+    x = expression(R^2),
+    y = "Density"
+  )
+MWQI_D4=grid.arrange(WQI_D4_RMSE,WQI_D4_MAE,WQI_D4_R2, ncol = 1)
+
+##WQI_D3
+# ==========================================================
+# Monte Carlo Cross-Validation for WQI_D3
+# Predictor: Mg2 + Period
+# ==========================================================
+
+library(caret)
+library(glmnet)
+library(dplyr)
+library(openxlsx)
+
+set.seed(123)
+
+n.sim <- 100
+
+# ---------------------------
+# Metric functions
+# ---------------------------
+rmse_calc <- function(obs, pred){
+  sqrt(mean((obs - pred)^2))
+}
+
+mae_calc <- function(obs, pred){
+  mean(abs(obs - pred))
+}
+
+r2_calc <- function(obs, pred){
+  cor(obs, pred)^2
+}
+
+# ---------------------------
+# Empty results table
+# ---------------------------
+MC_results <- data.frame()
+
+# ==========================================================
+# Monte Carlo loop
+# ==========================================================
+
+for(i in 1:n.sim){
+  
+  # -------------------------
+  # Random train/test split
+  # -------------------------
+  
+  trainIndex <- createDataPartition(
+    data_model$WQI_D3,
+    p = 0.70,
+    list = FALSE
+  )
+  
+  trainData <- data_model[trainIndex, ]
+  testData  <- data_model[-trainIndex, ]
+  
+  # -------------------------
+  # Design matrices
+  # -------------------------
+  
+  x_train <- model.matrix(
+    WQI_D3 ~ Mg2 + Period,
+    data = trainData
+  )[,-1]
+  
+  y_train <- trainData$WQI_D3
+  
+  x_test <- model.matrix(
+    WQI_D3 ~ Mg2 + Period,
+    data = testData
+  )[,-1]
+  
+  y_test <- testData$WQI_D3
+  
+  # -------------------------
+  # Models
+  # -------------------------
+  
+  lasso <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 1,
+    nfolds = 10
+  )
+  
+  ridge <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0,
+    nfolds = 10
+  )
+  
+  enet <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0.5,
+    nfolds = 10
+  )
+  
+  # -------------------------
+  # Predictions
+  # -------------------------
+  
+  pred_lasso <- as.numeric(
+    predict(
+      lasso,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_ridge <- as.numeric(
+    predict(
+      ridge,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_enet <- as.numeric(
+    predict(
+      enet,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  # -------------------------
+  # Save metrics
+  # -------------------------
+  
+  MC_results <- rbind(
+    
+    MC_results,
+    
+    data.frame(
+      Iteration = i,
+      Model = "Lasso",
+      RMSE = rmse_calc(y_test,pred_lasso),
+      MAE = mae_calc(y_test,pred_lasso),
+      R2 = r2_calc(y_test,pred_lasso)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Ridge",
+      RMSE = rmse_calc(y_test,pred_ridge),
+      MAE = mae_calc(y_test,pred_ridge),
+      R2 = r2_calc(y_test,pred_ridge)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Elastic Net",
+      RMSE = rmse_calc(y_test,pred_enet),
+      MAE = mae_calc(y_test,pred_enet),
+      R2 = r2_calc(y_test,pred_enet)
+    )
+    
+  )
+  
+}
+# ==========================================================
+# Monte Carlo Summary
+# ==========================================================
+
+MC_summary <-
+  MC_results %>%
+  group_by(Model) %>%
+  summarise(
+    
+    Mean_RMSE = mean(RMSE),
+    Median_RMSE = median(RMSE),
+    SD_RMSE = sd(RMSE),
+    RMSE_Lower95 = quantile(RMSE, 0.025),
+    RMSE_Upper95 = quantile(RMSE, 0.975),
+    
+    Mean_MAE = mean(MAE),
+    Median_MAE = median(MAE),
+    SD_MAE = sd(MAE),
+    MAE_Lower95 = quantile(MAE, 0.025),
+    MAE_Upper95 = quantile(MAE, 0.975),
+    
+    Mean_R2 = mean(R2),
+    Median_R2 = median(R2),
+    SD_R2 = sd(R2),
+    R2_Lower95 = quantile(R2, 0.025),
+    R2_Upper95 = quantile(R2, 0.975)
+    
+  )
+
+MC_summary_WQI_D3 <- MC_summary
+MC_results_WQI_D3 <- MC_results
+
+print(MC_summary_WQI_D3)
+
+# ==========================================================
+# RMSE Distribution
+# ==========================================================
+
+library(ggplot2)
+library(gridExtra)
+
+WQI_D3_RMSE <-
+  ggplot(
+    MC_results,
+    aes(x = RMSE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of RMSE for WQI_D3",
+    x = "RMSE",
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# MAE Distribution
+# ==========================================================
+
+WQI_D3_MAE <-
+  ggplot(
+    MC_results,
+    aes(x = MAE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of MAE for WQI_D3",
+    x = "MAE",
+    y = "Density",
+    fill = "Model"
+  )
+# R² Distribution
+# ==========================================================
+
+WQI_D3_R2 <-
+  ggplot(
+    MC_results,
+    aes(x = R2, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of R² for WQI_D3",
+    x = expression(R^2),
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# Arrange Figures
+# ==========================================================
+
+library(gridExtra)
+
+MWQI_D3 <-
+  grid.arrange(
+    WQI_D3_RMSE,
+    WQI_D3_MAE,
+    WQI_D3_R2,
+    ncol = 1
+  )
+
+# ==========================================================
+# Display Summary
+# ==========================================================
+
+print(MC_summary_WQI_D3)
+
+##WQI_D2
+# ==========================================================
+# Monte Carlo Cross-Validation for WQI_D2
+# Predictor: HCO3 + Period
+# ==========================================================
+
+library(caret)
+library(glmnet)
+library(dplyr)
+library(openxlsx)
+
+set.seed(123)
+
+n.sim <- 100
+
+# ---------------------------
+# Metric functions
+# ---------------------------
+rmse_calc <- function(obs, pred){
+  sqrt(mean((obs - pred)^2))
+}
+
+mae_calc <- function(obs, pred){
+  mean(abs(obs - pred))
+}
+
+r2_calc <- function(obs, pred){
+  cor(obs, pred)^2
+}
+
+# ---------------------------
+# Empty results table
+# ---------------------------
+MC_results <- data.frame()
+
+# ==========================================================
+# Monte Carlo loop
+# ==========================================================
+
+for(i in 1:n.sim){
+  
+  # -------------------------
+  # Random train/test split
+  # -------------------------
+  
+  trainIndex <- createDataPartition(
+    data_model$WQI_D2,
+    p = 0.70,
+    list = FALSE
+  )
+  
+  trainData <- data_model[trainIndex, ]
+  testData  <- data_model[-trainIndex, ]
+  
+  # -------------------------
+  # Design matrices
+  # -------------------------
+  
+  x_train <- model.matrix(
+    WQI_D2 ~ HCO3 + Period,
+    data = trainData
+  )[,-1]
+  
+  y_train <- trainData$WQI_D2
+  
+  x_test <- model.matrix(
+    WQI_D2 ~ HCO3 + Period,
+    data = testData
+  )[,-1]
+  
+  y_test <- testData$WQI_D2
+  
+  # -------------------------
+  # Models
+  # -------------------------
+  
+  lasso <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 1,
+    nfolds = 10
+  )
+  
+  ridge <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0,
+    nfolds = 10
+  )
+  
+  enet <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0.5,
+    nfolds = 10
+  )
+  
+  # -------------------------
+  # Predictions
+  # -------------------------
+  
+  pred_lasso <- as.numeric(
+    predict(
+      lasso,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_ridge <- as.numeric(
+    predict(
+      ridge,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_enet <- as.numeric(
+    predict(
+      enet,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  # -------------------------
+  # Save metrics
+  # -------------------------
+  
+  MC_results <- rbind(
+    
+    MC_results,
+    
+    data.frame(
+      Iteration = i,
+      Model = "Lasso",
+      RMSE = rmse_calc(y_test, pred_lasso),
+      MAE = mae_calc(y_test, pred_lasso),
+      R2 = r2_calc(y_test, pred_lasso)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Ridge",
+      RMSE = rmse_calc(y_test, pred_ridge),
+      MAE = mae_calc(y_test, pred_ridge),
+      R2 = r2_calc(y_test, pred_ridge)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Elastic Net",
+      RMSE = rmse_calc(y_test, pred_enet),
+      MAE = mae_calc(y_test, pred_enet),
+      R2 = r2_calc(y_test, pred_enet)
+    )
+    
+  )
+  
+}
+
+# ==========================================================
+# Monte Carlo Summary
+# ==========================================================
+
+MC_summary <-
+  MC_results %>%
+  group_by(Model) %>%
+  summarise(
+    
+    Mean_RMSE = mean(RMSE),
+    Median_RMSE = median(RMSE),
+    SD_RMSE = sd(RMSE),
+    RMSE_Lower95 = quantile(RMSE, 0.025),
+    RMSE_Upper95 = quantile(RMSE, 0.975),
+    
+    Mean_MAE = mean(MAE),
+    Median_MAE = median(MAE),
+    SD_MAE = sd(MAE),
+    MAE_Lower95 = quantile(MAE, 0.025),
+    MAE_Upper95 = quantile(MAE, 0.975),
+    
+    Mean_R2 = mean(R2),
+    Median_R2 = median(R2),
+    SD_R2 = sd(R2),
+    R2_Lower95 = quantile(R2, 0.025),
+    R2_Upper95 = quantile(R2, 0.975)
+    
+  )
+
+MC_summary_WQI_D2 <- MC_summary
+MC_results_WQI_D2 <- MC_results
+
+print(MC_summary_WQI_D2)
+
+# ==========================================================
+# RMSE Distribution
+# ==========================================================
+
+library(ggplot2)
+library(gridExtra)
+
+WQI_D2_RMSE <-
+  ggplot(
+    MC_results,
+    aes(x = RMSE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of RMSE for WQI_D2",
+    x = "RMSE",
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# MAE Distribution
+# ==========================================================
+
+WQI_D2_MAE <-
+  ggplot(
+    MC_results,
+    aes(x = MAE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of MAE for WQI_D2",
+    x = "MAE",
+    y = "Density",
+    fill = "Model"
+  )
+# R² Distribution
+# ==========================================================
+
+WQI_D2_R2 <-
+  ggplot(
+    MC_results,
+    aes(x = R2, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of R² for WQI_D2",
+    x = expression(R^2),
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# Arrange Figures
+# ==========================================================
+
+library(gridExtra)
+
+MWQI_D2 <-
+  grid.arrange(
+    WQI_D2_RMSE,
+    WQI_D2_MAE,
+    WQI_D2_R2,
+    ncol = 1
+  )
+
+# ==========================================================
+# Display Summary
+# ==========================================================
+
+print(MC_summary_WQI_D2)
+
+#WQI_D1
+# ==========================================================
+# Monte Carlo Cross-Validation for WQI_D1
+# Predictor: EC + Period
+# ==========================================================
+
+library(caret)
+library(glmnet)
+library(dplyr)
+library(openxlsx)
+
+set.seed(123)
+
+n.sim <- 100
+
+# ---------------------------
+# Metric functions
+# ---------------------------
+
+rmse_calc <- function(obs, pred){
+  sqrt(mean((obs - pred)^2))
+}
+
+mae_calc <- function(obs, pred){
+  mean(abs(obs - pred))
+}
+
+r2_calc <- function(obs, pred){
+  cor(obs, pred)^2
+}
+
+# ---------------------------
+# Empty results table
+# ---------------------------
+
+MC_results <- data.frame()
+
+# ==========================================================
+# Monte Carlo loop
+# ==========================================================
+
+for(i in 1:n.sim){
+  
+  # -------------------------
+  # Random train/test split
+  # -------------------------
+  
+  trainIndex <- createDataPartition(
+    data_model$WQI_D1,
+    p = 0.70,
+    list = FALSE
+  )
+  
+  trainData <- data_model[trainIndex, ]
+  testData  <- data_model[-trainIndex, ]
+  
+  # -------------------------
+  # Design matrices
+  # -------------------------
+  
+  x_train <- model.matrix(
+    WQI_D1 ~ EC + Period,
+    data = trainData
+  )[,-1]
+  
+  y_train <- trainData$WQI_D1
+  
+  x_test <- model.matrix(
+    WQI_D1 ~ EC + Period,
+    data = testData
+  )[,-1]
+  
+  y_test <- testData$WQI_D1
+  
+  # -------------------------
+  # Models
+  # -------------------------
+  
+  lasso <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 1,
+    nfolds = 10
+  )
+  
+  ridge <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0,
+    nfolds = 10
+  )
+  
+  enet <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0.5,
+    nfolds = 10
+  )
+  
+  # -------------------------
+  # Predictions
+  # -------------------------
+  
+  pred_lasso <- as.numeric(
+    predict(
+      lasso,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_ridge <- as.numeric(
+    predict(
+      ridge,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_enet <- as.numeric(
+    predict(
+      enet,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  # -------------------------
+  # Save metrics
+  # -------------------------
+  
+  MC_results <- rbind(
+    
+    MC_results,
+    
+    data.frame(
+      Iteration = i,
+      Model = "Lasso",
+      RMSE = rmse_calc(y_test, pred_lasso),
+      MAE = mae_calc(y_test, pred_lasso),
+      R2 = r2_calc(y_test, pred_lasso)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Ridge",
+      RMSE = rmse_calc(y_test, pred_ridge),
+      MAE = mae_calc(y_test, pred_ridge),
+      R2 = r2_calc(y_test, pred_ridge)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Elastic Net",
+      RMSE = rmse_calc(y_test, pred_enet),
+      MAE = mae_calc(y_test, pred_enet),
+      R2 = r2_calc(y_test, pred_enet)
+    )
+    
+  )
+  
+}
+# ==========================================================
+# Monte Carlo Summary
+# ==========================================================
+
+MC_summary <-
+  MC_results %>%
+  group_by(Model) %>%
+  summarise(
+    
+    Mean_RMSE = mean(RMSE),
+    Median_RMSE = median(RMSE),
+    SD_RMSE = sd(RMSE),
+    RMSE_Lower95 = quantile(RMSE, 0.025),
+    RMSE_Upper95 = quantile(RMSE, 0.975),
+    
+    Mean_MAE = mean(MAE),
+    Median_MAE = median(MAE),
+    SD_MAE = sd(MAE),
+    MAE_Lower95 = quantile(MAE, 0.025),
+    MAE_Upper95 = quantile(MAE, 0.975),
+    
+    Mean_R2 = mean(R2),
+    Median_R2 = median(R2),
+    SD_R2 = sd(R2),
+    R2_Lower95 = quantile(R2, 0.025),
+    R2_Upper95 = quantile(R2, 0.975)
+    
+  )
+
+MC_summary_WQI_D1 <- MC_summary
+MC_results_WQI_D1 <- MC_results
+
+print(MC_summary_WQI_D1)
+
+# ==========================================================
+# RMSE Distribution
+# ==========================================================
+
+library(ggplot2)
+library(gridExtra)
+
+WQI_D1_RMSE <-
+  ggplot(
+    MC_results,
+    aes(x = RMSE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of RMSE for WQI_D1",
+    x = "RMSE",
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# MAE Distribution
+# ==========================================================
+
+WQI_D1_MAE <-
+  ggplot(
+    MC_results,
+    aes(x = MAE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of MAE for WQI_D1",
+    x = "MAE",
+    y = "Density",
+    fill = "Model"
+  )
+# R² Distribution
+# ==========================================================
+
+WQI_D1_R2 <-
+  ggplot(
+    MC_results,
+    aes(x = R2, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of R² for WQI_D1",
+    x = expression(R^2),
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# Arrange Figures
+# ==========================================================
+
+library(gridExtra)
+
+MWQI_D1 <-
+  grid.arrange(
+    WQI_D1_RMSE,
+    WQI_D1_MAE,
+    WQI_D1_R2,
+    ncol = 1
+  )
+
+# ==========================================================
+# Display Summary
+# ==========================================================
+
+print(MC_summary_WQI_D1)
+##GWQI
+# ==========================================================
+# Monte Carlo Cross-Validation for GWQI
+# Predictor: EC + Period
+# ==========================================================
+
+library(caret)
+library(glmnet)
+library(dplyr)
+library(openxlsx)
+
+set.seed(123)
+
+n.sim <- 100
+
+# ---------------------------
+# Metric functions
+# ---------------------------
+
+rmse_calc <- function(obs, pred){
+  sqrt(mean((obs - pred)^2))
+}
+
+mae_calc <- function(obs, pred){
+  mean(abs(obs - pred))
+}
+
+r2_calc <- function(obs, pred){
+  cor(obs, pred)^2
+}
+
+# ---------------------------
+# Empty results table
+# ---------------------------
+
+MC_results <- data.frame()
+
+# ==========================================================
+# Monte Carlo loop
+# ==========================================================
+
+for(i in 1:n.sim){
+  
+  # -------------------------
+  # Random train/test split
+  # -------------------------
+  
+  trainIndex <- createDataPartition(
+    data_model$GWQI,
+    p = 0.70,
+    list = FALSE
+  )
+  
+  trainData <- data_model[trainIndex, ]
+  testData  <- data_model[-trainIndex, ]
+  
+  # -------------------------
+  # Design matrices
+  # -------------------------
+  
+  x_train <- model.matrix(
+    GWQI ~ EC + Period,
+    data = trainData
+  )[,-1]
+  
+  y_train <- trainData$GWQI
+  
+  x_test <- model.matrix(
+    GWQI ~ EC + Period,
+    data = testData
+  )[,-1]
+  
+  y_test <- testData$GWQI
+  
+  # -------------------------
+  # Models
+  # -------------------------
+  
+  lasso <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 1,
+    nfolds = 10
+  )
+  
+  ridge <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0,
+    nfolds = 10
+  )
+  
+  enet <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0.5,
+    nfolds = 10
+  )
+  
+  # -------------------------
+  # Predictions
+  # -------------------------
+  
+  pred_lasso <- as.numeric(
+    predict(
+      lasso,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_ridge <- as.numeric(
+    predict(
+      ridge,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_enet <- as.numeric(
+    predict(
+      enet,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  # -------------------------
+  # Save metrics
+  # -------------------------
+  
+  MC_results <- rbind(
+    
+    MC_results,
+    
+    data.frame(
+      Iteration = i,
+      Model = "Lasso",
+      RMSE = rmse_calc(y_test, pred_lasso),
+      MAE  = mae_calc(y_test, pred_lasso),
+      R2   = r2_calc(y_test, pred_lasso)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Ridge",
+      RMSE = rmse_calc(y_test, pred_ridge),
+      MAE  = mae_calc(y_test, pred_ridge),
+      R2   = r2_calc(y_test, pred_ridge)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Elastic Net",
+      RMSE = rmse_calc(y_test, pred_enet),
+      MAE  = mae_calc(y_test, pred_enet),
+      R2   = r2_calc(y_test, pred_enet)
+    )
+    
+  )
+  
+}
+# ==========================================================
+# Monte Carlo Summary
+# ==========================================================
+
+MC_summary <-
+  MC_results %>%
+  group_by(Model) %>%
+  summarise(
+    
+    Mean_RMSE = mean(RMSE),
+    Median_RMSE = median(RMSE),
+    SD_RMSE = sd(RMSE),
+    RMSE_Lower95 = quantile(RMSE, 0.025),
+    RMSE_Upper95 = quantile(RMSE, 0.975),
+    
+    Mean_MAE = mean(MAE),
+    Median_MAE = median(MAE),
+    SD_MAE = sd(MAE),
+    MAE_Lower95 = quantile(MAE, 0.025),
+    MAE_Upper95 = quantile(MAE, 0.975),
+    
+    Mean_R2 = mean(R2),
+    Median_R2 = median(R2),
+    SD_R2 = sd(R2),
+    R2_Lower95 = quantile(R2, 0.025),
+    R2_Upper95 = quantile(R2, 0.975)
+    
+  )
+
+MC_summary_GWQI <- MC_summary
+MC_results_GWQI <- MC_results
+
+print(MC_summary_GWQI)
+
+# ==========================================================
+# RMSE Distribution
+# ==========================================================
+
+library(ggplot2)
+library(gridExtra)
+
+GWQI_RMSE <-
+  ggplot(
+    MC_results,
+    aes(x = RMSE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of RMSE for GWQI",
+    x = "RMSE",
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# MAE Distribution
+# ==========================================================
+
+GWQI_MAE <-
+  ggplot(
+    MC_results,
+    aes(x = MAE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of MAE for GWQI",
+    x = "MAE",
+    y = "Density",
+    fill = "Model"
+  )
+# R² Distribution
+# ==========================================================
+
+GWQI_R2 <-
+  ggplot(
+    MC_results,
+    aes(x = R2, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of R² for GWQI",
+    x = expression(R^2),
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# Arrange Figures
+# ==========================================================
+
+library(gridExtra)
+
+MGWQI <-
+  grid.arrange(
+    GWQI_RMSE,
+    GWQI_MAE,
+    GWQI_R2,
+    ncol = 1
+  )
+
+# ==========================================================
+# Display Summary
+# ==========================================================
+
+print(MC_summary_GWQI)
+
+##EWQI
+# ==========================================================
+# Monte Carlo Cross-Validation for EWQI
+# Predictor: EC + Period
+# ==========================================================
+
+library(caret)
+library(glmnet)
+library(dplyr)
+library(openxlsx)
+
+set.seed(123)
+
+n.sim <- 100
+
+# ---------------------------
+# Metric functions
+# ---------------------------
+
+rmse_calc <- function(obs, pred){
+  sqrt(mean((obs - pred)^2))
+}
+
+mae_calc <- function(obs, pred){
+  mean(abs(obs - pred))
+}
+
+r2_calc <- function(obs, pred){
+  cor(obs, pred)^2
+}
+
+# ---------------------------
+# Empty results table
+# ---------------------------
+
+MC_results <- data.frame()
+
+# ==========================================================
+# Monte Carlo loop
+# ==========================================================
+
+for(i in 1:n.sim){
+  
+  # -------------------------
+  # Random train/test split
+  # -------------------------
+  
+  trainIndex <- createDataPartition(
+    data_model$EWQI,
+    p = 0.70,
+    list = FALSE
+  )
+  
+  trainData <- data_model[trainIndex, ]
+  testData  <- data_model[-trainIndex, ]
+  
+  # -------------------------
+  # Design matrices
+  # -------------------------
+  
+  x_train <- model.matrix(
+    EWQI ~ EC + Period,
+    data = trainData
+  )[,-1]
+  
+  y_train <- trainData$EWQI
+  
+  x_test <- model.matrix(
+    EWQI ~ EC + Period,
+    data = testData
+  )[,-1]
+  
+  y_test <- testData$EWQI
+  
+  # -------------------------
+  # Models
+  # -------------------------
+  
+  lasso <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 1,
+    nfolds = 10
+  )
+  
+  ridge <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0,
+    nfolds = 10
+  )
+  
+  enet <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0.5,
+    nfolds = 10
+  )
+  
+  # -------------------------
+  # Predictions
+  # -------------------------
+  
+  pred_lasso <- as.numeric(
+    predict(
+      lasso,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_ridge <- as.numeric(
+    predict(
+      ridge,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_enet <- as.numeric(
+    predict(
+      enet,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  # -------------------------
+  # Save metrics
+  # -------------------------
+  
+  MC_results <- rbind(
+    
+    MC_results,
+    
+    data.frame(
+      Iteration = i,
+      Model = "Lasso",
+      RMSE = rmse_calc(y_test, pred_lasso),
+      MAE = mae_calc(y_test, pred_lasso),
+      R2 = r2_calc(y_test, pred_lasso)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Ridge",
+      RMSE = rmse_calc(y_test, pred_ridge),
+      MAE = mae_calc(y_test, pred_ridge),
+      R2 = r2_calc(y_test, pred_ridge)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Elastic Net",
+      RMSE = rmse_calc(y_test, pred_enet),
+      MAE = mae_calc(y_test, pred_enet),
+      R2 = r2_calc(y_test, pred_enet)
+    )
+    
+  )
+  
+}
+# ==========================================================
+# Monte Carlo Summary
+# ==========================================================
+
+MC_summary <-
+  MC_results %>%
+  group_by(Model) %>%
+  summarise(
+    
+    Mean_RMSE = mean(RMSE),
+    Median_RMSE = median(RMSE),
+    SD_RMSE = sd(RMSE),
+    RMSE_Lower95 = quantile(RMSE, 0.025),
+    RMSE_Upper95 = quantile(RMSE, 0.975),
+    
+    Mean_MAE = mean(MAE),
+    Median_MAE = median(MAE),
+    SD_MAE = sd(MAE),
+    MAE_Lower95 = quantile(MAE, 0.025),
+    MAE_Upper95 = quantile(MAE, 0.975),
+    
+    Mean_R2 = mean(R2),
+    Median_R2 = median(R2),
+    SD_R2 = sd(R2),
+    R2_Lower95 = quantile(R2, 0.025),
+    R2_Upper95 = quantile(R2, 0.975)
+    
+  )
+
+MC_summary_EWQI <- MC_summary
+MC_results_EWQI <- MC_results
+
+print(MC_summary_EWQI)
+
+# ==========================================================
+# RMSE Distribution
+# ==========================================================
+
+library(ggplot2)
+library(gridExtra)
+
+EWQI_RMSE <-
+  ggplot(
+    MC_results,
+    aes(x = RMSE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of RMSE for EWQI",
+    x = "RMSE",
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# MAE Distribution
+# ==========================================================
+
+EWQI_MAE <-
+  ggplot(
+    MC_results,
+    aes(x = MAE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of MAE for EWQI",
+    x = "MAE",
+    y = "Density",
+    fill = "Model"
+  )
+# R² Distribution
+# ==========================================================
+
+EWQI_R2 <-
+  ggplot(
+    MC_results,
+    aes(x = R2, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of R² for EWQI",
+    x = expression(R^2),
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# Arrange Figures
+# ==========================================================
+
+library(gridExtra)
+
+MEWQI <-
+  grid.arrange(
+    EWQI_RMSE,
+    EWQI_MAE,
+    EWQI_R2,
+    ncol = 1
+  )
+
+# ==========================================================
+# Display Summary
+# ==========================================================
+
+print(MC_summary_EWQI)
+
+##CCME
+# ==========================================================
+# Monte Carlo Cross-Validation for CCME
+# Predictor: K + Period
+# ==========================================================
+
+library(caret)
+library(glmnet)
+library(dplyr)
+library(openxlsx)
+
+set.seed(123)
+
+n.sim <- 100
+
+# ---------------------------
+# Metric functions
+# ---------------------------
+
+rmse_calc <- function(obs, pred){
+  sqrt(mean((obs - pred)^2))
+}
+
+mae_calc <- function(obs, pred){
+  mean(abs(obs - pred))
+}
+
+r2_calc <- function(obs, pred){
+  cor(obs, pred)^2
+}
+
+# ---------------------------
+# Empty results table
+# ---------------------------
+
+MC_results <- data.frame()
+
+# ==========================================================
+# Monte Carlo loop
+# ==========================================================
+
+for(i in 1:n.sim){
+  
+  # -------------------------
+  # Random train/test split
+  # -------------------------
+  
+  trainIndex <- createDataPartition(
+    data_model$CCME,
+    p = 0.70,
+    list = FALSE
+  )
+  
+  trainData <- data_model[trainIndex, ]
+  testData  <- data_model[-trainIndex, ]
+  
+  # -------------------------
+  # Design matrices
+  # -------------------------
+  
+  x_train <- model.matrix(
+    CCME ~ K + Period,
+    data = trainData
+  )[,-1]
+  
+  y_train <- trainData$CCME
+  
+  x_test <- model.matrix(
+    CCME ~ K + Period,
+    data = testData
+  )[,-1]
+  
+  y_test <- testData$CCME
+  
+  # -------------------------
+  # Models
+  # -------------------------
+  
+  lasso <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 1,
+    nfolds = 10
+  )
+  
+  ridge <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0,
+    nfolds = 10
+  )
+  
+  enet <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0.5,
+    nfolds = 10
+  )
+  
+  # -------------------------
+  # Predictions
+  # -------------------------
+  
+  pred_lasso <- as.numeric(
+    predict(
+      lasso,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_ridge <- as.numeric(
+    predict(
+      ridge,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_enet <- as.numeric(
+    predict(
+      enet,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  # -------------------------
+  # Save metrics
+  # -------------------------
+  
+  MC_results <- rbind(
+    
+    MC_results,
+    
+    data.frame(
+      Iteration = i,
+      Model = "Lasso",
+      RMSE = rmse_calc(y_test, pred_lasso),
+      MAE  = mae_calc(y_test, pred_lasso),
+      R2   = r2_calc(y_test, pred_lasso)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Ridge",
+      RMSE = rmse_calc(y_test, pred_ridge),
+      MAE  = mae_calc(y_test, pred_ridge),
+      R2   = r2_calc(y_test, pred_ridge)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Elastic Net",
+      RMSE = rmse_calc(y_test, pred_enet),
+      MAE  = mae_calc(y_test, pred_enet),
+      R2   = r2_calc(y_test, pred_enet)
+    )
+    
+  )
+  
+}
+# ==========================================================
+# Monte Carlo Summary
+# ==========================================================
+
+MC_summary <-
+  MC_results %>%
+  group_by(Model) %>%
+  summarise(
+    
+    Mean_RMSE = mean(RMSE),
+    Median_RMSE = median(RMSE),
+    SD_RMSE = sd(RMSE),
+    RMSE_Lower95 = quantile(RMSE, 0.025),
+    RMSE_Upper95 = quantile(RMSE, 0.975),
+    
+    Mean_MAE = mean(MAE),
+    Median_MAE = median(MAE),
+    SD_MAE = sd(MAE),
+    MAE_Lower95 = quantile(MAE, 0.025),
+    MAE_Upper95 = quantile(MAE, 0.975),
+    
+    Mean_R2 = mean(R2),
+    Median_R2 = median(R2),
+    SD_R2 = sd(R2),
+    R2_Lower95 = quantile(R2, 0.025),
+    R2_Upper95 = quantile(R2, 0.975)
+    
+  )
+
+MC_summary_CCME <- MC_summary
+MC_results_CCME <- MC_results
+
+print(MC_summary_CCME)
+
+# ==========================================================
+# RMSE Distribution
+# ==========================================================
+
+library(ggplot2)
+library(gridExtra)
+
+CCME_RMSE <-
+  ggplot(
+    MC_results,
+    aes(x = RMSE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of RMSE for CCME",
+    x = "RMSE",
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# MAE Distribution
+# ==========================================================
+
+CCME_MAE <-
+  ggplot(
+    MC_results,
+    aes(x = MAE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of MAE for CCME",
+    x = "MAE",
+    y = "Density",
+    fill = "Model"
+  )
+# R² Distribution
+# ==========================================================
+
+CCME_R2 <-
+  ggplot(
+    MC_results,
+    aes(x = R2, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of R² for CCME",
+    x = expression(R^2),
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# Arrange Figures
+# ==========================================================
+
+library(gridExtra)
+
+MCCME <-
+  grid.arrange(
+    CCME_RMSE,
+    CCME_MAE,
+    CCME_R2,
+    ncol = 1
+  )
+
+# ==========================================================
+# Display Summary
+# ==========================================================
+
+print(MC_summary_CCME)
+
+##WQI_P
+# ==========================================================
+# Monte Carlo Cross-Validation for WQI_P
+# Predictor: EC + HCO3 + Mg2 + Period
+# ==========================================================
+
+library(caret)
+library(glmnet)
+library(dplyr)
+library(openxlsx)
+set.seed(123)
+
+n.sim <- 100
+
+# ---------------------------
+# Metric functions
+# ---------------------------
+
+rmse_calc <- function(obs, pred){
+  sqrt(mean((obs - pred)^2))
+}
+
+mae_calc <- function(obs, pred){
+  mean(abs(obs - pred))
+}
+
+r2_calc <- function(obs, pred){
+  cor(obs, pred)^2
+}
+
+# ---------------------------
+# Empty results table
+# ---------------------------
+
+MC_results <- data.frame()
+
+# ==========================================================
+# Monte Carlo loop
+# ==========================================================
+
+for(i in 1:n.sim){
+  
+  ## Random train/test split
+  
+  trainIndex <- createDataPartition(
+    data_model$WQI_P,
+    p = 0.70,
+    list = FALSE
+  )
+  
+  trainData <- data_model[trainIndex, ]
+  testData  <- data_model[-trainIndex, ]
+  
+  ## Design matrices
+  
+  x_train <- model.matrix(
+    WQI_P ~ EC + HCO3 + Mg2 + Period,
+    data = trainData
+  )[,-1]
+  
+  y_train <- trainData$WQI_P
+  
+  x_test <- model.matrix(
+    WQI_P ~ EC + HCO3 + Mg2 + Period,
+    data = testData
+  )[,-1]
+  
+  y_test <- trainData$WQI_P
+  y_test <- testData$WQI_P
+  
+  ## Models
+  
+  lasso <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 1,
+    nfolds = 10
+  )
+  
+  ridge <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0,
+    nfolds = 10
+  )
+  
+  enet <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0.5,
+    nfolds = 10
+  )
+  
+  ## Predictions
+  
+  pred_lasso <- as.numeric(
+    predict(lasso,
+            s = "lambda.min",
+            newx = x_test)
+  )
+  
+  pred_ridge <- as.numeric(
+    predict(ridge,
+            s = "lambda.min",
+            newx = x_test)
+  )
+  
+  pred_enet <- as.numeric(
+    predict(enet,
+            s = "lambda.min",
+            newx = x_test)
+  )
+  
+  ## Save metrics
+  
+  MC_results <- rbind(
+    
+    MC_results,
+    
+    data.frame(
+      Iteration = i,
+      Model = "Lasso",
+      RMSE = rmse_calc(y_test, pred_lasso),
+      MAE  = mae_calc(y_test, pred_lasso),
+      R2   = r2_calc(y_test, pred_lasso)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Ridge",
+      RMSE = rmse_calc(y_test, pred_ridge),
+      MAE  = mae_calc(y_test, pred_ridge),
+      R2   = r2_calc(y_test, pred_ridge)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Elastic Net",
+      RMSE = rmse_calc(y_test, pred_enet),
+      MAE  = mae_calc(y_test, pred_enet),
+      R2   = r2_calc(y_test, pred_enet)
+    )
+    
+  )
+  
+}
+# ==========================================================
+# Monte Carlo Summary
+# ==========================================================
+
+MC_summary <-
+  MC_results %>%
+  group_by(Model) %>%
+  summarise(
+    
+    Mean_RMSE = mean(RMSE),
+    Median_RMSE = median(RMSE),
+    SD_RMSE = sd(RMSE),
+    RMSE_Lower95 = quantile(RMSE, 0.025),
+    RMSE_Upper95 = quantile(RMSE, 0.975),
+    
+    Mean_MAE = mean(MAE),
+    Median_MAE = median(MAE),
+    SD_MAE = sd(MAE),
+    MAE_Lower95 = quantile(MAE, 0.025),
+    MAE_Upper95 = quantile(MAE, 0.975),
+    
+    Mean_R2 = mean(R2),
+    Median_R2 = median(R2),
+    SD_R2 = sd(R2),
+    R2_Lower95 = quantile(R2, 0.025),
+    R2_Upper95 = quantile(R2, 0.975)
+    
+  )
+
+MC_summary_WQI_P <- MC_summary
+MC_results_WQI_P <- MC_results
+
+print(MC_summary_WQI_P)
+
+# ==========================================================
+# RMSE Distribution
+# ==========================================================
+
+library(ggplot2)
+library(gridExtra)
+
+WQI_P_RMSE <-
+  ggplot(
+    MC_results,
+    aes(x = RMSE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of RMSE for WQI_P",
+    x = "RMSE",
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# MAE Distribution
+# ==========================================================
+
+WQI_P_MAE <-
+  ggplot(
+    MC_results,
+    aes(x = MAE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of MAE for WQI_P",
+    x = "MAE",
+    y = "Density",
+    fill = "Model"
+  )
+# R² Distribution
+# ==========================================================
+
+WQI_P_R2 <-
+  ggplot(
+    MC_results,
+    aes(x = R2, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of R² for WQI_P",
+    x = expression(R^2),
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# Arrange Figures
+# ==========================================================
+
+library(gridExtra)
+
+MWQI_P <-
+  grid.arrange(
+    WQI_P_RMSE,
+    WQI_P_MAE,
+    WQI_P_R2,
+    ncol = 1
+  )
+
+# ==========================================================
+# Display Summary
+# ==========================================================
+
+print(MC_summary_WQI_P)
+
+##WA_WQI
+# ==========================================================
+# Monte Carlo Cross-Validation for WA_WQI
+# Predictor: Ph + Period
+# ==========================================================
+
+library(caret)
+library(glmnet)
+library(dplyr)
+library(openxlsx)
+
+set.seed(123)
+
+n.sim <- 100
+
+# ---------------------------
+# Metric functions
+# ---------------------------
+
+rmse_calc <- function(obs, pred){
+  sqrt(mean((obs - pred)^2))
+}
+
+mae_calc <- function(obs, pred){
+  mean(abs(obs - pred))
+}
+
+r2_calc <- function(obs, pred){
+  cor(obs, pred)^2
+}
+
+# ---------------------------
+# Empty results table
+# ---------------------------
+
+MC_results <- data.frame()
+
+# ==========================================================
+# Monte Carlo loop
+# ==========================================================
+
+for(i in 1:n.sim){
+  
+  ## Random train/test split
+  
+  trainIndex <- createDataPartition(
+    data_model$WA_WQI,
+    p = 0.70,
+    list = FALSE
+  )
+  
+  trainData <- data_model[trainIndex, ]
+  testData  <- data_model[-trainIndex, ]
+  
+  ## Design matrices
+  
+  x_train <- model.matrix(
+    WA_WQI ~ Ph + Period,
+    data = trainData
+  )[,-1]
+  
+  y_train <- trainData$WA_WQI
+  
+  x_test <- model.matrix(
+    WA_WQI ~ Ph + Period,
+    data = testData
+  )[,-1]
+  
+  y_test <- testData$WA_WQI
+  
+  ## Models
+  
+  lasso <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 1,
+    nfolds = 10
+  )
+  
+  ridge <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0,
+    nfolds = 10
+  )
+  
+  enet <- cv.glmnet(
+    x_train,
+    y_train,
+    alpha = 0.5,
+    nfolds = 10
+  )
+  
+  ## Predictions
+  
+  pred_lasso <- as.numeric(
+    predict(
+      lasso,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_ridge <- as.numeric(
+    predict(
+      ridge,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  pred_enet <- as.numeric(
+    predict(
+      enet,
+      s = "lambda.min",
+      newx = x_test
+    )
+  )
+  
+  ## Save metrics
+  
+  MC_results <- rbind(
+    
+    MC_results,
+    
+    data.frame(
+      Iteration = i,
+      Model = "Lasso",
+      RMSE = rmse_calc(y_test, pred_lasso),
+      MAE  = mae_calc(y_test, pred_lasso),
+      R2   = r2_calc(y_test, pred_lasso)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Ridge",
+      RMSE = rmse_calc(y_test, pred_ridge),
+      MAE  = mae_calc(y_test, pred_ridge),
+      R2   = r2_calc(y_test, pred_ridge)
+    ),
+    
+    data.frame(
+      Iteration = i,
+      Model = "Elastic Net",
+      RMSE = rmse_calc(y_test, pred_enet),
+      MAE  = mae_calc(y_test, pred_enet),
+      R2   = r2_calc(y_test, pred_enet)
+    )
+    
+  )
+  
+}
+# ==========================================================
+# Monte Carlo Summary
+# ==========================================================
+
+MC_summary <-
+  MC_results %>%
+  group_by(Model) %>%
+  summarise(
+    
+    Mean_RMSE = mean(RMSE),
+    Median_RMSE = median(RMSE),
+    SD_RMSE = sd(RMSE),
+    RMSE_Lower95 = quantile(RMSE, 0.025),
+    RMSE_Upper95 = quantile(RMSE, 0.975),
+    
+    Mean_MAE = mean(MAE),
+    Median_MAE = median(MAE),
+    SD_MAE = sd(MAE),
+    MAE_Lower95 = quantile(MAE, 0.025),
+    MAE_Upper95 = quantile(MAE, 0.975),
+    
+    Mean_R2 = mean(R2),
+    Median_R2 = median(R2),
+    SD_R2 = sd(R2),
+    R2_Lower95 = quantile(R2, 0.025),
+    R2_Upper95 = quantile(R2, 0.975)
+    
+  )
+
+MC_summary_WA_WQI <- MC_summary
+MC_results_WA_WQI <- MC_results
+
+print(MC_summary_WA_WQI)
+
+# ==========================================================
+# RMSE Distribution
+# ==========================================================
+
+library(ggplot2)
+library(gridExtra)
+
+WA_WQI_RMSE <-
+  ggplot(
+    MC_results,
+    aes(x = RMSE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of RMSE for WA_WQI",
+    x = "RMSE",
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# MAE Distribution
+# ==========================================================
+
+WA_WQI_MAE <-
+  ggplot(
+    MC_results,
+    aes(x = MAE, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of MAE for WA_WQI",
+    x = "MAE",
+    y = "Density",
+    fill = "Model"
+  )
+# R² Distribution
+# ==========================================================
+
+WA_WQI_R2 <-
+  ggplot(
+    MC_results,
+    aes(x = R2, fill = Model)
+  ) +
+  
+  geom_density(alpha = 0.35) +
+  
+  theme_minimal(base_size = 8) +
+  
+  labs(
+    title = "Monte Carlo Cross-Validation Distribution of R² for WA_WQI",
+    x = expression(R^2),
+    y = "Density",
+    fill = "Model"
+  )
+
+# ==========================================================
+# Arrange Figures
+# ==========================================================
+
+library(gridExtra)
+
+MWA_WQI <-
+  grid.arrange(
+    WA_WQI_RMSE,
+    WA_WQI_MAE,
+    WA_WQI_R2,
+    ncol = 1
+  )
+
+# ==========================================================
+# Display Summary
+# ==========================================================
+
+print(MC_summary_WA_WQI)
+
+##ALL 
+grid.arrange(WA_WQI_RMSE, WQI_P_RMSE, GWQI_RMSE, EWQI_RMSE,
+                 CCME_RMSE, WQI_D1_RMSE, WQI_D2_RMSE, WQI_D3_RMSE, 
+                 WQI_D4_RMSE,ncol=3)
+
+grid.arrange(WA_WQI_MAE, WQI_P_MAE, GWQI_MAE, EWQI_MAE,
+             CCME_MAE, WQI_D1_MAE, WQI_D2_MAE, WQI_D3_MAE, 
+             WQI_D4_MAE,ncol=3)
+
+grid.arrange(WA_WQI_R2, WQI_P_R2, GWQI_R2, EWQI_R2,
+             CCME_R2, WQI_D1_R2, WQI_D2_R2, WQI_D3_R2, 
+             WQI_D4_R2,ncol=3)
