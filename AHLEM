@@ -1,0 +1,798 @@
+#AHLEM
+ahlem<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/AHLEM/all.csv",  header= T, check.names = F)
+dim(ahlem)
+names(ahlem)
+View(ahlem)
+res.pca=PCA(ahlem[,2:24])
+get_eigenvalue(res.pca)
+###extract the most important variables of each dimension
+var <- get_pca_var(res.pca)
+var
+corrplot(var$contrib, is.corr=FALSE) 
+var$contrib
+### We should consider the correlation matrix to eliminate variables that have high correlation(grather than 0.7) values with each other.
+fviz_contrib(res.pca, choice = "var", axes = 1)###only the CE have selected(we select the first parametres (variables) following their contrib value in formation of the first dim(axe), but we have eliminated the TH and CaCO3 for the reason of higher correlation )
+fviz_contrib(res.pca, choice = "var", axes = 2)###The saturation rate, O2 dissolved, and turbidity (which replaced the second most important variables in dimension 1) were selected based on their contribution values in forming the second dimension (axis). We replaced turbidity in place of TH (hardness) based on this selection
+fviz_contrib(res.pca, choice = "var", axes = 3)###NH4 and PO43 is selected (we select the 2 first parametres (variables) following their contrib value in formation of the third dim(axe))
+fviz_contrib(res.pca, choice = "var", axes = 4)
+fviz_contrib(res.pca, choice = "var", axes = 5)
+##calculate WQI_P
+var$contrib["TH",1:5]
+var$contrib["NT",1:5]
+var$contrib["Na",1:5]
+var$contrib["BOD5",1:5]
+var$contrib["turb",1:5]
+var$contrib["T",1:5]
+var$contrib["NO3",1:5]
+var$contrib["NO2",1:5]
+base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/AHLEM/WQI.csv")
+head(base)
+dim(base)
+base1=base[ 1:36,1:8]
+base2=base[37:72,1:8]
+dim(base1)
+View(base1)
+View(base2)
+###new water quality index
+TH=var$contrib["TH",1]
+NT=var$contrib["NT",1]
+Na=var$contrib["Na",1]
+BOD5=var$contrib["BOD5",1]
+turb=var$contrib["turb",1]
+T=var$contrib["T",1]
+NO3=var$contrib["NO3",1]
+NO2=var$contrib["NO2",1]
+
+df <- data.frame(TH+NT+Na+BOD5+turb+T+NO3+NO2)
+print(df)
+###We need to repeat the standard values to match the 159 rows in our results. 
+df <- data.frame(
+  TH = rep(TH, 36),
+  NT = rep(NT, 36),
+  Na = rep(Na, 36),
+  BOD5 = rep(BOD5, 36),
+  turb = rep(turb, 36),
+  T = rep(T, 36),
+  NO3 = rep(NO3, 36),
+  NO2 = rep(NO2, 36)
+)
+base_D1<-df
+View(base_D1)
+S<-base_D1
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+WI<-base_D1/ES
+head(WI)
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+q1<-base1/base2
+q1<-q1*100
+head(q1)
+WQI_D1<-q1*WI
+WQI_D1
+sum(WQI_D1[1, ], na.rm = TRUE)##summarize per sample
+WQI_D1 <- rowSums(WQI_D1, na.rm = TRUE)
+WQI_D1
+WQI_D1<-data.frame(WQI_D1)
+WQI_D1
+summary(WQI_D1)
+#WQID2
+TH=var$contrib["TH",2]
+NT=var$contrib["NT",2]
+Na=var$contrib["Na",2]
+BOD5=var$contrib["BOD5",2]
+turb=var$contrib["turb",2]
+T=var$contrib["T",2]
+NO3=var$contrib["NO3",2]
+NO2=var$contrib["NO2",2]
+
+df <- data.frame(TH+NT+Na+BOD5+turb+T+NO3+NO2)
+print(df)
+###We need to repeat the standard values to match the 159 rows in our results. 
+df <- data.frame(
+  TH = rep(TH, 36),
+  NT = rep(NT, 36),
+  Na = rep(Na, 36),
+  BOD5 = rep(BOD5, 36),
+  turb = rep(turb, 36),
+  T = rep(T, 36),
+  NO3 = rep(NO3, 36),
+  NO2 = rep(NO2, 36)
+)
+base_D2<-df
+View(base_D2)
+S<-base_D2
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+WI<-base_D2/ES
+head(WI)
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+q1<-base1/base2
+q1<-q1*100
+head(q1)
+WQI_D2<-q1*WI
+WQI_D2
+sum(WQI_D2[1, ], na.rm = TRUE)##summarize per sample
+WQI_D2 <- rowSums(WQI_D2, na.rm = TRUE)
+WQI_D2
+WQI_D2<-data.frame(WQI_D2)
+WQI_D2
+summary(WQI_D2)
+#WQID3
+TH=var$contrib["TH",3]
+NT=var$contrib["NT",3]
+Na=var$contrib["Na",3]
+BOD5=var$contrib["BOD5",3]
+turb=var$contrib["turb",3]
+T=var$contrib["T",3]
+NO3=var$contrib["NO3",3]
+NO2=var$contrib["NO2",3]
+
+df <- data.frame(TH+NT+Na+BOD5+turb+T+NO3+NO2)
+print(df)
+###We need to repeat the standard values to match the 159 rows in our results. 
+df <- data.frame(
+  TH = rep(TH, 36),
+  NT = rep(NT, 36),
+  Na = rep(Na, 36),
+  BOD5 = rep(BOD5, 36),
+  turb = rep(turb, 36),
+  T = rep(T, 36),
+  NO3 = rep(NO3, 36),
+  NO2 = rep(NO2, 36)
+)
+base_D3<-df
+View(base_D3)
+S<-base_D3
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+WI<-base_D3/ES
+head(WI)
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+q1<-base1/base2
+q1<-q1*100
+head(q1)
+WQI_D3<-q1*WI
+WQI_D3
+sum(WQI_D3[1, ], na.rm = TRUE)##summarize per sample
+WQI_D3 <- rowSums(WQI_D3, na.rm = TRUE)
+WQI_D3
+WQI_D3<-data.frame(WQI_D3)
+WQI_D3
+summary(WQI_D3)
+#WQI_D4
+TH=var$contrib["TH",4]
+NT=var$contrib["NT",4]
+Na=var$contrib["Na",4]
+BOD5=var$contrib["BOD5",4]
+turb=var$contrib["turb",4]
+T=var$contrib["T",4]
+NO3=var$contrib["NO3",4]
+NO2=var$contrib["NO2",4]
+
+df <- data.frame(TH+NT+Na+BOD5+turb+T+NO3+NO2)
+print(df)
+###We need to repeat the standard values to match the 159 rows in our results. 
+df <- data.frame(
+  TH = rep(TH, 36),
+  NT = rep(NT, 36),
+  Na = rep(Na, 36),
+  BOD5 = rep(BOD5, 36),
+  turb = rep(turb, 36),
+  T = rep(T, 36),
+  NO3 = rep(NO3, 36),
+  NO2 = rep(NO2, 36)
+)
+base_D4<-df
+View(base_D4)
+S<-base_D4
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+WI<-base_D4/ES
+head(WI)
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+q1<-base1/base2
+q1<-q1*100
+head(q1)
+WQI_D4<-q1*WI
+WQI_D4
+sum(WQI_D4[1, ], na.rm = TRUE)##summarize per sample
+WQI_D4 <- rowSums(WQI_D4, na.rm = TRUE)
+WQI_D4
+WQI_D4<-data.frame(WQI_D4)
+WQI_D4
+summary(WQI_D4)
+#WQI_D5
+TH=var$contrib["TH",5]
+NT=var$contrib["NT",5]
+Na=var$contrib["Na",5]
+BOD5=var$contrib["BOD5",5]
+turb=var$contrib["turb",5]
+T=var$contrib["T",5]
+NO3=var$contrib["NO3",5]
+NO2=var$contrib["NO2",5]
+
+df <- data.frame(TH+NT+Na+BOD5+turb+T+NO3+NO2)
+print(df)
+###We need to repeat the standard values to match the 159 rows in our results. 
+df <- data.frame(
+  TH = rep(TH, 36),
+  NT = rep(NT, 36),
+  Na = rep(Na, 36),
+  BOD5 = rep(BOD5, 36),
+  turb = rep(turb, 36),
+  T = rep(T, 36),
+  NO3 = rep(NO3, 36),
+  NO2 = rep(NO2, 36)
+)
+base_D5<-df
+View(base_D5)
+S<-base_D5
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+WI<-base_D5/ES
+head(WI)
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+q1<-base1/base2
+q1<-q1*100
+head(q1)
+WQI_D5<-q1*WI
+WQI_D5
+sum(WQI_D5[1, ], na.rm = TRUE)##summarize per sample
+WQI_D5 <- rowSums(WQI_D5, na.rm = TRUE)
+WQI_D5
+WQI_D5<-data.frame(WQI_D5)
+WQI_D5
+summary(WQI_D5)
+
+WQI_P<-((WQI_D1*38.28844)/82.53025)+((WQI_D2*(59.54415-38.28844))/82.53025)+((WQI_D3*(69.30876-59.54415))/82.53025)+((WQI_D4*(77.77553-69.30876))/82.53025)+(WQI_D5*(82.53025-77.77553) /82.53025)
+WQI_P<-data.frame(WQI_P)
+head(WQI_P)
+write.xlsx(WQI_D5, file="D:/moste/OneDrive/Bureau/WQI_D5.xlsx")
+
+##ELASTICE NET
+base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/AHLEM/WQI.csv")
+names(base)
+attach(base)
+library(caret)
+library(glmnet)
+library(Metrics)
+
+targets <- c("WQI","CCME","WQI_P",
+             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
+
+run_elasticnet <- function(target){
+  
+  set.seed(123)
+  
+  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
+  df <- na.omit(df)
+  
+  y <- df[[target]]
+  X <- df[, -1]
+  
+  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
+  
+  X_train <- X[train_index, ]
+  X_test <- X[-train_index, ]
+  
+  y_train <- y[train_index]
+  y_test <- y[-train_index]
+  
+  ctrl <- trainControl(
+    method = "repeatedcv",
+    number = 5,
+    repeats = 5
+  )
+  
+  model <- train(
+    x = X_train,
+    y = y_train,
+    method = "glmnet",
+    trControl = ctrl,
+    tuneLength = 25
+  )
+  
+  pred_train <- predict(model, X_train)
+  pred_test <- predict(model, X_test)
+  
+  cat("\n========================\n")
+  cat("INDEX:", target, "\n")
+  cat("========================\n")
+  
+  cat("\nTRAIN:\n")
+  cat("RMSE =", RMSE(pred_train, y_train), "\n")
+  cat("MAE =", MAE(pred_train, y_train), "\n")
+  cat("R2 =", cor(pred_train, y_train)^2, "\n")
+  
+  cat("\nTEST:\n")
+  cat("RMSE =", RMSE(pred_test, y_test), "\n")
+  cat("MAE =", MAE(pred_test, y_test), "\n")
+  cat("R2 =", cor(pred_test, y_test)^2, "\n")
+  
+  return(model)
+  
+}
+
+results <- lapply(targets, run_elasticnet)
+names(results) <- targets
+
+##grid randoom
+library(caret)
+library(glmnet)
+
+# Define targets
+targets <- c("WQI","CCME","WQI_P",
+             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
+
+run_elasticnet_random <- function(target){
+  
+  set.seed(123)
+  
+  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
+  df <- na.omit(df)
+  
+  y <- df[[target]]
+  X <- df[, -1]
+  
+  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
+  X_train <- X[train_index, ]
+  X_test  <- X[-train_index, ]
+  y_train <- y[train_index]
+  y_test  <- y[-train_index]
+  
+  ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+  
+  # 🔑 Random search grid for alpha and lambda
+  random_grid <- data.frame(
+    alpha  = runif(20, 0, 1),              # 20 random alpha values between 0 and 1
+    lambda = 10^runif(20, -4, 1)           # 20 random lambda values (10^-4 to 10^1)
+  )
+  
+  # Train Elastic Net with random search
+  model <- train(
+    x = X_train,
+    y = y_train,
+    method = "glmnet",
+    trControl = ctrl,
+    tuneGrid = random_grid
+  )
+  
+  pred_train <- predict(model, X_train)
+  pred_test  <- predict(model, X_test)
+  
+  cat("\n========================\n")
+  cat("INDEX:", target, "\n")
+  cat("========================\n")
+  
+  cat("\nTRAIN:\n")
+  cat("RMSE =", RMSE(pred_train, y_train), "\n")
+  cat("MAE  =", MAE(pred_train, y_train), "\n")
+  cat("R2   =", cor(pred_train, y_train)^2, "\n")
+  
+  cat("\nTEST:\n")
+  cat("RMSE =", RMSE(pred_test, y_test), "\n")
+  cat("MAE  =", MAE(pred_test, y_test), "\n")
+  cat("R2   =", cor(pred_test, y_test)^2, "\n")
+  
+  cat("\nBest alpha =", model$bestTune$alpha,
+      " Best lambda =", model$bestTune$lambda, "\n")
+  
+  return(model)
+}
+
+# Run across all targets
+results_random <- lapply(targets, run_elasticnet_random)
+names(results_random) <- targets
+##LASSO RADOM SEARCH
+library(caret)
+library(glmnet)
+
+# Define targets
+targets <- c("WQI","CCME","WQI_P",
+             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
+
+run_lasso_random <- function(target){
+  
+  set.seed(123)
+  
+  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
+  df <- na.omit(df)
+  
+  y <- df[[target]]
+  X <- df[, -1]
+  
+  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
+  X_train <- X[train_index, ]
+  X_test  <- X[-train_index, ]
+  y_train <- y[train_index]
+  y_test  <- y[-train_index]
+  
+  ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+  
+  # 🔑 Random search grid for lambda (alpha fixed at 1 for Lasso)
+  random_grid <- data.frame(
+    alpha  = rep(1, 20),                   # alpha fixed at 1
+    lambda = 10^runif(20, -4, 1)           # 20 random lambda values (10^-4 to 10^1)
+  )
+  
+  # Train Lasso with random search
+  model <- train(
+    x = X_train,
+    y = y_train,
+    method = "glmnet",
+    trControl = ctrl,
+    tuneGrid = random_grid
+  )
+  
+  pred_train <- predict(model, X_train)
+  pred_test  <- predict(model, X_test)
+  
+  cat("\n========================\n")
+  cat("INDEX:", target, "\n")
+  cat("========================\n")
+  
+  cat("\nTRAIN:\n")
+  cat("RMSE =", RMSE(pred_train, y_train), "\n")
+  cat("MAE  =", MAE(pred_train, y_train), "\n")
+  cat("R2   =", cor(pred_train, y_train)^2, "\n")
+  
+  cat("\nTEST:\n")
+  cat("RMSE =", RMSE(pred_test, y_test), "\n")
+  cat("MAE  =", MAE(pred_test, y_test), "\n")
+  cat("R2   =", cor(pred_test, y_test)^2, "\n")
+  
+  cat("\nBest lambda =", model$bestTune$lambda, "\n")
+  
+  return(model)
+}
+
+# Run across all targets
+results_lasso <- lapply(targets, run_lasso_random)
+names(results_lasso) <- targets
+##lasso grid search
+library(caret)
+library(glmnet)
+
+# Define targets
+targets <- c("WQI","CCME","WQI_P",
+             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
+
+run_lasso_grid <- function(target){
+  
+  set.seed(123)
+  
+  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
+  df <- na.omit(df)
+  
+  y <- df[[target]]
+  X <- df[, -1]
+  
+  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
+  X_train <- X[train_index, ]
+  X_test  <- X[-train_index, ]
+  y_train <- y[train_index]
+  y_test  <- y[-train_index]
+  
+  ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+  
+  # Train Lasso with grid search (alpha fixed at 1)
+  model <- train(
+    x = X_train,
+    y = y_train,
+    method = "glmnet",
+    trControl = ctrl,
+    tuneLength = 25,
+    tuneGrid = expand.grid(alpha = 1, lambda = seq(0.0001, 1, length.out = 25))
+  )
+  
+  pred_train <- predict(model, X_train)
+  pred_test  <- predict(model, X_test)
+  
+  cat("\n========================\n")
+  cat("INDEX:", target, "\n")
+  cat("========================\n")
+  
+  cat("\nTRAIN:\n")
+  cat("RMSE =", RMSE(pred_train, y_train), "\n")
+  cat("MAE  =", MAE(pred_train, y_train), "\n")
+  cat("R2   =", cor(pred_train, y_train)^2, "\n")
+  
+  cat("\nTEST:\n")
+  cat("RMSE =", RMSE(pred_test, y_test), "\n")
+  cat("MAE  =", MAE(pred_test, y_test), "\n")
+  cat("R2   =", cor(pred_test, y_test)^2, "\n")
+  
+  cat("\nBest lambda =", model$bestTune$lambda, "\n")
+  
+  return(model)
+}
+
+# Run across all targets
+results_lasso_grid <- lapply(targets, run_lasso_grid)
+names(results_lasso_grid) <- targets
+##PLS GRID
+library(caret)
+library(pls)
+
+# Define targets
+targets <- c("WQI","CCME","WQI_P",
+             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
+
+run_pls_grid <- function(target){
+  
+  set.seed(123)
+  
+  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
+  df <- na.omit(df)
+  
+  y <- df[[target]]
+  X <- df[, -1]
+  
+  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
+  X_train <- X[train_index, ]
+  X_test  <- X[-train_index, ]
+  y_train <- y[train_index]
+  y_test  <- y[-train_index]
+  
+  ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+  
+  # 🔑 Grid search for number of components (ncomp)
+  model <- train(
+    x = X_train,
+    y = y_train,
+    method = "pls",
+    trControl = ctrl,
+    tuneLength = 25   # caret will try up to 25 components
+  )
+  
+  pred_train <- predict(model, X_train)
+  pred_test  <- predict(model, X_test)
+  
+  cat("\n========================\n")
+  cat("INDEX:", target, "\n")
+  cat("========================\n")
+  
+  cat("\nTRAIN:\n")
+  cat("RMSE =", RMSE(pred_train, y_train), "\n")
+  cat("MAE  =", MAE(pred_train, y_train), "\n")
+  cat("R2   =", cor(pred_train, y_train)^2, "\n")
+  
+  cat("\nTEST:\n")
+  cat("RMSE =", RMSE(pred_test, y_test), "\n")
+  cat("MAE  =", MAE(pred_test, y_test), "\n")
+  cat("R2   =", cor(pred_test, y_test)^2, "\n")
+  
+  cat("\nBest ncomp =", model$bestTune$ncomp, "\n")
+  
+  return(model)
+}
+
+# Run across all targets
+results_pls_grid <- lapply(targets, run_pls_grid)
+names(results_pls_grid) <- targets
+#PLS RANDOOM SEARCH
+library(caret)
+library(pls)
+
+# Define targets
+targets <- c("WQI","CCME","WQI_P",
+             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
+
+run_pls_random <- function(target){
+  
+  set.seed(123)
+  
+  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
+  df <- na.omit(df)
+  
+  y <- df[[target]]
+  X <- df[, -1]
+  
+  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
+  X_train <- X[train_index, ]
+  X_test  <- X[-train_index, ]
+  y_train <- y[train_index]
+  y_test  <- y[-train_index]
+  
+  ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
+  
+  # 🔑 Random search grid for ncomp (limited to number of predictors)
+  max_comp <- ncol(X_train)   # maximum feasible components
+  random_grid <- data.frame(
+    ncomp = sample(1:max_comp, 20, replace = TRUE)   # 20 random values between 1 and max_comp
+  )
+  
+  # Train PLS with random search
+  model <- train(
+    x = X_train,
+    y = y_train,
+    method = "pls",
+    trControl = ctrl,
+    tuneGrid = random_grid
+  )
+  
+  pred_train <- predict(model, X_train)
+  pred_test  <- predict(model, X_test)
+  
+  cat("\n========================\n")
+  cat("INDEX:", target, "\n")
+  cat("========================\n")
+  
+  cat("\nTRAIN:\n")
+  cat("RMSE =", RMSE(pred_train, y_train), "\n")
+  cat("MAE  =", MAE(pred_train, y_train), "\n")
+  cat("R2   =", cor(pred_train, y_train)^2, "\n")
+  
+  cat("\nTEST:\n")
+  cat("RMSE =", RMSE(pred_test, y_test), "\n")
+  cat("MAE  =", MAE(pred_test, y_test), "\n")
+  cat("R2   =", cor(pred_test, y_test)^2, "\n")
+  
+  cat("\nBest ncomp =", model$bestTune$ncomp, "\n")
+  
+  return(model)
+}
+
+# Run across all targets
+results_pls_random <- lapply(targets, run_pls_random)
+names(results_pls_random) <- targets
+e
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##bakhouch
+ba<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/Mme Bakhouch/results2.csv",  header= T, check.names = F)
+# Load libraries
+library(vegan)
+library(ggplot2)
+library(grid)
+
+# ---------------------------
+# Data preparation
+# ---------------------------
+# Species/family data
+species_data <- ba[, 2:16]  # adjust columns if necessary
+
+# Environmental data (Presence/Absence -> 1/0)
+env_data <- ba[, 18:21]
+env_data <- as.data.frame(lapply(env_data, function(x) ifelse(x=="Presence",1,0)))
+
+# Station factor
+ba$STATION <- as.factor(ba$STATION)
+
+# ===========================
+# NMDS 1: Species + Stations + Ellipses
+# ===========================
+set.seed(123)
+nmds1 <- metaMDS(species_data, distance="bray", k=2, trymax=100)
+
+# NMDS points for sites
+nmds1_points <- as.data.frame(scores(nmds1, display="sites"))
+nmds1_points$STATION <- ba$STATION
+
+# Species/family arrows
+species_vectors1 <- as.data.frame(scores(nmds1, display="species"))
+colnames(species_vectors1) <- c("NMDS1","NMDS2")
+species_vectors1$species <- rownames(species_vectors1)
+
+# Plot NMDS 1
+ggplot(nmds1_points, aes(x=NMDS1, y=NMDS2, color=STATION)) +
+  geom_point(size=4) +
+  # Species arrows
+  geom_segment(data=species_vectors1,
+               aes(x=0, y=0, xend=NMDS1, yend=NMDS2),
+               arrow=arrow(length=unit(0.3,"cm")), color="darkred") +
+  geom_text(data=species_vectors1,
+            aes(x=NMDS1*1.1, y=NMDS2*1.1, label=species),
+            color="darkred", size=3) +
+  labs(title="NMDS1: Insect Species Composition Across Stations",
+       subtitle=paste0("Stress: ", round(nmds1$stress, 4)),
+       x="NMDS1", y="NMDS2") +
+  theme_minimal(base_size=14)
+
+# ===========================
+# NMDS 2: Species + Environmental Vectors Only
+# ===========================
+set.seed(123)
+nmds2 <- metaMDS(species_data, distance="bray", k=2, trymax=100)
+
+# Species arrows
+species_vectors2 <- as.data.frame(scores(nmds2, display="species"))
+colnames(species_vectors2) <- c("NMDS1","NMDS2")
+species_vectors2$species <- rownames(species_vectors2)
+
+# Environmental arrows
+envfit2 <- envfit(nmds2 ~ ., data=env_data, permutations=999)
+env_vectors2 <- as.data.frame(scores(envfit2, display="vectors"))
+colnames(env_vectors2) <- c("NMDS1","NMDS2")
+env_vectors2$variable <- rownames(env_vectors2)
+
+# Plot NMDS 2
+ggplot() +
+  # Species arrows
+  geom_segment(data=species_vectors2,
+               aes(x=0, y=0, xend=NMDS1, yend=NMDS2),
+               arrow=arrow(length=unit(0.3,"cm")), color="darkred") +
+  geom_text(data=species_vectors2,
+            aes(x=NMDS1*1.1, y=NMDS2*1.1, label=species),
+            color="darkred", size=3) +
+  # Environmental arrows
+  geom_segment(data=env_vectors2,
+               aes(x=0, y=0, xend=NMDS1, yend=NMDS2),
+               arrow=arrow(length=unit(0.3,"cm")), color="black") +
+  geom_text(data=env_vectors2,
+            aes(x=NMDS1*1.1, y=NMDS2*1.1, label=variable),
+            color="black", size=4) +
+  labs(title="NMDS 2 - Species + Environmental Vectors Only",
+       subtitle=paste0("Stress: ", round(nmds2$stress, 4)),
+       x="NMDS1", y="NMDS2") +
+  theme_minimal(base_size=14)
+
