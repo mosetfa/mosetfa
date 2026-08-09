@@ -219,7 +219,7 @@ model_nugget <- 0.10
 
 # High-quality export
 export_png <- TRUE
-out_png <- "WQI_P_Kriging_RMSE_nostations.png"
+out_png <- "PO43_RMSE_nostations.png"
 png_width <- 5200
 png_height <- 2200
 png_res <- 600
@@ -232,9 +232,9 @@ breaks_n <- 12
 # DATA + STATIONS MEAN
 # ----------------------------
 article <- read.csv2(article_path)
-stopifnot(all(c("STATIONS","WQI_P","X","Y") %in% names(article)))
+stopifnot(all(c("STATIONS","PO43","X","Y") %in% names(article)))
 
-article_station <- aggregate(cbind(WQI_P, X, Y) ~ STATIONS, data = article, FUN = mean)
+article_station <- aggregate(cbind(PO43, X, Y) ~ STATIONS, data = article, FUN = mean)
 
 # ----------------------------
 # SHAPE + TRANSFORM
@@ -251,8 +251,8 @@ sites_sp   <- as(sites_utm, "Spatial")
 # ----------------------------
 # VARIOGRAM + FIT
 # ----------------------------
-evgm <- variogram(WQI_P ~ 1, sites_sp, cutoff = v_cutoff, width = v_width)
-init_sill <- var(sites_sp$WQI_P, na.rm = TRUE)
+evgm <- variogram(PO43 ~ 1, sites_sp, cutoff = v_cutoff, width = v_width)
+init_sill <- var(sites_sp$PO43, na.rm = TRUE)
 
 fvgm <- fit.variogram(
   evgm,
@@ -266,7 +266,7 @@ fvgm <- fit.variogram(
 # LOOCV RMSE (single value)
 # ----------------------------
 cv <- krige.cv(
-  WQI_P ~ 1,
+  PO43 ~ 1,
   locations = sites_sp,
   model = fvgm,
   nfold = nrow(sites_sp),
@@ -285,7 +285,7 @@ grd <- spsample(poly_sp, type = "regular", cellsize = cellsize)
 grd <- SpatialPixels(grd)
 
 krig <- krige(
-  WQI_P ~ 1,
+  PO43 ~ 1,
   locations = sites_sp,
   newdata = grd,
   model = fvgm,
@@ -308,10 +308,10 @@ m_pred <- tm_shape(krig) +
             style = "fixed",
             breaks = brks_pred,
             palette = "viridis",
-            title = "WQI_P") +
+            title = "PO43") +
   tm_shape(Skikda_utm) + tm_borders(lwd = 2) +
   tm_layout(
-    main.title = "WQI_P (Ordinary Kriging)",
+    main.title = "PO43 (Ordinary Kriging)",
     main.title.size = 1.2,
     legend.outside = TRUE,
     legend.frame = TRUE,
