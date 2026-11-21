@@ -1,6 +1,7 @@
 ###inverebrate article
 base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/Classeur2.csv")
 base=read.csv2("D:/moste/OneDrive/Bureau/Bureau/mostefa inv/FIGURES/data.csv")
+dim(base)
 names(base)
 sp=base[,2:42]
 # Bubble heatmap (samples ordered 1..N)
@@ -383,7 +384,7 @@ res_all <- data.frame(
 print(res_all)
 NH4INDEX<-data.frame(res_all)
 summary(NH4INDEX)
-write.xlsx(NH4INDEX, file="D:/moste/OneDrive/Bureau/Bureau/NH4_INDEX.xlsx")
+#write.xlsx(NH4INDEX, file="D:/moste/OneDrive/Bureau/Bureau/NH4_INDEX.xlsx")
 ##MANOVA
 nmds_points <- as.data.frame(nmds$points)
 
@@ -401,3 +402,357 @@ lm1=lm(MDS1 ~ NH4_BI, data = nmds_points)
 lm2=lm(MDS2 ~ NH4_BI, data = nmds_points)
 lm3=lm(MDS3 ~ NH4_BI, data = nmds_points)
 summary(lm3)
+
+
+
+
+
+
+
+
+
+
+###response
+library(ggpubr); library(vegan)
+
+## ================= PART 1: sensitivity (Tables S1-S3, Fig. S1) =================
+tit <- as.data.frame(titan.out$sppmax); tit$Taxon <- rownames(tit)
+tit <- tit[, c("Taxon","ienv.cp","zscore","maxgrp","purity","reliability")]
+colnames(tit) <- c("Taxon","Threshold","Z","maxgrp","Purity","Reliability")
+tit <- tit[!is.na(tit$Purity) & !is.na(tit$Reliability), ]
+
+nh4bi <- function(a_minus = 3, a_plus = 2, b = 2, cut = 0.7){
+  tf <- tit[tit$Purity >= cut & tit$Reliability >= cut, ]
+  tn <- (tf$Threshold - min(tf$Threshold)) / (max(tf$Threshold) - min(tf$Threshold))
+  sc <- round(ifelse(tf$maxgrp == 1, 10 - tn*a_minus - b/tf$Z, 1 + tn*a_plus - b/tf$Z), 2)
+  names(sc) <- tf$Taxon
+  keep <- intersect(colnames(base), tf$Taxon); sc <- sc[keep]
+  P <- (as.matrix(base[, keep, drop = FALSE]) > 0) * 1; P[is.na(P)] <- 0
+  ok <- is.finite(sc)
+  round(as.numeric(P[, ok] %*% sc[ok]) / rowSums(P[, ok]), 2)
+}
+cls <- function(x) cut(x, c(-Inf,2,4,6,8,Inf), right = FALSE,
+                       labels = c("Very poor","Poor","Moderate","Good","Very good"))
+
+bi_ref <- nh4bi()
+cat("Max difference vs NH4_BI_all (about 0.01 is rounding):",
+    max(abs(bi_ref - as.numeric(NH4_BI_all))), "\n")
+
+grid   <- expand.grid(a_minus = 1:4, a_plus = 1:4, b = 0:4)
+BI_mat <- sapply(seq_len(nrow(grid)), function(i) nh4bi(grid$a_minus[i], grid$a_plus[i], grid$b[i]))
+r0 <- rank(bi_ref)
+sens <- cbind(grid,
+              rho  = apply(BI_mat, 2, function(x) cor(bi_ref, x, method = "spearman")),
+              tau  = apply(BI_mat, 2, function(x) cor(bi_ref, x, method = "kendall")),
+              same_class      = apply(BI_mat, 2, function(x) mean(cls(x) == cls(bi_ref)) * 100),
+              max_rank_shift  = apply(BI_mat, 2, function(x) max(abs(rank(x) - r0))),
+              mean_abs_diff   = apply(BI_mat, 2, function(x) mean(abs(x - bi_ref))),
+              max_class_shift = apply(BI_mat, 2, function(x) max(abs(as.integer(cls(x)) - as.integer(cls(bi_ref))))),
+              rho_NH4         = apply(BI_mat, 2, function(x) cor(x, base$NH4, method = "spearman")))
+sens_c <- subset(sens, a_minus > a_plus)          # 30 sets
+
+cut_res <- do.call(rbind, lapply(c(0.6, 0.7, 0.8, 0.9), function(cc){
+  bi <- nh4bi(cut = cc)
+  data.frame(cutoff = cc, n_taxa = sum(tit$Purity >= cc & tit$Reliability >= cc),
+             rho = cor(bi_ref, bi, method = "spearman"),
+             same_class = mean(cls(bi) == cls(bi_ref)) * 100)
+}))
+
+head(sens_c)    # Table S1 (30 sets)
+head(sens)      # Table S2 (80 sets)
+head(cut_res)   # Table S3 (cutoff)
+summary(sens_c[, c("rho","tau","same_class","max_rank_shift","mean_abs_diff")])
+table(sens_c$max_class_shift)
+
+df <- data.frame(
+  rho   = c(sens_c$rho, sens$rho, cut_res$rho[cut_res$cutoff != 0.7]),
+  group = rep(c("30 coefficient sets", "80 coefficient sets", "Cutoff 0.6, 0.8, 0.9"),
+              c(nrow(sens_c), nrow(sens), 3)))
+ggboxplot(df, x = "group", y = "rho", fill = "grey90", add = "jitter",
+          add.params = list(color = "steelblue", size = 2),
+          xlab = "", ylab = "Spearman rho vs reference") +
+  coord_cartesian(ylim = c(0.95, 1))
+##ninth comment of the reviewer 4's
+set.seed(1)
+n <- length(nh4); B <- 2000
+metrics <- c("NH4_BI", "Richness", "Shannon", "Simpson")
+
+## re-draw the 85 samples 2000 times and recompute each correlation with NH4
+boot <- matrix(NA, nrow = B, ncol = 4, dimnames = list(NULL, metrics))
+for (k in 1:B) {
+  i <- sample(n, replace = TRUE)
+  for (m in metrics) boot[k, m] <- cor(div[i, m], nh4[i], method = "spearman")
+}
+
+## ---- Table S4: correlation with NH4 and 95% bootstrap CI ----
+TableS4 <- data.frame(
+  Index = metrics,
+  rho   = sapply(metrics, function(m) cor(div[, m], nh4, method = "spearman")),
+  CI_low  = apply(boot, 2, quantile, 0.025),
+  CI_high = apply(boot, 2, quantile, 0.975),
+  row.names = NULL)
+
+## ---- Table S5: is NH4_BI stronger than each diversity index? ----
+others <- c("Richness", "Shannon", "Simpson")
+TableS5 <- do.call(rbind, lapply(others, function(m) {
+  d <- abs(boot[, "NH4_BI"]) - abs(boot[, m])      # difference in strength, in each re-draw
+  p <- 2 * min(mean(d <= 0), mean(d >= 0))
+  data.frame(Comparison = paste("NH4_BI vs", m),
+             Difference = mean(d),
+             CI_low = quantile(d, 0.025), CI_high = quantile(d, 0.975),
+             p_value = ifelse(p == 0, "<0.001", as.character(round(p, 3))),
+             row.names = NULL)
+}))
+
+## ---- Table S6: partial correlation (effect of the 3 indices removed) ----
+partial <- function(i) {
+  d <- div[i, ]
+  bi_left  <- resid(lm(rank(bi[i])  ~ rank(d$Richness) + rank(d$Shannon) + rank(d$Simpson)))
+  nh4_left <- resid(lm(rank(nh4[i]) ~ rank(d$Richness) + rank(d$Shannon) + rank(d$Simpson)))
+  cor(bi_left, nh4_left)
+}
+pb <- numeric(B)
+for (k in 1:B) pb[k] <- partial(sample(n, replace = TRUE))
+TableS6 <- data.frame(Partial_rho = partial(1:n),
+                      CI_low = quantile(pb, 0.025), CI_high = quantile(pb, 0.975),
+                      row.names = NULL)
+
+## ---- print ----
+print(TableS4, digits = 3, row.names = FALSE)
+print(TableS5, digits = 3, row.names = FALSE)
+print(TableS6, digits = 3, row.names = FALSE)
+
+##reviewer 4 question2
+kruskal.test(nh4 ~ q)
+pairwise.wilcox.test(nh4, q, p.adjust.method = "holm", exact = FALSE)
+library(ggpubr); library(rstatix)
+
+dat <- na.omit(data.frame(Class = q, NH4 = nh4))
+dat$Class <- factor(dat$Class, labels = paste0(levels(dat$Class), "\n(n = ", table(dat$Class), ")"))
+
+kw  <- kruskal_test(dat, NH4 ~ Class)
+eff <- kruskal_effsize(dat, NH4 ~ Class)          # eta2[H] = effect size for Kruskal-Wallis
+lab <- paste0("Kruskal-Wallis, H(", kw$df, ") = ", round(kw$statistic, 2),
+              ", p ", ifelse(kw$p < 0.001, "< 0.001", paste("=", round(kw$p, 3))),
+              ", \u03B7\u00B2 = ", round(eff$effsize, 2), ", n = ", kw$n)
+
+pw <- pairwise_wilcox_test(dat, NH4 ~ Class, p.adjust.method = "holm", exact = FALSE) %>%
+  add_xy_position(x = "Class")
+
+ggboxplot(dat, x = "Class", y = "NH4", fill = "grey90", add = "jitter",
+          add.params = list(color = "steelblue", size = 2),
+          xlab = "NH4_BI class", ylab = "NH4+ (mg/L)") +
+  stat_pvalue_manual(pw, label = "p.adj.signif", hide.ns = TRUE, tip.length = 0.01) +
+  labs(subtitle = lab)
+
+
+## reviewer 4 question 8
+rank=read.csv2("D:/moste/OneDrive/Bureau/Bureau/mostefa inv/accepted paper/taxon_rank.csv")
+dim(rank)
+head(rank)
+## 1) rename in sp only
+names(sp)[names(sp) == "Sphaeridae"] <- "Sphaeriidae"
+names(sp)[names(sp) == "Halipidae"]  <- "Haliplidae"
+
+## 2) clean your score table
+ibmwp <- rank
+ibmwp$Taxon <- trimws(sub(" \\(=.*\\)$", "", ibmwp$Taxon))     # remove "(=synonym)"
+ibmwp$Taxon[grepl("All taxa", ibmwp$Taxon)] <- "Oligochaeta"
+ibmwp$Score[ibmwp$Taxon == "Acariformes"] <- 4                  # 14 was a typo
+ibmwp$Taxon[duplicated(ibmwp$Taxon)]                            # must print character(0)
+scores <- setNames(as.numeric(ibmwp$Score), ibmwp$Taxon)
+
+## 3) match your families to the table
+fam_table <- names(sp)
+fam_table[fam_table == "Lumbricidae"]     <- "Oligochaeta"
+fam_table[fam_table == "Torrenticolidae"] <- "Acariformes"
+has_score <- fam_table %in% names(scores)
+cat("Scored:", sum(has_score), "of", ncol(sp), "\nNot scored:", names(sp)[!has_score], "\n")
+
+## 4) IBMWP and ASPT for each sample
+P <- as.matrix(sp[, has_score] > 0)
+div$BMWP <- as.numeric(P %*% scores[fam_table[has_score]])
+div$ASPT <- div$BMWP / rowSums(P)
+summary(div[, c("BMWP", "ASPT")])
+
+set.seed(1)
+n <- length(nh4); B <- 2000
+metrics <- c("NH4_BI", "BMWP", "ASPT")
+others  <- c("BMWP", "ASPT")
+
+boot <- matrix(NA, nrow = B, ncol = length(metrics), dimnames = list(NULL, metrics))
+for (k in 1:B) {
+  i <- sample(n, replace = TRUE)
+  for (m in metrics) boot[k, m] <- cor(div[i, m], nh4[i], method = "spearman")
+}
+
+## Table S7: correlation with NH4 and 95% CI
+TableS7 <- data.frame(Index = metrics,
+                      rho     = sapply(metrics, function(m) cor(div[, m], nh4, method = "spearman")),
+                      CI_low  = apply(boot, 2, quantile, 0.025),
+                      CI_high = apply(boot, 2, quantile, 0.975), row.names = NULL)
+
+## Table S8: is NH4_BI stronger than BMWP and ASPT?
+TableS8 <- do.call(rbind, lapply(others, function(m) {
+  d <- abs(boot[, "NH4_BI"]) - abs(boot[, m])
+  p <- 2 * min(mean(d <= 0), mean(d >= 0))
+  data.frame(Comparison = paste("NH4_BI vs", m), Difference = mean(d),
+             CI_low = quantile(d, 0.025), CI_high = quantile(d, 0.975),
+             p_value = ifelse(p == 0, "<0.001", as.character(round(p, 3))), row.names = NULL)
+}))
+
+print(TableS7, digits = 3, row.names = FALSE)
+print(TableS8, digits = 3, row.names = FALSE)
+
+## ---- Table S9: variables related to NH4_BI ----
+bi <- as.numeric(NH4_BI_all)
+
+vars <- data.frame(
+  NH4         = nh4,
+  Algal_bloom = base$Filamentous_algal_bloom,
+  Richness    = div$Richness,
+  Evenness    = base$Evenness,
+  Shannon     = div$Shannon,
+  Simpson     = div$Simpson)
+vars[] <- lapply(vars, function(x) if (is.numeric(x)) x else as.numeric(factor(x)))
+
+TableS9 <- data.frame(
+  Variable = names(vars),
+  Type     = c("Environmental", "Environmental", rep("Biological", 4)),
+  rho = sapply(vars, function(x) cor(bi, x, method = "spearman", use = "complete.obs")),
+  p   = sapply(vars, function(x) cor.test(bi, x, method = "spearman", exact = FALSE)$p.value),
+  row.names = NULL)
+TableS9$p_Holm <- p.adjust(TableS9$p, "holm")
+print(TableS9, digits = 3, row.names = FALSE)
+
+## overlap between ammonium and algal bloom (cited in the text)
+cor(vars$NH4, vars$Algal_bloom, method = "spearman", use = "complete.obs")
+table(base$Filamentous_algal_bloom)
+library(ggpubr)
+
+bloom <- factor(base$Filamentous_algal_bloom, levels = c("Absence", "Presence"))
+dat <- data.frame(bloom, NH4_BI = bi)
+n1 <- sum(bloom == "Absence"); n2 <- sum(bloom == "Presence")
+
+w   <- wilcox.test(NH4_BI ~ bloom, data = dat, exact = FALSE)
+r   <- 2 * w$statistic / (n1 * n2) - 1          # rank-biserial effect size
+lab <- paste0("Wilcoxon rank-sum test, W = ", w$statistic,
+              ", p ", ifelse(w$p.value < 0.001, "< 0.001", paste("=", round(w$p.value, 3))),
+              ", r = ", round(r, 2), ", n = ", n1 + n2)
+
+levels(dat$bloom) <- paste0(c("Absence", "Presence"), "\n(n = ", c(n1, n2), ")")
+tapply(dat$NH4_BI, dat$bloom, median)            # medians for the Results text
+
+ggboxplot(dat, x = "bloom", y = "NH4_BI", fill = "grey90", add = "jitter",
+          add.params = list(color = "steelblue", size = 2),
+          xlab = "Filamentous algal bloom", ylab = "NH4_BI") +
+  stat_compare_means(comparisons = list(levels(dat$bloom)), method = "wilcox.test",
+                     label = "p.signif") +
+  labs(subtitle = lab)
+
+##GAM comments 
+library(mgcv); library(dplyr); library(tidyr); library(ggplot2)
+
+## ---------- 0) TITAN groups (names as in base) ----------
+tf0 <- tit[tit$Purity >= 0.7 & tit$Reliability >= 0.7 & tit$Taxon %in% names(base), ]
+sens_taxa <- tf0$Taxon[tf0$maxgrp == 1]
+tol_taxa  <- tf0$Taxon[tf0$maxgrp != 1]
+
+## ---------- 1) data in long format (built from names, not positions) ----------
+fam_old <- sub("^Sphaeriidae$", "Sphaeridae", sub("^Haliplidae$", "Halipidae", names(sp)))
+stopifnot(all(fam_old %in% names(base)), length(fam_old) == 41)
+
+base_pa <- base[, c(fam_old, "Filamentous_algal_bloom", "NH4")]
+base_pa[, fam_old] <- (base_pa[, fam_old] > 0) * 1
+base_pa$sample <- factor(seq_len(nrow(base_pa)))
+
+d <- pivot_longer(base_pa, cols = all_of(fam_old), names_to = "espece", values_to = "presence")
+d$espece   <- factor(d$espece)
+d$presence <- as.numeric(d$presence)
+d$Filamentous_algal_bloom <- factor(d$Filamentous_algal_bloom, levels = c("Absence", "Presence"))
+d$NH4s <- as.numeric(scale(d$NH4))
+stopifnot(nrow(d) == 85 * 41, !anyNA(d$NH4), !anyNA(d$Filamentous_algal_bloom))
+sd(d$NH4)                                   # SD of NH4 (use in the Fig. 3 caption)
+
+## ---------- 2) models (compared by AIC, fitted with ML) ----------
+h0 <- gam(presence ~ Filamentous_algal_bloom + s(espece, bs = "re") + s(sample, bs = "re"),
+          family = binomial, data = d, method = "ML")                      # no NH4 effect
+h2 <- gam(presence ~ Filamentous_algal_bloom + NH4s + s(espece, bs = "re") +
+            s(espece, NH4s, bs = "re") + s(sample, bs = "re"),
+          family = binomial, data = d, method = "ML")                      # family-specific slopes
+h1 <- gam(presence ~ Filamentous_algal_bloom + s(NH4, k = 5) +
+            s(NH4, espece, bs = "fs", k = 5, m = 2) + s(sample, bs = "re"),
+          family = binomial, data = d, method = "ML")                      # family-specific curves (slow)
+AIC(h0, h2, h1)          # expected: 2449.0, 2390.9, 2353.8
+summary(h2)
+
+## ---------- 3) FIG. 3: family-specific response to NH4 (odds ratio per 1 SD) ----------
+cf <- coef(h2); V <- vcov(h2)
+ir <- grep("^s\\(espece,NH4s\\)", names(cf))
+slope <- as.numeric(cf["NH4s"] + cf[ir])
+se    <- as.numeric(sqrt(V["NH4s", "NH4s"] + diag(V)[ir] + 2 * V["NH4s", ir]))
+fam <- data.frame(Family = levels(d$espece), slope = slope, se = se)
+fam$Group <- ifelse(fam$Family %in% sens_taxa, "Sensitive (TITAN z-)",
+                    ifelse(fam$Family %in% tol_taxa,  "Tolerant (TITAN z+)", "Not selected by TITAN"))
+fam$OR <- exp(fam$slope); fam$lo <- exp(fam$slope - 1.96 * fam$se); fam$hi <- exp(fam$slope + 1.96 * fam$se)
+fam$Family <- sub("^Sphaeridae$", "Sphaeriidae", sub("^Halipidae$", "Haliplidae", fam$Family))
+fam$Family <- factor(fam$Family, levels = fam$Family[order(fam$OR)])
+
+ggplot(fam, aes(OR, Family, colour = Group)) +
+  geom_vline(xintercept = 1, linetype = 2, colour = "grey50") +
+  geom_pointrange(aes(xmin = lo, xmax = hi), size = 0.3) +
+  scale_x_log10() +
+  labs(x = "Odds ratio of occurrence per 1 SD increase in NH4+ (log scale)", y = NULL, colour = NULL) +
+  theme_bw() + theme(legend.position = "bottom")
+
+## ---------- 4) FIG. 9: predicted occurrence along NH4, sensitive vs tolerant ----------
+grid <- expand.grid(NH4 = seq(min(d$NH4), max(d$NH4), length.out = 60),
+                    espece = levels(d$espece))
+grid$espece <- factor(grid$espece, levels = levels(d$espece))
+grid$Filamentous_algal_bloom <- factor("Absence", levels = levels(d$Filamentous_algal_bloom))
+grid$sample <- d$sample[1]
+grid$p <- as.numeric(predict(h1, newdata = grid, type = "response", exclude = "s(sample)"))
+grid$Group <- ifelse(grid$espece %in% sens_taxa, "Sensitive (TITAN z-)",
+                     ifelse(grid$espece %in% tol_taxa,  "Tolerant (TITAN z+)", "Not selected"))
+avg <- aggregate(p ~ NH4 + Group, data = subset(grid, Group != "Not selected"), FUN = mean)
+
+ggplot(avg, aes(NH4, p, colour = Group)) +
+  geom_line(linewidth = 1.1) +
+  geom_rug(data = data.frame(NH4 = base$NH4), aes(x = NH4), inherit.aes = FALSE,
+           sides = "b", alpha = 0.4) +
+  labs(x = "NH4+ (mg/L)", y = "Mean predicted probability of occurrence", colour = NULL) +
+  theme_bw() + theme(legend.position = "bottom")
+sd(d$NH4)
+subset(fam, lo > 1 | hi < 1)[, c("Family", "Group", "OR", "lo", "hi")]
+for (g in unique(avg$Group)) { a <- avg[avg$Group == g, ]
+cat(g, ":", round(approx(a$NH4, a$p, xout = c(0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6))$y, 2), "\n") }
+
+
+a <- AIC(h0, h2, h1)
+TableS10 <- data.frame(
+  Model = c("M0: bloom + family + sample (no NH4 term)",
+            "M1: M0 + family-specific linear NH4 slopes",
+            "M2: M0 + common and family-specific nonlinear NH4 smooths"),
+  df = round(a$df, 1), AIC = round(a$AIC, 1), delta_AIC = round(a$AIC - min(a$AIC), 1),
+  deviance_explained_pct = round(sapply(list(h0, h2, h1), function(m) summary(m)$dev.expl) * 100, 1))
+print(TableS10, row.names = FALSE)
+citation("mgcv"); citation("DHARMa")        # exact references for the Methods
+TableS10=as.data.frame(TableS10)
+TableS10
+m3 <- gam(presence ~ Filamentous_algal_bloom + s(NH4, k = 5) + s(espece, bs = "re") + s(sample, bs = "re"),
+          family = binomial, data = d, method = "ML")
+a <- AIC(h0, m3, h2, h1)
+TableS10 <- data.frame(
+  Model = c("M0: bloom + family + sample (no NH4 term)",
+            "M1: M0 + common NH4 smooth",
+            "M2: M0 + family-specific linear NH4 slopes",
+            "M3: M0 + common and family-specific nonlinear NH4 smooths"),
+  df = round(a$df, 1), AIC = round(a$AIC, 1), delta_AIC = round(a$AIC - min(a$AIC), 1),
+  deviance_explained_pct = round(sapply(list(h0, m3, h2, h1), function(m) summary(m)$dev.expl) * 100, 1))
+print(TableS10, row.names = FALSE)
+
+#
+tt <- tit[tit$Purity >= 0.7 & tit$Reliability >= 0.7 & tit$maxgrp == 1, ]
+nrow(tt)                               # should be 18
+round(range(tt$Threshold), 3)          # [x] and [y]
+tt[order(tt$Threshold), c("Taxon", "Threshold")]
