@@ -1,9 +1,126 @@
 #AHLEM
-ahlem<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/AHLEM/all.csv",  header= T, check.names = F)
+ahlem<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/AHLEM/ALL.csv")
 dim(ahlem)
 names(ahlem)
 View(ahlem)
-res.pca=PCA(ahlem[,2:24])
+dim(ahlem)
+names(ahlem)
+fix(a)
+a=ahlem[, 2:23]
+a$Season=ahlem$Season
+names(a)
+head(a)
+fix(a)
+#figure of section 3 of season insight
+library(tidyverse)
+
+season_order <- c("AUTUMN", "WINTER", "SPRING", "SUMMER")
+
+plot_data <- base %>%
+  mutate(Season = factor(Season, levels = season_order)) %>%
+  select(Season, WQI_P, WQI_2P, WA_WQI, WA_WQI2) %>%
+  pivot_longer(
+    cols = -Season,
+    names_to = "Index",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Index_group = case_when(
+      Index %in% c("WQI_P", "WQI_2P") ~ "Aggregated PCA-based indices",
+      TRUE ~ "Reference indices"
+    ),
+    Index = recode(
+      Index,
+      WQI_P = "WQI_P (first selection)",
+      WQI_2P = "WQI_2P (second selection)",
+      WA_WQI = "WA_WQI (first selection)",
+      WA_WQI2 = "WA_WQI2 (second selection)"
+    )
+  )
+
+ggplot(plot_data, aes(x = Season, y = Value, fill = Index)) +
+  geom_boxplot(
+    position = position_dodge(width = 0.8),
+    width = 0.65,
+    outlier.shape = NA
+  ) +
+  geom_point(
+    aes(colour = Index),
+    position = position_jitterdodge(
+      jitter.width = 0.08,
+      dodge.width = 0.8
+    ),
+    alpha = 0.65,
+    size = 1.8
+  ) +
+  facet_wrap(~ Index_group, scales = "free_y") +
+  labs(
+    x = NULL,
+    y = "Water quality index value",
+    fill = "Index",
+    colour = "Index"
+  ) +
+  theme_bw() +
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_text(angle = 25, hjust = 1),
+    strip.background = element_rect(fill = "grey95")
+  )
+library(tidyr)
+library(ggplot2)
+library(MASS)
+library(ggpubr)
+a=ahlem[, 2:23]
+summary(a)
+names(a)
+dim(a)
+str(a)
+a$TH=as.numeric(a$TH)
+a$CE=as.numeric(a$CE)
+a$T=as.numeric(a$T)
+base$Season=as.factor(base$Season)
+fix(a)#rename as EC and pH
+a=scale(a)
+a=as.data.frame(a)
+box <- a %>%
+  pivot_longer(
+    cols = c(T,EC,pH,TDS,DO,TSS,BOD5,COD,NO3,SO4,CL,HCO3, Na,K,Ca2,Mg2, TH,NT,NH4,NO2,PT, PO4),
+    names_to = "Parameters",
+    values_to = "VALUE"
+  )
+
+ggplot(box, aes(x=Parameters, y=VALUE, color=Parameters))+geom_boxplot()
+ggboxplot(data=box, x="Parameters",y="VALUE", color="Parameters", add = "jitter",ylab = "Standardized values (Z-score)")
+vars <- c(
+  "T", "EC", "pH", "TDS", "DO", "TSS", "BOD5", "COD",
+  "NO3", "SO4", "CL", "HCO3", "Na", "K", "Ca2", "Mg2",
+  "TH", "NT", "NH4", "NO2", "PT", "PO4"
+)
+
+box$Parameters <- factor(box$Parameters, levels = vars)
+ggplot(box, aes(x = Parameters, y = VALUE, color = Parameters)) +
+  ylab("Standardized value (z-score)") +
+  geom_boxplot() +
+  geom_jitter() +
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    shape = 18,
+    size = 4,
+    color = "red"
+  ) +
+  theme_grey()
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(factoextra)
+library(FactoMineR)
+b=base[1:36,19:30]
+dim(b)
+names(a)
+names(b)
+res.pca=PCA(a, graph=TRUE,scale.unit = TRUE)
+res.pcab=PCA(b, graph=TRUE,scale.unit = TRUE)
 get_eigenvalue(res.pca)
 ###extract the most important variables of each dimension
 var <- get_pca_var(res.pca)
@@ -11,50 +128,106 @@ var
 corrplot(var$contrib, is.corr=FALSE) 
 var$contrib
 ### We should consider the correlation matrix to eliminate variables that have high correlation(grather than 0.7) values with each other.
-fviz_contrib(res.pca, choice = "var", axes = 1)###only the CE have selected(we select the first parametres (variables) following their contrib value in formation of the first dim(axe), but we have eliminated the TH and CaCO3 for the reason of higher correlation )
-fviz_contrib(res.pca, choice = "var", axes = 2)###The saturation rate, O2 dissolved, and turbidity (which replaced the second most important variables in dimension 1) were selected based on their contribution values in forming the second dimension (axis). We replaced turbidity in place of TH (hardness) based on this selection
-fviz_contrib(res.pca, choice = "var", axes = 3)###NH4 and PO43 is selected (we select the 2 first parametres (variables) following their contrib value in formation of the third dim(axe))
-fviz_contrib(res.pca, choice = "var", axes = 4)
-fviz_contrib(res.pca, choice = "var", axes = 5)
+A=fviz_contrib(res.pca, choice = "var", axes = 1)
+B=fviz_contrib(res.pca, choice = "var", axes = 2)
+C=fviz_contrib(res.pca, choice = "var", axes = 3)
+D=fviz_contrib(res.pca, choice = "var", axes = 4)
+E=fviz_contrib(res.pca, choice = "var", axes = 5)
+base=base[1:36,]
+F=fviz_pca_biplot(res.pca,
+                geom.ind = "point", # afficher uniquement les points
+                col.ind = base$Season, # couleur par groupes
+                palette = c("#00AFBB", "#FC4E07", "green","yellow"),
+                axes = c(1, 3),
+                legend.title = "Months",
+                addEllipses = FALSE,
+                pointsize = 2, # taille des points
+                labelsize = 4, # taille des étiquettes
+                repel = TRUE # éviter le chevauchement des étiquettes
+) + 
+  ggtitle("PCA - Biplot axe 1 and 3")
+F1=grid.arrange(A,B,C,ncol=1)
+F1=grid.arrange(AA,AB,ncol=2)
+F2=grid.arrange(AC,AD,ncol=2)
+F3=grid.arrange(F1,F2,ncol=1)
+grid.arrange(E,F, ncol=2)
+
+m=glm(K~TH+NH4+Na+COD+pH+T+PO4+NO3+TSS+NO2, data=a, family="gaussian")
+b=glm(pH~Mg2+Ca2+CL+NT+BOD5+HCO3, data=base, family="gaussian")
+check_collinearity(b)
+summary(b)
 ##calculate WQI_P
 var$contrib["TH",1:5]
-var$contrib["NT",1:5]
+var$contrib["NH4",1:5]
 var$contrib["Na",1:5]
-var$contrib["BOD5",1:5]
-var$contrib["turb",1:5]
+var$contrib["COD",1:5]
+var$contrib["pH",1:5]
 var$contrib["T",1:5]
+var$contrib["PO4",1:5]
 var$contrib["NO3",1:5]
+var$contrib["TSS",1:5]
 var$contrib["NO2",1:5]
 base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/AHLEM/WQI.csv")
+names(base)
 head(base)
 dim(base)
-base1=base[ 1:36,1:8]
-base2=base[37:72,1:8]
+base1=base[ 1:36,1:9]
+base2=base[37:72,1:9]
 dim(base1)
 View(base1)
 View(base2)
+base$WQI_class <- ifelse(base$WQI_P > 50, "High_WQI", "Low_WQI")
+table(base$WQI_class)
+aggregate(NH4 ~ WQI_class, data = base, 
+          FUN = function(x) c(
+            n = length(x),
+            mean = mean(x),
+            median = median(x),
+            min = min(x),
+            max = max(x)
+          ))
 ###new water quality index
 TH=var$contrib["TH",1]
-NT=var$contrib["NT",1]
+NH4=var$contrib["NH4",1]
 Na=var$contrib["Na",1]
-BOD5=var$contrib["BOD5",1]
-turb=var$contrib["turb",1]
+COD=var$contrib["COD",1]
 T=var$contrib["T",1]
+PO4=var$contrib["PO4",1]
 NO3=var$contrib["NO3",1]
+TSS=var$contrib["TSS",1]
 NO2=var$contrib["NO2",1]
+pH=var$contrib["pH",1]
 
-df <- data.frame(TH+NT+Na+BOD5+turb+T+NO3+NO2)
+m=glm(WA_WQI~TH+NH4+Na+BOD5+T+TSS+NO3+K, data=base, family="gaussian")
+m=glm(K~TH+NH4+Na+COD+Ph+T+PO4+NO3+TSS+NO2, data=a, family="gaussian")
+check_collinearity(m)
+g=glm(CE~TH+NH4+Na+BOD5+T+TSS+NO3+K, data=base, family="gaussian")
+check_collinearity(m)
+df <- data.frame(TH+NH4+Na+BOD5+T+TSS+NO3+K)
 print(df)
-###We need to repeat the standard values to match the 159 rows in our results. 
+###We need to repeat the standard values to match the 159 rows in our results.
+###WQI_D1
+TH=var$contrib["TH",1]
+NH4=var$contrib["NH4",1]
+Na=var$contrib["Na",1]
+COD=var$contrib["COD",1]
+T=var$contrib["T",1]
+PO4=var$contrib["PO4",1]
+NO3=var$contrib["NO3",1]
+TSS=var$contrib["TSS",1]
+NO2=var$contrib["NO2",1]
+pH=var$contrib["pH",1]
 df <- data.frame(
-  TH = rep(TH, 36),
-  NT = rep(NT, 36),
-  Na = rep(Na, 36),
-  BOD5 = rep(BOD5, 36),
-  turb = rep(turb, 36),
-  T = rep(T, 36),
+  TH  = rep(TH, 36),
+  NH4 = rep(NH4, 36),
+  Na  = rep(Na, 36),
+  COD = rep(COD, 36),
+  T   = rep(T, 36),
+  PO4 = rep(PO4, 36),
   NO3 = rep(NO3, 36),
-  NO2 = rep(NO2, 36)
+  TSS = rep(TSS, 36),
+  NO2 = rep(NO2, 36),
+  pH  = rep(pH, 36)
 )
 base_D1<-df
 View(base_D1)
@@ -63,10 +236,63 @@ head(S)
 ES<-sum(S[1, ], na.rm = TRUE)
 ES
 WI<-base_D1/ES
-head(WI)
+head(WI,1)
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+q1<-base1[,1:9]/base2[,1:9]
+q1<-q1*100
+head(q1)
+qPh<-base[1:36,(10)]-9#
+qPh<-qPh/-2.5
+qPh<-qPh*100
+qPh
+qPh<-data.frame(qPh)
+qPh
+q1$pH=qPh
+#head(q1)
+WQI_D1<-q1*WI
+WQI_D1
+sum(WQI_D1[1, ], na.rm = TRUE)##summarize per sample
+WQI_D1 <- rowSums(WQI_D1, na.rm = TRUE)
+WQI_D1
+WQI_D1<-data.frame(WQI_D1)
+WQI_D1
+summary(WQI_D1)
+#WQI_2D1
+base1=base[ 1:36,19:24]
+base2=base[37:72,19:24]
+Mg2=var$contrib["Mg2",1]
+Ca2=var$contrib["Ca2",1]
+CL=var$contrib["CL",1]
+NT=var$contrib["NT",1]
+BOD5=var$contrib["BOD5",1]
+HCO3=var$contrib["HCO3",1]
+df <- data.frame(
+  Mg2  = rep(Mg2, 36),
+  Ca2 = rep(Ca2, 36),
+  CL  = rep(CL, 36),
+  NT = rep(NT, 36),
+  BOD5   = rep(BOD5, 36),
+  HCO3 = rep(HCO3, 36)
+)
+base_D1<-df
+View(base_D1)
+S<-base_D1
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+WI<-base_D1/ES
+head(WI,1)
 sum(WI[1, ], na.rm = TRUE)##should be equal to 1
 q1<-base1/base2
 q1<-q1*100
+head(q1)
+#qPh<-base[1:36,(10)]-9#
+#qPh<-qPh/-2.5
+#qPh<-qPh*100
+#qPh
+#qPh<-data.frame(qPh)
+#qPh
+#q1$pH=qPh
 head(q1)
 WQI_D1<-q1*WI
 WQI_D1
@@ -76,40 +302,42 @@ WQI_D1
 WQI_D1<-data.frame(WQI_D1)
 WQI_D1
 summary(WQI_D1)
-#WQID2
-TH=var$contrib["TH",2]
+##WQI_2D2
+base1=base[ 1:36,19:24]
+base2=base[37:72,19:24]
+Mg2=var$contrib["Mg2",2]
+Ca2=var$contrib["Ca2",2]
+CL=var$contrib["CL",2]
 NT=var$contrib["NT",2]
-Na=var$contrib["Na",2]
 BOD5=var$contrib["BOD5",2]
-turb=var$contrib["turb",2]
-T=var$contrib["T",2]
-NO3=var$contrib["NO3",2]
-NO2=var$contrib["NO2",2]
-
-df <- data.frame(TH+NT+Na+BOD5+turb+T+NO3+NO2)
-print(df)
-###We need to repeat the standard values to match the 159 rows in our results. 
+HCO3=var$contrib["HCO3",2]
 df <- data.frame(
-  TH = rep(TH, 36),
+  Mg2  = rep(Mg2, 36),
+  Ca2 = rep(Ca2, 36),
+  CL  = rep(CL, 36),
   NT = rep(NT, 36),
-  Na = rep(Na, 36),
-  BOD5 = rep(BOD5, 36),
-  turb = rep(turb, 36),
-  T = rep(T, 36),
-  NO3 = rep(NO3, 36),
-  NO2 = rep(NO2, 36)
+  BOD5   = rep(BOD5, 36),
+  HCO3 = rep(HCO3, 36)
 )
-base_D2<-df
-View(base_D2)
-S<-base_D2
+base_D1<-df
+View(base_D1)
+S<-base_D1
 head(S)
 ES<-sum(S[1, ], na.rm = TRUE)
 ES
-WI<-base_D2/ES
-head(WI)
+WI<-base_D1/ES
+head(WI,1)
 sum(WI[1, ], na.rm = TRUE)##should be equal to 1
 q1<-base1/base2
 q1<-q1*100
+head(q1)
+#qPh<-base[1:36,(10)]-9#
+#qPh<-qPh/-2.5
+#qPh<-qPh*100
+#qPh
+#qPh<-data.frame(qPh)
+#qPh
+#q1$pH=qPh
 head(q1)
 WQI_D2<-q1*WI
 WQI_D2
@@ -119,40 +347,42 @@ WQI_D2
 WQI_D2<-data.frame(WQI_D2)
 WQI_D2
 summary(WQI_D2)
-#WQID3
-TH=var$contrib["TH",3]
+#WQI_2D3
+base1=base[ 1:36,19:24]
+base2=base[37:72,19:24]
+Mg2=var$contrib["Mg2",3]
+Ca2=var$contrib["Ca2",3]
+CL=var$contrib["CL",3]
 NT=var$contrib["NT",3]
-Na=var$contrib["Na",3]
 BOD5=var$contrib["BOD5",3]
-turb=var$contrib["turb",3]
-T=var$contrib["T",3]
-NO3=var$contrib["NO3",3]
-NO2=var$contrib["NO2",3]
-
-df <- data.frame(TH+NT+Na+BOD5+turb+T+NO3+NO2)
-print(df)
-###We need to repeat the standard values to match the 159 rows in our results. 
+HCO3=var$contrib["HCO3",3]
 df <- data.frame(
-  TH = rep(TH, 36),
+  Mg2  = rep(Mg2, 36),
+  Ca2 = rep(Ca2, 36),
+  CL  = rep(CL, 36),
   NT = rep(NT, 36),
-  Na = rep(Na, 36),
-  BOD5 = rep(BOD5, 36),
-  turb = rep(turb, 36),
-  T = rep(T, 36),
-  NO3 = rep(NO3, 36),
-  NO2 = rep(NO2, 36)
+  BOD5   = rep(BOD5, 36),
+  HCO3 = rep(HCO3, 36)
 )
-base_D3<-df
-View(base_D3)
-S<-base_D3
+base_D1<-df
+View(base_D1)
+S<-base_D1
 head(S)
 ES<-sum(S[1, ], na.rm = TRUE)
 ES
-WI<-base_D3/ES
-head(WI)
+WI<-base_D1/ES
+head(WI,1)
 sum(WI[1, ], na.rm = TRUE)##should be equal to 1
 q1<-base1/base2
 q1<-q1*100
+head(q1)
+#qPh<-base[1:36,(10)]-9#
+#qPh<-qPh/-2.5
+#qPh<-qPh*100
+#qPh
+#qPh<-data.frame(qPh)
+#qPh
+#q1$pH=qPh
 head(q1)
 WQI_D3<-q1*WI
 WQI_D3
@@ -162,637 +392,2180 @@ WQI_D3
 WQI_D3<-data.frame(WQI_D3)
 WQI_D3
 summary(WQI_D3)
+#WQI_2P
+##WQI_P
+WQI_P <- ((WQI_D1 * 39.514619) +
+            (WQI_D2 * 26.946721) +
+            (WQI_D3 * 8.759243) ) / 85.29170
+
+WQI_P <- data.frame(WQI_P)
+
+head(WQI_P)
+summary(WQI_P)
+write.xlsx(WQI_D3, file="D:/moste/OneDrive/Bureau/WQI_D3.xlsx")
+### WQI_D2
+TH  = var$contrib["TH",2]
+NH4 = var$contrib["NH4",2]
+Na  = var$contrib["Na",2]
+COD = var$contrib["COD",2]
+T   = var$contrib["T",2]
+PO4 = var$contrib["PO4",2]
+NO3 = var$contrib["NO3",2]
+TSS = var$contrib["TSS",2]
+NO2 = var$contrib["NO2",2]
+pH  = var$contrib["pH",2]
+
+df <- data.frame(
+  TH  = rep(TH, 36),
+  NH4 = rep(NH4, 36),
+  Na  = rep(Na, 36),
+  COD = rep(COD, 36),
+  T   = rep(T, 36),
+  PO4 = rep(PO4, 36),
+  NO3 = rep(NO3, 36),
+  TSS = rep(TSS, 36),
+  NO2 = rep(NO2, 36),
+  pH  = rep(pH, 36)
+)
+
+base_D2 <- df
+View(base_D2)
+
+S <- base_D2
+head(S)
+
+ES <- sum(S[1, ], na.rm = TRUE)
+ES
+WI <- base_D2 / ES
+head(WI, 1)
+sum(WI[1, ], na.rm = TRUE)  ## Should equal 1
+q1 <- base1[, 1:9] / base2[, 1:9]
+q1 <- q1 * 100
+head(q1)
+qPh <- base[1:36, 10] - 9
+qPh <- qPh / -2.5
+qPh <- qPh * 100
+qPh
+qPh <- data.frame(qPh)
+q1$pH <- qPh
+WQI_D2 <- q1 * WI
+WQI_D2
+sum(WQI_D2[1, ], na.rm = TRUE)
+
+WQI_D2 <- rowSums(WQI_D2, na.rm = TRUE)
+WQI_D2
+
+WQI_D2 <- data.frame(WQI_D2)
+WQI_D2
+summary(WQI_D2)
+### WQI_D3
+TH  = var$contrib["TH",3]
+NH4 = var$contrib["NH4",3]
+Na  = var$contrib["Na",3]
+COD = var$contrib["COD",3]
+T   = var$contrib["T",3]
+PO4 = var$contrib["PO4",3]
+NO3 = var$contrib["NO3",3]
+TSS = var$contrib["TSS",3]
+NO2 = var$contrib["NO2",3]
+pH  = var$contrib["pH",3]
+
+df <- data.frame(
+  TH  = rep(TH, 36),
+  NH4 = rep(NH4, 36),
+  Na  = rep(Na, 36),
+  COD = rep(COD, 36),
+  T   = rep(T, 36),
+  PO4 = rep(PO4, 36),
+  NO3 = rep(NO3, 36),
+  TSS = rep(TSS, 36),
+  NO2 = rep(NO2, 36),
+  pH  = rep(pH, 36)
+)
+
+base_D3 <- df
+View(base_D3)
+
+S <- base_D3
+head(S)
+
+ES <- sum(S[1, ], na.rm = TRUE)
+ES
+
+WI <- base_D3 / ES
+head(WI, 1)
+sum(WI[1, ], na.rm = TRUE)  ## Should equal 1
+
+q1 <- base1[, 1:9] / base2[, 1:9]
+q1 <- q1 * 100
+head(q1)
+
+qPh <- base[1:36, 10] - 9
+qPh <- qPh / -2.5
+qPh <- qPh * 100
+qPh
+
+qPh <- data.frame(qPh)
+q1$pH <- qPh
+
+WQI_D3 <- q1 * WI
+WQI_D3
+
+sum(WQI_D3[1, ], na.rm = TRUE)
+
+WQI_D3 <- rowSums(WQI_D3, na.rm = TRUE)
+WQI_D3
+
+WQI_D3 <- data.frame(WQI_D3)
+WQI_D3
+summary(WQI_D3)
 #WQI_D4
 TH=var$contrib["TH",4]
-NT=var$contrib["NT",4]
+NH4=var$contrib["NH4",4]
 Na=var$contrib["Na",4]
-BOD5=var$contrib["BOD5",4]
-turb=var$contrib["turb",4]
+COD=var$contrib["COD",4]
 T=var$contrib["T",4]
+PO4=var$contrib["PO4",4]
 NO3=var$contrib["NO3",4]
+TSS=var$contrib["TSS",4]
 NO2=var$contrib["NO2",4]
+pH=var$contrib["pH",4]
 
-df <- data.frame(TH+NT+Na+BOD5+turb+T+NO3+NO2)
-print(df)
-###We need to repeat the standard values to match the 159 rows in our results. 
 df <- data.frame(
   TH = rep(TH, 36),
-  NT = rep(NT, 36),
+  NH4 = rep(NH4, 36),
   Na = rep(Na, 36),
-  BOD5 = rep(BOD5, 36),
-  turb = rep(turb, 36),
+  COD = rep(COD, 36),
   T = rep(T, 36),
+  PO4 = rep(PO4, 36),
   NO3 = rep(NO3, 36),
-  NO2 = rep(NO2, 36)
+  TSS = rep(TSS, 36),
+  NO2 = rep(NO2, 36),
+  pH = rep(pH, 36)
 )
-base_D4<-df
+
+base_D4 <- df
 View(base_D4)
-S<-base_D4
+
+S <- base_D4
 head(S)
-ES<-sum(S[1, ], na.rm = TRUE)
+
+ES <- sum(S[1, ], na.rm = TRUE)
 ES
-WI<-base_D4/ES
-head(WI)
-sum(WI[1, ], na.rm = TRUE)##should be equal to 1
-q1<-base1/base2
-q1<-q1*100
+
+WI <- base_D4 / ES
+head(WI, 1)
+
+sum(WI[1, ], na.rm = TRUE) ## should be equal to 1
+
+q1 <- base1[, 1:9] / base2[, 1:9]
+q1 <- q1 * 100
 head(q1)
-WQI_D4<-q1*WI
+
+qPh <- base[1:36, 10] - 9
+qPh <- qPh / -2.5
+qPh <- qPh * 100
+qPh
+
+qPh <- data.frame(qPh)
+q1$pH <- qPh
+
+WQI_D4 <- q1 * WI
 WQI_D4
-sum(WQI_D4[1, ], na.rm = TRUE)##summarize per sample
+
+sum(WQI_D4[1, ], na.rm = TRUE) ## summarize per sample
+
 WQI_D4 <- rowSums(WQI_D4, na.rm = TRUE)
 WQI_D4
-WQI_D4<-data.frame(WQI_D4)
+WQI_D4 <- data.frame(WQI_D4)
 WQI_D4
 summary(WQI_D4)
-#WQI_D5
+##WQI_D5
 TH=var$contrib["TH",5]
-NT=var$contrib["NT",5]
+NH4=var$contrib["NH4",5]
 Na=var$contrib["Na",5]
-BOD5=var$contrib["BOD5",5]
-turb=var$contrib["turb",5]
+COD=var$contrib["COD",5]
 T=var$contrib["T",5]
+PO4=var$contrib["PO4",5]
 NO3=var$contrib["NO3",5]
+TSS=var$contrib["TSS",5]
 NO2=var$contrib["NO2",5]
+pH=var$contrib["pH",5]
 
-df <- data.frame(TH+NT+Na+BOD5+turb+T+NO3+NO2)
-print(df)
-###We need to repeat the standard values to match the 159 rows in our results. 
 df <- data.frame(
   TH = rep(TH, 36),
-  NT = rep(NT, 36),
+  NH4 = rep(NH4, 36),
   Na = rep(Na, 36),
-  BOD5 = rep(BOD5, 36),
-  turb = rep(turb, 36),
+  COD = rep(COD, 36),
   T = rep(T, 36),
+  PO4 = rep(PO4, 36),
   NO3 = rep(NO3, 36),
-  NO2 = rep(NO2, 36)
+  TSS = rep(TSS, 36),
+  NO2 = rep(NO2, 36),
+  pH = rep(pH, 36)
 )
-base_D5<-df
+
+base_D5 <- df
 View(base_D5)
-S<-base_D5
+
+S <- base_D5
 head(S)
-ES<-sum(S[1, ], na.rm = TRUE)
+
+ES <- sum(S[1, ], na.rm = TRUE)
 ES
-WI<-base_D5/ES
-head(WI)
-sum(WI[1, ], na.rm = TRUE)##should be equal to 1
-q1<-base1/base2
-q1<-q1*100
+
+WI <- base_D5 / ES
+head(WI, 1)
+
+sum(WI[1, ], na.rm = TRUE) ## should be equal to 1
+
+q1 <- base1[, 1:9] / base2[, 1:9]
+q1 <- q1 * 100
 head(q1)
-WQI_D5<-q1*WI
+
+qPh <- base[1:36, 10] - 9
+qPh <- qPh / -2.5
+qPh <- qPh * 100
+qPh
+
+qPh <- data.frame(qPh)
+q1$pH <- qPh
+
+WQI_D5 <- q1 * WI
 WQI_D5
-sum(WQI_D5[1, ], na.rm = TRUE)##summarize per sample
+
+sum(WQI_D5[1, ], na.rm = TRUE) ## summarize per sample
 WQI_D5 <- rowSums(WQI_D5, na.rm = TRUE)
 WQI_D5
-WQI_D5<-data.frame(WQI_D5)
+WQI_D5 <- data.frame(WQI_D5)
 WQI_D5
 summary(WQI_D5)
 
-WQI_P<-((WQI_D1*38.28844)/82.53025)+((WQI_D2*(59.54415-38.28844))/82.53025)+((WQI_D3*(69.30876-59.54415))/82.53025)+((WQI_D4*(77.77553-69.30876))/82.53025)+(WQI_D5*(82.53025-77.77553) /82.53025)
-WQI_P<-data.frame(WQI_P)
+##WQI_P
+WQI_P <- ((WQI_D1 * 39.514619) +
+            (WQI_D2 * 21.958829) +
+            (WQI_D3 * 10.059399) +
+            (WQI_D4 * 8.786591) +
+            (WQI_D5 * 4.951502)) / 85.27094
+
+WQI_P <- data.frame(WQI_P)
+
 head(WQI_P)
-write.xlsx(WQI_D5, file="D:/moste/OneDrive/Bureau/WQI_D5.xlsx")
+summary(WQI_P)
+write.xlsx(WQI_P, file="D:/moste/OneDrive/Bureau/WQI_P.xlsx")
+#WA_WQI
+S<-1/base2
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+K<-1/ES
+K
+base2$pH=base[37:72,c("pH")]
+WI<-K/base2
+WI
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+#q1 <- base1[, 1:6] / base2[, 1:6]
+q1 <- base1[, 1:9] / base2[, 1:9]
+q1 <- q1 * 100
+head(q1)
+qPh <- base[1:36, 10] - 9
+qPh <- qPh / -2.5
+qPh <- qPh * 100
+qPh
 
-##ELASTICE NET
+qPh <- data.frame(qPh)
+q1$pH <- qPh
+
+WA_WQI<-q1 * WI
+WA_WQI
+sum(WA_WQI[1, ], na.rm = TRUE)##summarize per sample
+WA_WQI <- rowSums(WA_WQI, na.rm = TRUE)
+WA_WQI
+WA_WQI<-data.frame(WA_WQI)
+WA_WQI
+summary(WA_WQI)
+write.xlsx(WA_WQI, file="D:/moste/OneDrive/Bureau/WA_WQI.xlsx")
+#PCA
+A=fviz_pca_biplot(
+  res.pca,axes = c(1, 2),
+  geom.ind = "point", # Afficher uniquement les points pour les individus
+  col.ind = a$Season, # Colorer les individus selon METHOD
+  palette = c("#00AFBB", "#FC4E07","yellow", "green"), # Palette des groupes
+  legend.title = "Season", # Légende pour METHOD
+  pointsize = 4, # Taille des points
+  repel = TRUE # Éviter le chevauchement des étiquettes
+)
+B=fviz_pca_biplot(
+  res.pca,axes = c(3, 4),
+  geom.ind = "point", # Afficher uniquement les points pour les individus
+  col.ind = a$Season, # Colorer les individus selon METHOD
+  palette = c("#00AFBB", "#FC4E07","yellow", "green"), # Palette des groupes
+  legend.title = "Season", # Légende pour METHOD
+  pointsize = 4, # Taille des points
+  repel = TRUE # Éviter le chevauchement des étiquettes
+)
+fviz_contrib(res.pca, choice = "var", axes = 1)
+fviz_contrib(res.pca, choice = "var", axes = 2)
+fviz_contrib(res.pca, choice = "var", axes = 3)
+fviz_contrib(res.pca, choice = "var", axes = 4)
+library(gridExtra)
+grid.arrange(A,B,C,D,E,F, ncol=2)
+##algroithms like randa
 base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/AHLEM/WQI.csv")
-names(base)
-attach(base)
+summary(base)
+View(base)
+base=base[1:36,]
 library(caret)
 library(glmnet)
-library(Metrics)
+library(dplyr)
+library(openxlsx)
+##WQI_P
+
+# ============================================================
+# COMPARISON OF THE TWO VARIABLE-SELECTION PROCEDURES
+# First selection:  WQI_P and WA_WQI
+# Second selection: WQI_2P and WA_WQI2
+# ============================================================
 
-targets <- c("WQI","CCME","WQI_P",
-             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
-
-run_elasticnet <- function(target){
-  
-  set.seed(123)
-  
-  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
-  df <- na.omit(df)
-  
-  y <- df[[target]]
-  X <- df[, -1]
-  
-  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
-  
-  X_train <- X[train_index, ]
-  X_test <- X[-train_index, ]
-  
-  y_train <- y[train_index]
-  y_test <- y[-train_index]
-  
-  ctrl <- trainControl(
-    method = "repeatedcv",
-    number = 5,
-    repeats = 5
-  )
-  
-  model <- train(
-    x = X_train,
-    y = y_train,
-    method = "glmnet",
-    trControl = ctrl,
-    tuneLength = 25
-  )
-  
-  pred_train <- predict(model, X_train)
-  pred_test <- predict(model, X_test)
-  
-  cat("\n========================\n")
-  cat("INDEX:", target, "\n")
-  cat("========================\n")
-  
-  cat("\nTRAIN:\n")
-  cat("RMSE =", RMSE(pred_train, y_train), "\n")
-  cat("MAE =", MAE(pred_train, y_train), "\n")
-  cat("R2 =", cor(pred_train, y_train)^2, "\n")
-  
-  cat("\nTEST:\n")
-  cat("RMSE =", RMSE(pred_test, y_test), "\n")
-  cat("MAE =", MAE(pred_test, y_test), "\n")
-  cat("R2 =", cor(pred_test, y_test)^2, "\n")
-  
-  return(model)
-  
-}
-
-results <- lapply(targets, run_elasticnet)
-names(results) <- targets
-
-##grid randoom
-library(caret)
-library(glmnet)
-
-# Define targets
-targets <- c("WQI","CCME","WQI_P",
-             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
-
-run_elasticnet_random <- function(target){
-  
-  set.seed(123)
-  
-  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
-  df <- na.omit(df)
-  
-  y <- df[[target]]
-  X <- df[, -1]
-  
-  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
-  X_train <- X[train_index, ]
-  X_test  <- X[-train_index, ]
-  y_train <- y[train_index]
-  y_test  <- y[-train_index]
-  
-  ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
-  
-  # 🔑 Random search grid for alpha and lambda
-  random_grid <- data.frame(
-    alpha  = runif(20, 0, 1),              # 20 random alpha values between 0 and 1
-    lambda = 10^runif(20, -4, 1)           # 20 random lambda values (10^-4 to 10^1)
-  )
-  
-  # Train Elastic Net with random search
-  model <- train(
-    x = X_train,
-    y = y_train,
-    method = "glmnet",
-    trControl = ctrl,
-    tuneGrid = random_grid
-  )
-  
-  pred_train <- predict(model, X_train)
-  pred_test  <- predict(model, X_test)
-  
-  cat("\n========================\n")
-  cat("INDEX:", target, "\n")
-  cat("========================\n")
-  
-  cat("\nTRAIN:\n")
-  cat("RMSE =", RMSE(pred_train, y_train), "\n")
-  cat("MAE  =", MAE(pred_train, y_train), "\n")
-  cat("R2   =", cor(pred_train, y_train)^2, "\n")
-  
-  cat("\nTEST:\n")
-  cat("RMSE =", RMSE(pred_test, y_test), "\n")
-  cat("MAE  =", MAE(pred_test, y_test), "\n")
-  cat("R2   =", cor(pred_test, y_test)^2, "\n")
-  
-  cat("\nBest alpha =", model$bestTune$alpha,
-      " Best lambda =", model$bestTune$lambda, "\n")
-  
-  return(model)
-}
-
-# Run across all targets
-results_random <- lapply(targets, run_elasticnet_random)
-names(results_random) <- targets
-##LASSO RADOM SEARCH
-library(caret)
-library(glmnet)
-
-# Define targets
-targets <- c("WQI","CCME","WQI_P",
-             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
-
-run_lasso_random <- function(target){
-  
-  set.seed(123)
-  
-  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
-  df <- na.omit(df)
-  
-  y <- df[[target]]
-  X <- df[, -1]
-  
-  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
-  X_train <- X[train_index, ]
-  X_test  <- X[-train_index, ]
-  y_train <- y[train_index]
-  y_test  <- y[-train_index]
-  
-  ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
-  
-  # 🔑 Random search grid for lambda (alpha fixed at 1 for Lasso)
-  random_grid <- data.frame(
-    alpha  = rep(1, 20),                   # alpha fixed at 1
-    lambda = 10^runif(20, -4, 1)           # 20 random lambda values (10^-4 to 10^1)
-  )
-  
-  # Train Lasso with random search
-  model <- train(
-    x = X_train,
-    y = y_train,
-    method = "glmnet",
-    trControl = ctrl,
-    tuneGrid = random_grid
-  )
-  
-  pred_train <- predict(model, X_train)
-  pred_test  <- predict(model, X_test)
-  
-  cat("\n========================\n")
-  cat("INDEX:", target, "\n")
-  cat("========================\n")
-  
-  cat("\nTRAIN:\n")
-  cat("RMSE =", RMSE(pred_train, y_train), "\n")
-  cat("MAE  =", MAE(pred_train, y_train), "\n")
-  cat("R2   =", cor(pred_train, y_train)^2, "\n")
-  
-  cat("\nTEST:\n")
-  cat("RMSE =", RMSE(pred_test, y_test), "\n")
-  cat("MAE  =", MAE(pred_test, y_test), "\n")
-  cat("R2   =", cor(pred_test, y_test)^2, "\n")
-  
-  cat("\nBest lambda =", model$bestTune$lambda, "\n")
-  
-  return(model)
-}
-
-# Run across all targets
-results_lasso <- lapply(targets, run_lasso_random)
-names(results_lasso) <- targets
-##lasso grid search
-library(caret)
-library(glmnet)
-
-# Define targets
-targets <- c("WQI","CCME","WQI_P",
-             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
-
-run_lasso_grid <- function(target){
-  
-  set.seed(123)
-  
-  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
-  df <- na.omit(df)
-  
-  y <- df[[target]]
-  X <- df[, -1]
-  
-  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
-  X_train <- X[train_index, ]
-  X_test  <- X[-train_index, ]
-  y_train <- y[train_index]
-  y_test  <- y[-train_index]
-  
-  ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
-  
-  # Train Lasso with grid search (alpha fixed at 1)
-  model <- train(
-    x = X_train,
-    y = y_train,
-    method = "glmnet",
-    trControl = ctrl,
-    tuneLength = 25,
-    tuneGrid = expand.grid(alpha = 1, lambda = seq(0.0001, 1, length.out = 25))
-  )
-  
-  pred_train <- predict(model, X_train)
-  pred_test  <- predict(model, X_test)
-  
-  cat("\n========================\n")
-  cat("INDEX:", target, "\n")
-  cat("========================\n")
-  
-  cat("\nTRAIN:\n")
-  cat("RMSE =", RMSE(pred_train, y_train), "\n")
-  cat("MAE  =", MAE(pred_train, y_train), "\n")
-  cat("R2   =", cor(pred_train, y_train)^2, "\n")
-  
-  cat("\nTEST:\n")
-  cat("RMSE =", RMSE(pred_test, y_test), "\n")
-  cat("MAE  =", MAE(pred_test, y_test), "\n")
-  cat("R2   =", cor(pred_test, y_test)^2, "\n")
-  
-  cat("\nBest lambda =", model$bestTune$lambda, "\n")
-  
-  return(model)
-}
-
-# Run across all targets
-results_lasso_grid <- lapply(targets, run_lasso_grid)
-names(results_lasso_grid) <- targets
-##PLS GRID
-library(caret)
-library(pls)
-
-# Define targets
-targets <- c("WQI","CCME","WQI_P",
-             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
-
-run_pls_grid <- function(target){
-  
-  set.seed(123)
-  
-  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
-  df <- na.omit(df)
-  
-  y <- df[[target]]
-  X <- df[, -1]
-  
-  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
-  X_train <- X[train_index, ]
-  X_test  <- X[-train_index, ]
-  y_train <- y[train_index]
-  y_test  <- y[-train_index]
-  
-  ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
-  
-  # 🔑 Grid search for number of components (ncomp)
-  model <- train(
-    x = X_train,
-    y = y_train,
-    method = "pls",
-    trControl = ctrl,
-    tuneLength = 25   # caret will try up to 25 components
-  )
-  
-  pred_train <- predict(model, X_train)
-  pred_test  <- predict(model, X_test)
-  
-  cat("\n========================\n")
-  cat("INDEX:", target, "\n")
-  cat("========================\n")
-  
-  cat("\nTRAIN:\n")
-  cat("RMSE =", RMSE(pred_train, y_train), "\n")
-  cat("MAE  =", MAE(pred_train, y_train), "\n")
-  cat("R2   =", cor(pred_train, y_train)^2, "\n")
-  
-  cat("\nTEST:\n")
-  cat("RMSE =", RMSE(pred_test, y_test), "\n")
-  cat("MAE  =", MAE(pred_test, y_test), "\n")
-  cat("R2   =", cor(pred_test, y_test)^2, "\n")
-  
-  cat("\nBest ncomp =", model$bestTune$ncomp, "\n")
-  
-  return(model)
-}
-
-# Run across all targets
-results_pls_grid <- lapply(targets, run_pls_grid)
-names(results_pls_grid) <- targets
-#PLS RANDOOM SEARCH
-library(caret)
-library(pls)
-
-# Define targets
-targets <- c("WQI","CCME","WQI_P",
-             "WQI_D1","WQI_D2","WQI_D3","WQI_D4","WQI_D5")
-
-run_pls_random <- function(target){
-  
-  set.seed(123)
-  
-  df <- base[, c(target, "TH","NT","Na","BOD5","turb","T","NO3","NO2")]
-  df <- na.omit(df)
-  
-  y <- df[[target]]
-  X <- df[, -1]
-  
-  train_index <- createDataPartition(y, p = 0.7, list = FALSE)
-  X_train <- X[train_index, ]
-  X_test  <- X[-train_index, ]
-  y_train <- y[train_index]
-  y_test  <- y[-train_index]
-  
-  ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
-  
-  # 🔑 Random search grid for ncomp (limited to number of predictors)
-  max_comp <- ncol(X_train)   # maximum feasible components
-  random_grid <- data.frame(
-    ncomp = sample(1:max_comp, 20, replace = TRUE)   # 20 random values between 1 and max_comp
-  )
-  
-  # Train PLS with random search
-  model <- train(
-    x = X_train,
-    y = y_train,
-    method = "pls",
-    trControl = ctrl,
-    tuneGrid = random_grid
-  )
-  
-  pred_train <- predict(model, X_train)
-  pred_test  <- predict(model, X_test)
-  
-  cat("\n========================\n")
-  cat("INDEX:", target, "\n")
-  cat("========================\n")
-  
-  cat("\nTRAIN:\n")
-  cat("RMSE =", RMSE(pred_train, y_train), "\n")
-  cat("MAE  =", MAE(pred_train, y_train), "\n")
-  cat("R2   =", cor(pred_train, y_train)^2, "\n")
-  
-  cat("\nTEST:\n")
-  cat("RMSE =", RMSE(pred_test, y_test), "\n")
-  cat("MAE  =", MAE(pred_test, y_test), "\n")
-  cat("R2   =", cor(pred_test, y_test)^2, "\n")
-  
-  cat("\nBest ncomp =", model$bestTune$ncomp, "\n")
-  
-  return(model)
-}
-
-# Run across all targets
-results_pls_random <- lapply(targets, run_pls_random)
-names(results_pls_random) <- targets
-e
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##bakhouch
-ba<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/Mme Bakhouch/results2.csv",  header= T, check.names = F)
-# Load libraries
-library(vegan)
 library(ggplot2)
-library(grid)
+library(dplyr)
+library(patchwork)
+
+# 1. Prepare paired comparisons
+comparison_data <- base %>%
+  transmute(
+    Sample = row_number(),
+    WA_WQI_10 = WA_WQI,
+    WA_WQI_6  = WA_WQI2,
+    WQI_P_10  = WQI_P,
+    WQI_P_6   = WQI_2P
+  ) %>%
+  filter(complete.cases(.))
+
+# 2. Function for numerical agreement statistics
+agreement_stats <- function(x, y) {
+  
+  difference <- y - x
+  bias <- mean(difference)
+  sd_diff <- sd(difference)
+  
+  data.frame(
+    N = length(x),
+    MAE = mean(abs(difference)),
+    RMSE = sqrt(mean(difference^2)),
+    R2_correlation = cor(x, y)^2,
+    Spearman_rho = cor(x, y, method = "spearman"),
+    Mean_bias = bias,
+    Lower_LOA = bias - 1.96 * sd_diff,
+    Upper_LOA = bias + 1.96 * sd_diff
+  )
+}
+
+# 3. Calculate statistics for both index comparisons
+stats_WA <- agreement_stats(
+  comparison_data$WA_WQI_10,
+  comparison_data$WA_WQI_6
+)
+
+stats_WQI <- agreement_stats(
+  comparison_data$WQI_P_10,
+  comparison_data$WQI_P_6
+)
+
+results <- bind_rows(
+  cbind(Index = "WA_WQI: 10 vs 6 variables", stats_WA),
+  cbind(Index = "WQI_P: 10 vs 6 variables", stats_WQI)
+)
+
+print(results, digits = 4)
+
+# 4. Scatterplot function
+make_scatter <- function(x, y, xlab, ylab, title) {
+  
+  plot_data <- data.frame(x = x, y = y)
+  
+  ggplot(plot_data, aes(x = x, y = y)) +
+    geom_point(size = 2.5, alpha = 0.8) +
+    geom_abline(
+      slope = 1, intercept = 0,
+      linetype = "dashed", linewidth = 0.8
+    ) +
+    labs(
+      title = title,
+      x = xlab,
+      y = ylab
+    ) +
+    theme_bw(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold"),
+      aspect.ratio = 1
+    )
+}
+
+# 5. Bland-Altman plot function
+make_bland_altman <- function(x, y, title) {
+  
+  difference <- y - x
+  mean_pair <- (x + y) / 2
+  
+  bias <- mean(difference)
+  sd_diff <- sd(difference)
+  
+  loa_upper <- bias + 1.96 * sd_diff
+  loa_lower <- bias - 1.96 * sd_diff
+  
+  plot_data <- data.frame(
+    Mean = mean_pair,
+    Difference = difference
+  )
+  
+  ggplot(plot_data, aes(x = Mean, y = Difference)) +
+    geom_point(size = 2.5, alpha = 0.8) +
+    geom_hline(
+      yintercept = bias,
+      linewidth = 0.8
+    ) +
+    geom_hline(
+      yintercept = loa_upper,
+      linetype = "dashed"
+    ) +
+    geom_hline(
+      yintercept = loa_lower,
+      linetype = "dashed"
+    ) +
+    labs(
+      title = title,
+      x = "Mean of the two index values",
+      y = "Difference (second - first)"
+    ) +
+    theme_bw(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold")
+    )
+}
+
+# 6. Create four panels
+p1 <- make_scatter(
+  comparison_data$WA_WQI_10,
+  comparison_data$WA_WQI_6,
+  "WA_WQI (10 variables)",
+  "WA_WQI (6 variables)",
+  "A. WA_WQI: Scatterplot"
+)
+
+p2 <- make_bland_altman(
+  comparison_data$WA_WQI_10,
+  comparison_data$WA_WQI_6,
+  "B. WA_WQI: Bland-Altman"
+)
+
+p3 <- make_scatter(
+  comparison_data$WQI_P_10,
+  comparison_data$WQI_P_6,
+  "WQI_P (10 variables)",
+  "WQI_P (6 variables)",
+  "C. WQI_P: Scatterplot"
+)
+
+p4 <- make_bland_altman(
+  comparison_data$WQI_P_10,
+  comparison_data$WQI_P_6,
+  "D. WQI_P: Bland-Altman"
+)
+
+# 7. Combine and display
+figure_comparison <- (p1 | p2) / (p3 | p4)
+
+print(figure_comparison)
+
+#WA_WQI1
+base=base[1:36,]
+# 0. PREI Function
+# ---------------------------
+compute_prei <- function(observed, predicted) {
+  ((observed - as.numeric(predicted)) / observed) * 100
+}
+# ---------------------------
+# 1. Prepare Data
+# ---------------------------#Mg2+Ca2+CL+NT+BOD5+HCO3
+# "TH","HCO3","Na","T","BOD5","NO3","K","DO" 
+#CE+Ph+TDS+COD+SO4+CL+Ca2+Mg2+NT+NO2+PT+PO4+HCO3+DO
+data_model <- base %>%
+  dplyr::select(WA_WQI,WA_WQI2,WQI_P,WQI_2P,WQI_2D1,WQI_2D2,WQI_2D3,WQI_D1,WQI_D2,WQI_D3,WQI_D4,WQI_D5,Season, TH,NH4,Na,BOD5,T, TSS,NO3,K,CE ,pH, TDS,COD,SO4,CL,Ca2,Mg2,NT, NO2,PT,PO4,HCO3,DO)
+
+data_model$Season <- as.factor(data_model$Season)
+
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
 
 # ---------------------------
-# Data preparation
+# 2. Train-Test Split
 # ---------------------------
-# Species/family data
-species_data <- ba[, 2:16]  # adjust columns if necessary
-
-# Environmental data (Presence/Absence -> 1/0)
-env_data <- ba[, 18:21]
-env_data <- as.data.frame(lapply(env_data, function(x) ifelse(x=="Presence",1,0)))
-
-# Station factor
-ba$STATION <- as.factor(ba$STATION)
-
-# ===========================
-# NMDS 1: Species + Stations + Ellipses
-# ===========================
 set.seed(123)
-nmds1 <- metaMDS(species_data, distance="bray", k=2, trymax=100)
+trainIndex <- createDataPartition(data_model$WA_WQI, p = 0.7, list = FALSE)
+trainData <- data_model[trainIndex, ]
+testData  <- data_model[-trainIndex, ]
 
-# NMDS points for sites
-nmds1_points <- as.data.frame(scores(nmds1, display="sites"))
-nmds1_points$STATION <- ba$STATION
+# ---------------------------Season+Mg2+Ca2+CL+NT+BOD5+HCO3
+# 3. Prepare matrices for glmnet  Season+TH+NH4+Na+COD+T+PO4+NO3+TSS+NO2+pH
+# --------------------------Season+th+DO+BOD5+SO4+CL+HCO3+K+Ca2+Mg2+NT+PT+TDS
+x_train <- model.matrix(WA_WQI ~ Season+Mg2+Ca2+CL+NT+BOD5+HCO3, data = trainData)[,-1]
+y_train <- as.numeric(trainData$WA_WQI)
 
-# Species/family arrows
-species_vectors1 <- as.data.frame(scores(nmds1, display="species"))
-colnames(species_vectors1) <- c("NMDS1","NMDS2")
-species_vectors1$species <- rownames(species_vectors1)
-
-# Plot NMDS 1
-ggplot(nmds1_points, aes(x=NMDS1, y=NMDS2, color=STATION)) +
-  geom_point(size=4) +
-  # Species arrows
-  geom_segment(data=species_vectors1,
-               aes(x=0, y=0, xend=NMDS1, yend=NMDS2),
-               arrow=arrow(length=unit(0.3,"cm")), color="darkred") +
-  geom_text(data=species_vectors1,
-            aes(x=NMDS1*1.1, y=NMDS2*1.1, label=species),
-            color="darkred", size=3) +
-  labs(title="NMDS1: Insect Species Composition Across Stations",
-       subtitle=paste0("Stress: ", round(nmds1$stress, 4)),
-       x="NMDS1", y="NMDS2") +
-  theme_minimal(base_size=14)
-
-# ===========================
-# NMDS 2: Species + Environmental Vectors Only
-# ===========================
+x_test <- model.matrix(WA_WQI ~ Season+Mg2+Ca2+CL+NT+BOD5+HCO3, data = testData)[,-1]
+y_test <- as.numeric(testData$WA_WQI)
+# 4. Fit Lasso, Ridge, Elastic Net
+# ---------------------------
 set.seed(123)
-nmds2 <- metaMDS(species_data, distance="bray", k=2, trymax=100)
+lasso_model <- cv.glmnet(x_train, y_train,alpha = 1,nfolds = nrow(x_train))
+ridge_model <- cv.glmnet(x_train, y_train,alpha = 0,nfolds = nrow(x_train))
+enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5,nfolds = nrow(x_train))
+# ---------------------------
+# 5. Predictions
+# ---------------------------
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
 
-# Species arrows
-species_vectors2 <- as.data.frame(scores(nmds2, display="species"))
-colnames(species_vectors2) <- c("NMDS1","NMDS2")
-species_vectors2$species <- rownames(species_vectors2)
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
 
-# Environmental arrows
-envfit2 <- envfit(nmds2 ~ ., data=env_data, permutations=999)
-env_vectors2 <- as.data.frame(scores(envfit2, display="vectors"))
-colnames(env_vectors2) <- c("NMDS1","NMDS2")
-env_vectors2$variable <- rownames(env_vectors2)
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
 
-# Plot NMDS 2
-ggplot() +
-  # Species arrows
-  geom_segment(data=species_vectors2,
-               aes(x=0, y=0, xend=NMDS1, yend=NMDS2),
-               arrow=arrow(length=unit(0.3,"cm")), color="darkred") +
-  geom_text(data=species_vectors2,
-            aes(x=NMDS1*1.1, y=NMDS2*1.1, label=species),
-            color="darkred", size=3) +
-  # Environmental arrows
-  geom_segment(data=env_vectors2,
-               aes(x=0, y=0, xend=NMDS1, yend=NMDS2),
-               arrow=arrow(length=unit(0.3,"cm")), color="black") +
-  geom_text(data=env_vectors2,
-            aes(x=NMDS1*1.1, y=NMDS2*1.1, label=variable),
-            color="black", size=4) +
-  labs(title="NMDS 2 - Species + Environmental Vectors Only",
-       subtitle=paste0("Stress: ", round(nmds2$stress, 4)),
-       x="NMDS1", y="NMDS2") +
-  theme_minimal(base_size=14)
+# ---------------------------
+# 6. Metrics (Base R)
+# ---------------------------
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc <- function(obs, pred) {1 - sum((obs - pred)^2) /
+    sum((obs - mean(obs))^2)}
+results_WA_WQI <- data.frame(
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
+)
+
+print(results_WA_WQI)
+# ---------------------------
+# 7. PREI per sample
+# ---------------------------
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
+
+PREI_WA_WQI <- data.frame(
+  Observed = y_test,
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
+)
+
+# ---------------------------
+# 8. Predictions Table
+# ---------------------------
+predictions_WA_WQI <- data.frame(
+  Index = "WA_WQI",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
+predictions_WA_WQI
+head(predictions_WA_WQI) 
+round(100 * mean(pr == obs_c), 1)  
+#WQI_P
+base=base[1:36,]
+# 0. PREI Function
+# ---------------------------
+compute_prei <- function(observed, predicted) {
+  ((observed - as.numeric(predicted)) / observed) * 100
+}
+# ---------------------------
+# 1. Prepare Data
+# ---------------------------#Mg2+Ca2+CL+NT+BOD5+HCO3
+# "TH","HCO3","Na","T","BOD5","NO3","K","DO" 
+#CE+Ph+TDS+COD+SO4+CL+Ca2+Mg2+NT+NO2+PT+PO4+HCO3+DO
+data_model <- base %>%
+  dplyr::select(WA_WQI,WA_WQI2,WQI_P,WQI_2P,WQI_2D1,WQI_2D2,WQI_2D3,WQI_D1,WQI_D2,WQI_D3,WQI_D4,WQI_D5,Season, TH,NH4,Na,BOD5,T, TSS,NO3,K,CE ,pH, TDS,COD,SO4,CL,Ca2,Mg2,NT, NO2,PT,PO4,HCO3,DO)
+
+data_model$Season <- as.factor(data_model$Season)
+
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
+
+# ---------------------------
+# 2. Train-Test Split
+# ---------------------------
+set.seed(123)
+trainIndex <- createDataPartition(data_model$WQI_P, p = 0.7, list = FALSE)
+trainData <- data_model[trainIndex, ]
+testData  <- data_model[-trainIndex, ]
+
+# ---------------------------Season+Mg2+Ca2+CL+NT+BOD5+HCO3
+# 3. Prepare matrices for glmnet  Season+TH+NH4+Na+COD+T+PO4+NO3+TSS+NO2+pH
+# --------------------------Season+th+DO+BOD5+SO4+CL+HCO3+K+Ca2+Mg2+NT+PT+TDS
+x_train <- model.matrix(WQI_P ~ Season+Mg2+Ca2+CL+NT+BOD5+HCO3, data = trainData)[,-1]
+y_train <- as.numeric(trainData$WQI_P)
+
+x_test <- model.matrix(WQI_P ~ Season+Mg2+Ca2+CL+NT+BOD5+HCO3, data = testData)[,-1]
+y_test <- as.numeric(testData$WQI_P)
+# 4. Fit Lasso, Ridge, Elastic Net
+# ---------------------------
+set.seed(123)
+lasso_model <- cv.glmnet(x_train, y_train,alpha = 1,nfolds = nrow(x_train))
+ridge_model <- cv.glmnet(x_train, y_train,alpha = 0,nfolds = nrow(x_train))
+enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5,nfolds = nrow(x_train))
+# ---------------------------
+# 5. Predictions
+# ---------------------------
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
+
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
+
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
+
+# ---------------------------
+# 6. Metrics (Base R)
+# ---------------------------
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc <- function(obs, pred) {1 - sum((obs - pred)^2) /
+    sum((obs - mean(obs))^2)}
+results_WQI_P <- data.frame(
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
+)
+
+print(results_WQI_P)
+# ---------------------------
+# 7. PREI per sample
+# ---------------------------
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
+
+PREI_WQI_P <- data.frame(
+  Observed = y_test,
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
+)
+
+# ---------------------------
+# 8. Predictions Table
+# ---------------------------
+predictions_WQI_P <- data.frame(
+  Index = "WQI_P",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
+predictions_WQI_P
+head(predictions_WQI_P) 
+#WA_WQI2
+base=base[1:36,]
+# 0. PREI Function
+# ---------------------------
+compute_prei <- function(observed, predicted) {
+  ((observed - as.numeric(predicted)) / observed) * 100
+}
+# ---------------------------
+# 1. Prepare Data
+# ---------------------------#Mg2+Ca2+CL+NT+BOD5+HCO3
+# "TH","HCO3","Na","T","BOD5","NO3","K","DO" 
+#CE+Ph+TDS+COD+SO4+CL+Ca2+Mg2+NT+NO2+PT+PO4+HCO3+DO
+data_model <- base %>%
+  dplyr::select(WA_WQI,WA_WQI2,WQI_P,WQI_2P,WQI_2D1,WQI_2D2,WQI_2D3,WQI_D1,WQI_D2,WQI_D3,WQI_D4,WQI_D5,Season, TH,NH4,Na,BOD5,T, TSS,NO3,K,CE ,pH, TDS,COD,SO4,CL,Ca2,Mg2,NT, NO2,PT,PO4,HCO3,DO)
+
+data_model$Season <- as.factor(data_model$Season)
+
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
+
+# ---------------------------
+# 2. Train-Test Split
+# ---------------------------
+set.seed(123)
+trainIndex <- createDataPartition(data_model$WA_WQI2, p = 0.7, list = FALSE)
+trainData <- data_model[trainIndex, ]
+testData  <- data_model[-trainIndex, ]
+
+# ---------------------------Season+Mg2+Ca2+CL+NT+BOD5+HCO3
+# 3. Prepare matrices for glmnet  Season+TH+NH4+Na+COD+T+PO4+NO3+TSS+NO2+pH
+# --------------------------Season+th+DO+BOD5+SO4+CL+HCO3+K+Ca2+Mg2+NT+PT+TDS
+x_train <- model.matrix(WA_WQI2 ~ Season+TH+NH4+Na+COD+T+PO4+NO3+TSS+NO2+pH, data = trainData)[,-1]
+y_train <- as.numeric(trainData$WA_WQI2)
+
+x_test <- model.matrix(WA_WQI2 ~ Season+TH+NH4+Na+COD+T+PO4+NO3+TSS+NO2+pH, data = testData)[,-1]
+y_test <- as.numeric(testData$WA_WQI2)
+# 4. Fit Lasso, Ridge, Elastic Net
+# ---------------------------
+set.seed(123)
+lasso_model <- cv.glmnet(x_train, y_train,alpha = 1,nfolds = nrow(x_train))
+ridge_model <- cv.glmnet(x_train, y_train,alpha = 0,nfolds = nrow(x_train))
+enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5,nfolds = nrow(x_train))
+# ---------------------------
+# 5. Predictions
+# ---------------------------
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
+
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
+
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
+
+# ---------------------------
+# 6. Metrics (Base R)
+# ---------------------------
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc <- function(obs, pred) {1 - sum((obs - pred)^2) /
+    sum((obs - mean(obs))^2)}
+results_WA_WQI2 <- data.frame(
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
+)
+
+print(results_WA_WQI2)
+# ---------------------------
+# 7. PREI per sample
+# ---------------------------
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
+
+PREI_WA_WQI2 <- data.frame(
+  Observed = y_test,
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
+)
+
+# ---------------------------
+# 8. Predictions Table
+# ---------------------------
+predictions_WA_WQI2 <- data.frame(
+  Index = "WA_WQI",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
+predictions_WA_WQI2
+head(predictions_WA_WQI2) 
+#WQI_2P
+# SD of the observed response values
+# Use the same train-test split as the predictive models
+
+sd_train <- sd(y_train)
+sd_test  <- sd(y_test)
+
+cat("SD of training observations:", sd_train, "\n")
+cat("SD of test observations:", sd_test, "\n")
+
+# Compare test RMSE with test SD
+comparison_WQI_2P <- data.frame(
+  Model = results_WQI_2P$Model,
+  RMSE_Test = results_WQI_2P$RMSE_Test,
+  SD_Test = sd_test,
+  Comparison = ifelse(
+    results_WQI_2P$RMSE_Test < sd_test, 
+    "RMSE < SD",
+    ifelse(
+      results_WQI_2P$RMSE_Test > sd_test,
+      "RMSE > SD",
+      "RMSE = SD"
+    )
+  )
+)
+
+print(comparison_WQI_2P)# ---------------------------
+# 7. PREI per sample
+# ---------------------------
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
+
+PREI_WQI_2P <- data.frame(
+  Observed = y_test,
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
+)
+
+# ---------------------------
+# 8. Predictions Table
+# ---------------------------
+predictions_WQI_2P <- data.frame(
+  Index = "WA_WQI",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
+predictions_WQI_2P
+head(predictions_WQI_2P)
+
+# NRMSE 
+results_all <- data.frame(
+  Index = rep(c("WQI_P", "WQI_2P", "WA_WQI", "WA_WQI2"), each = 3),
+  Model = rep(c("Lasso", "Ridge", "Elastic Net"), 4),
+RMSE_Train = c(27.99327, 26.30428, 27.05342,16.48680, 16.75411, 16.87236,
+41.27315, 45.29402, 42.45704,66.89933, 64.02941, 68.54212),
+RMSE_Test = c(16.78011, 17.21422, 16.18972,49.27299, 49.70074, 48.72170,
+43.83290, 33.30130, 41.03658,175.3470, 179.7136, 176.1010),
+MAE_Train = c(22.43917, 20.16754, 21.23158,13.04746, 13.91106, 13.50690,
+30.09479, 33.05921, 30.86653,53.81561, 53.13258, 55.74096),
+MAE_Test = c(14.71515, 13.60869, 13.07009,31.66698, 33.10600, 30.85352,
+30.82308, 26.66373, 29.88222,123.8362, 124.9552, 125.3548),
+  R2_Train = c(0.6449392, 0.6864922, 0.6683808,0.9362579, 0.9341742, 0.9332418,
+0.7886020, 0.7454064, 0.7763005,0.9017507, 0.9099995, 0.8968662),
+  R2_Test = c(0.8065209, 0.7963807, 0.8198961,0.6890182, 0.6835954, 0.6959381,
+0.7061152, 0.8303714, 0.7424159,0.6890289, 0.6733480, 0.6863486),
+  NRMSE_SD = c(0.3539266, 0.3630827, 0.3414740,0.5216407, 0.5261692, 0.5158044,
+0.4690058, 0.3563192, 0.4390856,0.5175159, 0.5304034, 0.5197413))
+
+results_all
+sapply(
+  testData[, c("WQI_P", "WA_WQI", "WQI_2P", "WA_WQI2")],
+  sd,
+  na.rm = TRUE
+)
+results_WQI_P$NRMSE_SD <-
+  results_WQI_P$RMSE_Test / 47.41128
+
+results_WA_WQI$NRMSE_SD <-
+  results_WA_WQI$RMSE_Test / 93.45918
+
+results_WQI_2P$NRMSE_SD <-
+  results_WQI_2P$RMSE_Test / 94.45771
+
+results_WA_WQI2$NRMSE_SD <-
+  results_WA_WQI2$RMSE_Test / 338.82439
+
+# Display results
+results_WQI_P
+results_WA_WQI
+results_WQI_2P
+results_WA_WQI2
+
+##RMSE MAE R² RESULTS OF THE FIRST AND THE SECOND SELECTION PROCESS
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gridExtra)
+library(scales)
+
+# Updated results for all four indices
+all_results <- data.frame(
+  Index = rep(c("WA_WQI", "WA_WQI2", "WQI_P", "WQI_2P"), each = 3),
+  Model = rep(c("Lasso", "Ridge", "Elastic Net"), 4),
+  
+  RMSE_Train = c(
+    2.620945, 6.781391, 2.760876,
+    6.714135, 25.177807, 6.364626,
+    1.382476, 4.451806, 1.373479,
+    2.061271, 6.828805, 2.033132
+  ),
+  
+  RMSE_Test = c(
+    1.995201, 6.712790, 2.308126,
+    7.165470, 77.913300, 15.164950,
+    1.942307, 7.294901, 1.989150,
+    1.912330, 17.682945, 3.824708
+  ),
+  
+  MAE_Train = c(
+    2.272478, 5.705636, 2.382250,
+    6.029561, 18.824519, 4.817191,
+    1.155935, 3.667046, 1.140597,
+    1.673228, 5.004837, 1.706137
+  ),
+  
+  MAE_Test = c(
+    1.792769, 5.334807, 2.100481,
+    5.923571, 63.372777, 11.949023,
+    1.698618, 5.803970, 1.688066,
+    1.613838, 13.169184, 2.748229
+  ),
+  
+  R2_Train = c(
+    0.9991475, 0.9942931, 0.9990541,
+    0.9990104, 0.9860838, 0.9991107,
+    0.9991340, 0.9910202, 0.9991452,
+    0.9990036, 0.9890644, 0.9990306
+  ),
+  
+  R2_Test = c(
+    0.9993911, 0.9931074, 0.9991851,
+    0.9994807, 0.9386031, 0.9976740,
+    0.9974077, 0.9634335, 0.9972812,
+    0.9995316, 0.9599478, 0.9981262
+  )
+)
+
+# Set the order of indices and algorithms
+all_results <- all_results %>%
+  mutate(
+    Index = factor(
+      Index,
+      levels = c("WA_WQI", "WA_WQI2", "WQI_P", "WQI_2P")
+    ),
+    Model = factor(
+      Model,
+      levels = c("Lasso", "Ridge", "Elastic Net")
+    )
+  )
+
+
+print(all_results)
+##WA_WQI
+
+# ---------------------------
+# 0. PREI Function
+# ---------------------------
+compute_prei <- function(observed, predicted) {
+  ((observed - as.numeric(predicted)) / observed) * 100
+}
+# ---------------------------
+# 1. Prepare Data
+# ---------------------------
+# "TH","HCO3","Na","T","BOD5","NO3","K","DO" 
+#TH+HCO3+Na+T+BOD5+NO3+K+DO
+#"Season", "CE" ,"Ph",,"TSS","COD","SO4","CL","Ca2", "Mg2","NT","NH4", "NO2","PT", "PO4"
+#CE+Ph+TSS+COD+SO4+CL+Ca2+Mg2+NT+NH4+NO2+PT+PO4
+data_model <- base %>%
+  dplyr::select(WA_WQI,Season, TH,HCO3,Na,T,BOD5,NO3,K,DO,CE ,pH,TDS,TSS,COD,SO4,CL,Ca2,Mg2,NT,NH4, NO2,PT,PO4)
+
+data_model$Season <- as.factor(data_model$Season)
+
+if(sum(is.na(data_model)) > 0) stop("Data contains missing values!")
+
+# ---------------------------
+# 2. Train-Test Split
+# ---------------------------
+set.seed(123)
+trainIndex <- createDataPartition(data_model$WA_WQI, p = 0.7, list = FALSE)
+trainData <- data_model[trainIndex, ]
+testData  <- data_model[-trainIndex, ]
+
+# ---------------------------CE+Ph+TDS+COD+SO4+CL+Ca2+Mg2+NT+NO2+PT+PO4+HCO3+DO
+# 3. Prepare matrices for glmnet
+# ---------------------------TH+NH4+Na+BOD5+T+TSS+NO3+K
+x_train <- model.matrix(WA_WQI ~ Season+CE+DO+BOD5+SO4+CL+HCO3+K+Ca2+Mg2+NT+PT+TDS, data = trainData)[,-1]
+y_train <- as.numeric(trainData$WA_WQI)
+
+x_test <- model.matrix(WA_WQI ~ Season+CE+DO+BOD5+SO4+CL+HCO3+K+Ca2+Mg2+NT+PT+TDS, data = testData)[,-1]
+y_test <- as.numeric(testData$WA_WQI)
+
+# ---------------------------
+# 4. Fit Lasso, Ridge, Elastic Net
+# ---------------------------
+set.seed(123)
+lasso_model <- cv.glmnet(x_train, y_train,alpha = 1,nfolds = nrow(x_train))
+ridge_model <- cv.glmnet(x_train, y_train,alpha = 0,nfolds = nrow(x_train))
+enet_model <- cv.glmnet(x_train, y_train, alpha = 0.5,nfolds = nrow(x_train))
+# ---------------------------
+# 5. Predictions
+# ---------------------------
+pred_lasso_train <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_train))
+pred_lasso_test  <- as.numeric(predict(lasso_model, s = "lambda.min", newx = x_test))
+
+pred_ridge_train <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_train))
+pred_ridge_test  <- as.numeric(predict(ridge_model, s = "lambda.min", newx = x_test))
+
+pred_enet_train  <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_train))
+pred_enet_test   <- as.numeric(predict(enet_model, s = "lambda.min", newx = x_test))
+
+# ---------------------------
+# 6. Metrics (Base R)
+# ---------------------------
+rmse_calc <- function(obs, pred) sqrt(mean((obs - pred)^2))
+mae_calc  <- function(obs, pred) mean(abs(obs - pred))
+r2_calc   <- function(obs, pred) cor(obs, pred)^2
+
+results_WA_WQI <- data.frame(
+  Model = c("Lasso", "Ridge", "Elastic Net"),
+  RMSE_Train = c(rmse_calc(y_train, pred_lasso_train),
+                 rmse_calc(y_train, pred_ridge_train),
+                 rmse_calc(y_train, pred_enet_train)),
+  RMSE_Test  = c(rmse_calc(y_test, pred_lasso_test),
+                 rmse_calc(y_test, pred_ridge_test),
+                 rmse_calc(y_test, pred_enet_test)),
+  MAE_Train  = c(mae_calc(y_train, pred_lasso_train),
+                 mae_calc(y_train, pred_ridge_train),
+                 mae_calc(y_train, pred_enet_train)),
+  MAE_Test   = c(mae_calc(y_test, pred_lasso_test),
+                 mae_calc(y_test, pred_ridge_test),
+                 mae_calc(y_test, pred_enet_test)),
+  R2_Train   = c(r2_calc(y_train, pred_lasso_train),
+                 r2_calc(y_train, pred_ridge_train),
+                 r2_calc(y_train, pred_enet_train)),
+  R2_Test    = c(r2_calc(y_test, pred_lasso_test),
+                 r2_calc(y_test, pred_ridge_test),
+                 r2_calc(y_test, pred_enet_test))
+)
+
+print(results_WA_WQI)
+# ---------------------------
+# 7. PREI per sample
+# ---------------------------
+prei_lasso_test <- compute_prei(y_test, pred_lasso_test)
+prei_ridge_test <- compute_prei(y_test, pred_ridge_test)
+prei_enet_test  <- compute_prei(y_test, pred_enet_test)
+
+PREI_WA_WQI <- data.frame(
+  Observed = y_test,
+  PREI_Lasso = prei_lasso_test,
+  PREI_Ridge = prei_ridge_test,
+  PREI_ElasticNet = prei_enet_test
+)
+
+# ---------------------------
+# 8. Predictions Table
+# ---------------------------
+predictions_WA_WQI <- data.frame(
+  Index = "WA_WQI",
+  Actual = y_test,
+  Lasso = pred_lasso_test,
+  Ridge = pred_ridge_test,
+  Elastic_Net = pred_enet_test
+)
+
+head(predictions_WA_WQI) 
+#WQI_P
+
+#WQI_2P
+#WA_WQI2
+# 1. LOAD PACKAGES
+# ============================================================
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(scales)
+
+
+# ============================================================
+# 2. COMBINE THE FOUR RESULT DATA FRAMES
+# ============================================================
+
+all_results <- bind_rows(
+  results_WA_WQI %>%
+    mutate(Index = "WA_WQI"),
+  
+  results_WQI_P %>%
+    mutate(Index = "WQI_P"),
+  
+  results_WA_WQI2 %>%
+    mutate(Index = "WA_WQI2"),
+  
+  results_WQI_2P %>%
+    mutate(Index = "WQI_2P")
+) %>%
+  select(
+    Index, Model,
+    RMSE_Train, RMSE_Test,
+    MAE_Train, MAE_Test,
+    R2_Train, R2_Test
+  ) %>%
+  mutate(
+    Index = factor(
+      Index,
+      levels = c("WA_WQI", "WQI_P", "WA_WQI2", "WQI_2P")
+    ),
+    Model = factor(
+      Model,
+      levels = c("Lasso", "Ridge", "Elastic Net")
+    )
+  )
+
+print(all_results)
+
+
+# ============================================================
+# 3. CONVERT RESULTS TO LONG FORMAT
+# ============================================================
+
+metrics_long <- all_results %>%
+  pivot_longer(
+    cols = c(
+      RMSE_Train, RMSE_Test,
+      MAE_Train, MAE_Test,
+      R2_Train, R2_Test
+    ),
+    names_to = c("Metric", "Dataset"),
+    names_pattern = "(RMSE|MAE|R2)_(Train|Test)",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Dataset = factor(Dataset, levels = c("Train", "Test"))
+  )
+
+
+# ============================================================
+# 4. FUNCTION TO CREATE ONE SELECTION-PROCESS FIGURE
+# ============================================================
+
+make_selection_figure <- function(index_names, figure_title) {
+  
+  plot_data <- metrics_long %>%
+    filter(Index %in% index_names)
+  
+  make_panel <- function(metric_name, panel_title, y_label) {
+    
+    d <- plot_data %>%
+      filter(Metric == metric_name)
+    
+    ymax <- max(d$Value, na.rm = TRUE)
+    
+    # Shared y-axis across the two indices in this panel
+    upper_limit <- if (metric_name == "R2") {
+      max(1.05, ymax * 1.10)
+    } else {
+      ymax * 1.15
+    }
+    
+    ggplot(
+      d,
+      aes(x = Model, y = Value, fill = Dataset)
+    ) +
+      geom_col(
+        position = position_dodge(width = 0.82),
+        width = 0.70,
+        color = "black",
+        linewidth = 0.25
+      ) +
+      geom_text(
+        aes(label = sprintf("%.2f", Value)),
+        position = position_dodge(width = 0.82),
+        vjust = -0.30,
+        size = 2.7
+      ) +
+      facet_wrap(
+        ~ Index,
+        ncol = 2,
+        scales = "fixed"
+      ) +
+      scale_fill_brewer(palette = "Paired") +
+      scale_y_continuous(
+        limits = c(0, upper_limit),
+        breaks = scales::breaks_pretty(n = 5),
+        expand = expansion(mult = c(0, 0.02))
+      ) +
+      labs(
+        title = panel_title,
+        x = "Algorithm",
+        y = y_label,
+        fill = "Dataset"
+      ) +
+      theme_minimal(base_size = 11) +
+      theme(
+        plot.title = element_text(
+          face = "bold",
+          hjust = 0.5
+        ),
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(
+          angle = 15,
+          hjust = 1
+        ),
+        legend.position = "bottom",
+        panel.grid.minor = element_blank()
+      )
+  }
+  
+  p_rmse <- make_panel("RMSE", "RMSE", "RMSE")
+  p_mae  <- make_panel("MAE", "MAE", "MAE")
+  p_r2   <- make_panel(
+    "R2",
+    expression(R^2),
+    expression("Predictive " * R^2)
+  )
+  
+  # Stack RMSE, MAE, and R² panels into one figure
+  (p_rmse / p_mae / p_r2) +
+    plot_annotation(
+      title = figure_title,
+      theme = theme(
+        plot.title = element_text(
+          face = "bold",
+          size = 15,
+          hjust = 0.5
+        )
+      )
+    )
+}
+
+
+# ============================================================
+# 5. FIGURE 1: FIRST SELECTION PROCESS (10 VARIABLES)
+# ============================================================
+
+fig_first_selection <- make_selection_figure(
+  index_names = c("WA_WQI", "WQI_P"),
+  figure_title = "First Variable-Selection Process (10 Variables)"
+)
+
+print(fig_first_selection)
+
+
+# ============================================================
+# 6. FIGURE 2: SECOND SELECTION PROCESS (6 VARIABLES)
+# ============================================================
+
+fig_second_selection <- make_selection_figure(
+  index_names = c("WA_WQI2", "WQI_2P"),
+  figure_title = "Second Variable-Selection Process (6 Variables)"
+)
+
+print(fig_second_selection)
+#ALL ACTUAL AND REAL
+Predictions_All <- rbind(
+  predictions_WQI_D1,
+  predictions_WQI_D2,
+  predictions_WQI_D3,
+  predictions_WQI_D4,
+  predictions_WQI_P,
+  predictions_WA_WQI
+)
+
+# Display the combined data frame
+Predictions_All
+# Add Index name to each result table
+results_WQI_D1$Index  <- "WQI_D1"
+results_WQI_D2$Index  <- "WQI_D2"
+results_WQI_D3$Index  <- "WQI_D3"
+results_WQI_D4$Index  <- "WQI_D4"
+results_WQI_P$Index   <- "WQI_P"
+results_WA_WQI$Index   <- "WA_WQI"
+
+# Combine all tables
+final_results <- rbind(
+  results_WQI_D1,
+  results_WQI_D2,
+  results_WQI_D3,
+  results_WQI_D4,
+  results_WQI_P,
+  results_WA_WQI
+)
+
+# Reorder columns for better presentation
+final_results <- final_results[, c("Index","Model",
+                                   "RMSE_Train","RMSE_Test",
+                                   "MAE_Train","MAE_Test",
+                                   "R2_Train","R2_Test")]
+
+print(final_results)
+metric=final_results
+metric=metric1
+metric2=metric
+metric=metric1
+# Prepare RMSE data
+metric_RMSE <- metric %>%
+  select(Index, Model, RMSE_Train, RMSE_Test) %>%
+  pivot_longer(cols = -c(Index, Model),
+               names_to = "Dataset",
+               names_pattern = "RMSE_(.*)",
+               values_to = "Value")
+
+# Prepare MAE data
+metric_MAE <- metric %>%
+  select(Index, Model, MAE_Train, MAE_Test) %>%
+  pivot_longer(cols = -c(Index, Model),
+               names_to = "Dataset",
+               names_pattern = "MAE_(.*)",
+               values_to = "Value")
+# Common y-axis limits
+RMSE_max <- ceiling(max(metric_RMSE$Value))
+MAE_max  <- ceiling(max(metric_MAE$Value))
+# WQI_P
+R_WQI_P <- ggplot(metric_RMSE %>% filter(Index == "WQI_P"),
+                  aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value,2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, 1),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WQI_P - RMSE Train vs Test",
+       x = "Algorithm",
+       y = "RMSE",
+       fill = "Dataset")
+
+
+
+M_WQI_P <- ggplot(metric_MAE %>% filter(Index == "WQI_P"),
+                  aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value,2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, 1),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WQI_P - MAE Train vs Test",
+       x = "Algorithm",
+       y = "MAE",
+       fill = "Dataset")
+
+A <- grid.arrange(R_WQI_P, M_WQI_P, ncol = 1)
+
+# WQI_D1
+R_WQI_D1 <- ggplot(metric_RMSE %>% filter(Index == "WQI_D1"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value,2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, 1),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WQI_D1 - RMSE Train vs Test",
+       x = "Algorithm",
+       y = "RMSE",
+       fill = "Dataset")
+
+
+M_WQI_D1 <- ggplot(metric_MAE %>% filter(Index == "WQI_D1"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value,2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, 1),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WQI_D1 - MAE Train vs Test",
+       x = "Algorithm",
+       y = "MAE",
+       fill = "Dataset")
+
+B <- grid.arrange(R_WQI_D1, M_WQI_D1, ncol = 1)
+
+# WQI_D2
+R_WQI_D2 <- ggplot(metric_RMSE %>% filter(Index == "WQI_D2"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value,2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, 1),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WQI_D2 - RMSE Train vs Test",
+       x = "Algorithm",
+       y = "RMSE",
+       fill = "Dataset")
+
+M_WQI_D2 <- ggplot(metric_MAE %>% filter(Index == "WQI_D2"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value,2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, 1),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WQI_D2 - MAE Train vs Test",
+       x = "Algorithm",
+       y = "MAE",
+       fill = "Dataset")
+
+C <- grid.arrange(R_WQI_D2, M_WQI_D2, ncol = 1)
+
+# WQI_D3
+R_WQI_D3 <- ggplot(metric_RMSE %>% filter(Index == "WQI_D3"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value,2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, 1),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WQI_D3 - RMSE Train vs Test",
+       x = "Algorithm",
+       y = "RMSE",
+       fill = "Dataset")
+
+M_WQI_D3 <- ggplot(metric_MAE %>% filter(Index == "WQI_D3"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value,2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, 1),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WQI_D3 - MAE Train vs Test",
+       x = "Algorithm",
+       y = "MAE",
+       fill = "Dataset")
+
+D <- grid.arrange(R_WQI_D3, M_WQI_D3, ncol = 1)
+
+# WQI_D4
+R_WQI_D4 <- ggplot(metric_RMSE %>% filter(Index == "WQI_D4"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value,2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, 5),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WQI_D4 - RMSE Train vs Test",
+       x = "Algorithm",
+       y = "RMSE",
+       fill = "Dataset")
+
+M_WQI_D4 <- ggplot(metric_MAE %>% filter(Index == "WQI_D4"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value,2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, 5),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WQI_D4 - MAE Train vs Test",
+       x = "Algorithm",
+       y = "MAE",
+       fill = "Dataset")
+
+E <- grid.arrange(R_WQI_D4, M_WQI_D4, ncol = 1)
+##WA_WQI
+R_WA_WQI <- ggplot(metric_RMSE %>% filter(Index == "WA_WQI"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value, 2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 41),
+    breaks = seq(0, 41, 5),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WA_WQI - RMSE Train vs Test",
+       x = "Algorithm",
+       y = "RMSE",
+       fill = "Dataset")
+
+M_WA_WQI <- ggplot(metric_MAE %>% filter(Index == "WA_WQI"),
+                   aes(x = Model, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = round(Value, 2)),
+            position = position_dodge(0.9),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(
+    limits = c(0, 41),
+    breaks = seq(0,41, 5),
+    expand = expansion(mult = c(0, 0.08))
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(title = "WA_WQI - MAE Train vs Test",
+       x = "Algorithm",
+       y = "MAE",
+       fill = "Dataset")
+
+I <- grid.arrange(R_WA_WQI, M_WA_WQI, ncol = 1)
+grid.arrange(M_WQI_D1, M_WQI_D2, M_WQI_D3,M_WQI_D4,M_WQI_P,M_WA_WQI ,ncol=3)
+grid.arrange(R_WQI_D1, R_WQI_D2, R_WQI_D3,R_WQI_D4,R_WQI_P,R_WA_WQI ,ncol=3)
+library(ggplot2)
+library(patchwork)  # for arranging multiple plots#REGRESSION ACTUAL PREDICTED VALUES
+actual=Predictions_All
+dim(actual)
+head(actual)
+library(ggplot2)
+library(patchwork)  # for arranging multiple plots
+# Split the data by Index
+actual_list <- split(actual, actual$Index)
+
+# Function to create regression plot for a specific algorithm, line in red, with legend and confidence interval
+plot_regression <- function(df, pred_col, algorithm_name) {
+  lm_model <- lm(df[[pred_col]] ~ df$Actual)
+  r2 <- summary(lm_model)$r.squared
+  
+  ggplot(df, aes(x = Actual, y = .data[[pred_col]])) +
+    geom_point(color = "steelblue", size = 2) +
+    geom_smooth(method = "lm", color = "red", aes(linetype = algorithm_name), se = TRUE, fill = "pink", alpha = 0.2) +
+    labs(title = df$Index[1],
+         subtitle = paste0("R² = ", round(r2, 3)),
+         x = "Actual",
+         y = "Predicted",
+         linetype = "Algorithm") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 10),
+          plot.subtitle = element_text(size = 9),
+          legend.position = "bottom")
+}
+
+# ------------------------
+# 1. Lasso plots
+# ------------------------
+plots_lasso <- lapply(actual_list, function(df) plot_regression(df, "Lasso", "Lasso"))
+lasso_grid <- wrap_plots(plots_lasso, ncol = 3)  # 3 columns x 3 rows
+
+# ------------------------
+# 2. Ridge plots
+# ------------------------
+plots_ridge <- lapply(actual_list, function(df) plot_regression(df, "Ridge", "Ridge"))
+ridge_grid <- wrap_plots(plots_ridge, ncol = 3)
+
+# ------------------------
+# 3. Elastic Net plots
+# ------------------------
+plots_enet <- lapply(actual_list, function(df) plot_regression(df, "Elastic_Net", "Elastic Net"))
+enet_grid <- wrap_plots(plots_enet, ncol = 3)
+
+# ------------------------
+# Display the figures
+
+# ------------------------
+lasso_grid
+ridge_grid
+enet_grid
+#glm WA_WQI
+glm_WA_WQI=glm(log(WA_WQI)~TH+NH4+Na+COD+T+PO4+NO3+TSS+NO2+pH, data=base, family="gaussian")
+check_collinearity(glm_WA_WQI)
+check_residuals(glm_WA_WQI)
+check_heteroscedasticity(glm_WA_WQI)
+summary(glm_WA_WQI)
+#GLM WQI_P
+glm_WQI_P=glm(log(WQI_P)~TH+NH4+Na+COD+T+PO4+NO3+TSS+NO2+pH, data=base, family="gaussian")
+check_collinearity(glm_WQI_P)
+check_residuals(glm_WQI_P)
+check_heteroscedasticity(glm_WQI_P)
+summary(glm_WQI_P)
+#WA_WQI2
+glm_WA_WQI2=glm(log(WA_WQI2)~Mg2+Ca2+CL+NT+BOD5+HCO3, data=base, family="gaussian")
+check_collinearity(glm_WA_WQI2)
+check_residuals(glm_WA_WQI2)
+check_heteroscedasticity(glm_WA_WQI2)
+summary(glm_WA_WQI2)
+#WQI_2P
+glm_WQI_2P=glm(log(WQI_2P)~Mg2+Ca2+CL+NT+BOD5+HCO3, data=base, family="gaussian")
+check_collinearity(glm_WQI_2P)
+check_residuals(glm_WQI_2P)
+check_heteroscedasticity(glm_WQI_2P)
+summary(glm_WQI_2P)
+#GLM WQI_D1
+glm_WQI_D1=glm(log(WQI_D1)~TH+NH4+Na+BOD5+T+ TSS+NO3+K, data=base, family="gaussian")
+check_collinearity(glm_WQI_D1)
+check_residuals(glm_WQI_D1)
+check_heteroscedasticity(glm_WQI_D1)
+summary(glm_WQI_D1)
+#WQI_D2
+glm_WQI_D2=glm(sqrt(WQI_D2)~TH+NH4+Na+BOD5+T+ TSS+NO3+K, data=base, family="gaussian")
+check_collinearity(glm_WQI_D2)
+check_residuals(glm_WQI_D2)
+check_heteroscedasticity(glm_WQI_D2)
+summary(glm_WQI_D2)
+#WQI_D3
+glm_WQI_D3=glm(log(WQI_D3)~TH+NH4+Na+BOD5+T+ TSS+NO3+K, data=base, family="gaussian")
+check_collinearity(glm_WQI_D3)
+check_residuals(glm_WQI_D3)
+check_heteroscedasticity(glm_WQI_D3)
+summary(glm_WQI_D3)
+#glm WQI_D4
+glm_WQI_D4=glm(log(WQI_D4)~TH+NH4+Na+BOD5+T+ TSS+NO3+K, data=base, family="gaussian")
+check_collinearity(glm_WQI_D4)
+check_residuals(glm_WQI_D4)
+check_heteroscedasticity(glm_WQI_D4)
+summary(glm_WQI_D4)
+G_WQI_2P=ggcoef_model(glm_WQI_2P) + 
+  ggtitle("GLM  on WQI_2P")
+G_WQI_2P
+G_WA_WQI2=ggcoef_model(glm_WA_WQI2) + 
+  ggtitle("GLM  on WA_WQI2")
+G_WA_WQI2
+G_WQI_P=ggcoef_model(glm_WQI_P) + 
+  ggtitle("GLM  on WQI_P")
+G_WQI_P
+G_WA_WQI=ggcoef_model(glm_WA_WQI) + 
+  ggtitle("GLM on WA_WQI")
+G_WA_WQI
+G_WQI_D1=ggcoef_model(glm_WQI_D1) + 
+  ggtitle("GLM  on WQI_D1")
+G_WQI_D1
+G_WQI_D2=ggcoef_model(glm_WQI_D2) + 
+  ggtitle("GLM on WQI_D2")
+G_WQI_D2
+G_WQI_D3=ggcoef_model(glm_WQI_D3) + 
+  ggtitle("GLM  on WQI_D3")
+G_WQI_D3
+G_WQI_D4=ggcoef_model(glm_WQI_D4) + 
+  ggtitle("GLM on WQI_D4")
+G_WQI_D4
+grid.arrange(G_WA_WQI, G_WQI_P, G_WA_WQI2, G_WQI_2P, ncol=2)
+b
+
+
+###for the second part of the discussion section, about NH4 discussion
+library(dplyr)
+
+base %>%
+  summarise(
+    n_total = n(),
+    n_NH4_gt_050 = sum(NH4 > 0.50, na.rm = TRUE),
+    n_WQI_P_le_50 = sum(WQI_P <= 50, na.rm = TRUE),
+    n_both_gt050_and_WQI_gt50 =
+      sum(NH4 > 0.50 & WQI_P > 50, na.rm = TRUE),
+    min_WQI_P_gt050 =
+      if (any(NH4 > 0.50, na.rm = TRUE))
+        min(WQI_P[NH4 > 0.50], na.rm = TRUE) else NA_real_,
+    max_WQI_P_gt050 =
+      if (any(NH4 > 0.50, na.rm = TRUE))
+        max(WQI_P[NH4 > 0.50], na.rm = TRUE) else NA_real_,
+    mean_WQI_P_le050 =
+      if (any(NH4 <= 0.50, na.rm = TRUE))
+        mean(WQI_P[NH4 <= 0.50], na.rm = TRUE) else NA_real_,
+    median_WQI_P_le050 =
+      if (any(NH4 <= 0.50, na.rm = TRUE))
+        median(WQI_P[NH4 <= 0.50], na.rm = TRUE) else NA_real_
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+J
+# ============================================================
+# PCA BOOTSTRAP + WQI_P WEIGHT UNCERTAINTY
+# ============================================================
+#
+# ahlem = 22-variable dataset used for PCA
+#
+# 36 observations
+# 4 Seasons
+# 9 observations per Season
+# No Station variable
+#
+# ============================================================
+
+
+# ============================================================
+# 15. PUBLICATION-READY FIGURE: NORMALIZED WEIGHT DISTRIBUTIONS
+# ============================================================
+
+library(ggplot2)
+library(dplyr)
+
+bootstrap_a_plot <- bootstrap_a %>%
+  dplyr::mutate(Index = "WQI_P")
+
+bootstrap_b_plot <- bootstrap_b %>%
+  dplyr::mutate(Index = "WQI_2P")
+
+weight_plot_data <- dplyr::bind_rows(
+  bootstrap_a_plot,
+  bootstrap_b_plot
+) %>%
+  dplyr::mutate(
+    Component = factor(
+      Component,
+      levels = paste0("D", 1:5)
+    ),
+    Index = factor(
+      Index,
+      levels = c("WQI_P", "WQI_2P")
+    )
+  )
+
+original_plot_data <- dplyr::bind_rows(
+  data.frame(
+    Index = "WQI_P",
+    Component = names(original_weights_a),
+    Original = as.numeric(original_weights_a)
+  ),
+  data.frame(
+    Index = "WQI_2P",
+    Component = names(original_weights_b),
+    Original = as.numeric(original_weights_b)
+  )
+) %>%
+  dplyr::mutate(
+    Component = factor(
+      Component,
+      levels = paste0("D", 1:5)
+    ),
+    Index = factor(
+      Index,
+      levels = c("WQI_P", "WQI_2P")
+    )
+  )
+
+# Elegant, publication-friendly colors
+index_colors <- c(
+  "WQI_P" = "#2878B5",
+  "WQI_2P" = "#E07A35"
+)
+
+p_weights <- ggplot(
+  weight_plot_data,
+  aes(
+    x = Component,
+    y = Weight_percent,
+    fill = Index,
+    color = Index
+  )
+) +
+  geom_boxplot(
+    width = 0.62,
+    linewidth = 0.55,
+    outlier.shape = NA,
+    alpha = 0.78
+  ) +
+  geom_point(
+    data = original_plot_data,
+    aes(
+      x = Component,
+      y = Original
+    ),
+    inherit.aes = FALSE,
+    shape = 23,
+    size = 3.4,
+    stroke = 0.8,
+    fill = "#FFFFFF",
+    color = "#252525"
+  ) +
+  facet_wrap(
+    ~Index,
+    scales = "free_x"
+  ) +
+  scale_fill_manual(
+    values = index_colors
+  ) +
+  scale_color_manual(
+    values = index_colors
+  ) +
+  labs(
+    title = "Bootstrap uncertainty of PCA-derived WQI weights",
+    subtitle = "Normalized component weights across 1,000 season-stratified resamples",
+    x = "Principal component",
+    y = "Normalized weight (%)",
+    caption = "Boxes show bootstrap distributions; diamonds indicate the original normalized weights."
+  ) +
+  theme_classic(base_size = 13) +
+  theme(
+    plot.title = element_text(
+      face = "bold",
+      size = 15,
+      color = "#202A35",
+      margin = margin(b = 6)
+    ),
+    plot.subtitle = element_text(
+      size = 10.5,
+      color = "#596675",
+      margin = margin(b = 12)
+    ),
+    strip.background = element_rect(
+      fill = "#EEF2F6",
+      color = NA
+    ),
+    strip.text = element_text(
+      face = "bold",
+      size = 12,
+      color = "#243447",
+      margin = margin(7, 7, 7, 7)
+    ),
+    axis.title = element_text(
+      face = "bold",
+      color = "#263442"
+    ),
+    axis.text = element_text(
+      color = "#354052",
+      size = 10.5
+    ),
+    axis.line = element_line(
+      color = "#8793A1",
+      linewidth = 0.45
+    ),
+    axis.ticks = element_line(
+      color = "#8793A1",
+      linewidth = 0.4
+    ),
+    panel.spacing = grid::unit(1.2, "lines"),
+    legend.position = "none",
+    plot.caption = element_text(
+      color = "#657180",
+      size = 9,
+      hjust = 0,
+      margin = margin(t = 10)
+    ),
+    plot.background = element_rect(
+      fill = "white",
+      color = NA
+    ),
+    panel.background = element_rect(
+      fill = "white",
+      color = NA
+    ),
+    plot.margin = margin(14, 16, 12, 12)
+  )
+
+print(p_weights)
+
+####
+
+# ============================================================
+# 16. PUBLICATION-READY FIGURE: PROPAGATED WQI UNCERTAINTY
+# ============================================================
+
+relative_change_a <- WQI_P_MC %>%
+  dplyr::transmute(
+    Index = "WQI_P",
+    Relative_change_percent = dplyr::if_else(
+      Original_WQI_P != 0,
+      (WQI_P_boot - Original_WQI_P) /
+        abs(Original_WQI_P) * 100,
+      NA_real_
+    )
+  )
+
+relative_change_b <- WQI_2P_MC %>%
+  dplyr::transmute(
+    Index = "WQI_2P",
+    Relative_change_percent = dplyr::if_else(
+      Original_WQI_2P != 0,
+      (WQI_2P_boot - Original_WQI_2P) /
+        abs(Original_WQI_2P) * 100,
+      NA_real_
+    )
+  )
+
+relative_change_data <- dplyr::bind_rows(
+  relative_change_a,
+  relative_change_b
+) %>%
+  dplyr::filter(
+    is.finite(Relative_change_percent)
+  ) %>%
+  dplyr::mutate(
+    Index = factor(
+      Index,
+      levels = c("WQI_P", "WQI_2P")
+    )
+  )
+
+# Calculate summary statistics separately for each index
+change_summary <- relative_change_data %>%
+  dplyr::group_by(Index) %>%
+  dplyr::summarise(
+    Mean_change = mean(Relative_change_percent),
+    Lower95 = stats::quantile(
+      Relative_change_percent, 0.025
+    ),
+    Upper95 = stats::quantile(
+      Relative_change_percent, 0.975
+    ),
+    .groups = "drop"
+  )
+
+index_colors <- c(
+  "WQI_P" = "#2878B5",
+  "WQI_2P" = "#E07A35"
+)
+
+p_wqi_change <- ggplot(
+  relative_change_data,
+  aes(
+    x = Relative_change_percent,
+    fill = Index,
+    color = Index
+  )
+) +
+  geom_histogram(
+    bins = 55,
+    alpha = 0.72,
+    linewidth = 0.25
+  ) +
+  geom_vline(
+    xintercept = 0,
+    color = "#303943",
+    linetype = "dashed",
+    linewidth = 0.85
+  ) +
+  geom_vline(
+    data = change_summary,
+    aes(
+      xintercept = Mean_change,
+      color = Index
+    ),
+    linewidth = 1,
+    inherit.aes = FALSE
+  ) +
+  facet_wrap(
+    ~Index,
+    scales = "free"
+  ) +
+  scale_fill_manual(
+    values = index_colors
+  ) +
+  scale_color_manual(
+    values = index_colors
+  ) +
+  labs(
+    title = "Propagation of PCA-weight uncertainty into WQI values",
+    subtitle = "Relative deviation from the original index across bootstrap replicates",
+    x = "Relative change from original WQI (%)",
+    y = "Frequency",
+    caption = "Dashed vertical line: zero change. Solid vertical line: mean relative change across the bootstrap results."
+  ) +
+  theme_classic(base_size = 13) +
+  theme(
+    plot.title = element_text(
+      face = "bold",
+      size = 15,
+      color = "#202A35",
+      margin = margin(b = 6)
+    ),
+    plot.subtitle = element_text(
+      size = 10.5,
+      color = "#596675",
+      margin = margin(b = 12)
+    ),
+    strip.background = element_rect(
+      fill = "#EEF2F6",
+      color = NA
+    ),
+    strip.text = element_text(
+      face = "bold",
+      size = 12,
+      color = "#243447",
+      margin = margin(7, 7, 7, 7)
+    ),
+    axis.title = element_text(
+      face = "bold",
+      color = "#263442"
+    ),
+    axis.text = element_text(
+      color = "#354052",
+      size = 10.5
+    ),
+    axis.line = element_line(
+      color = "#8793A1",
+      linewidth = 0.45
+    ),
+    axis.ticks = element_line(
+      color = "#8793A1",
+      linewidth = 0.4
+    ),
+    panel.spacing = grid::unit(1.2, "lines"),
+    legend.position = "none",
+    plot.caption = element_text(
+      color = "#657180",
+      size = 9,
+      hjust = 0,
+      margin = margin(t = 10)
+    ),
+    plot.background = element_rect(
+      fill = "white",
+      color = NA
+    ),
+    panel.background = element_rect(
+      fill = "white",
+      color = NA
+    ),
+    plot.margin = margin(14, 16, 12, 12)
+  )
+
+print(p_wqi_change)
+
+weight_summary_both
+change_summary
+print(final_WQI_uncertainty_rounded, n = Inf)
+final_WQI_uncertainty_rounded %>%
+  dplyr::group_by(Index) %>%
+  dplyr::summarise(
+    Mean_relative_difference = mean(Relative_difference_percent, na.rm = TRUE),
+    Min_relative_difference = min(Relative_difference_percent, na.rm = TRUE),
+    Max_relative_difference = max(Relative_difference_percent, na.rm = TRUE),
+    Observations_below_CI = sum(Original_WQI < Lower95, na.rm = TRUE),
+    Observations_above_CI = sum(Original_WQI > Upper95, na.rm = TRUE),
+    Observations_inside_CI = sum(
+      Original_WQI >= Lower95 & Original_WQI <= Upper95,
+      na.rm = TRUE
+    ),
+    .groups = "drop"
+  )
 
