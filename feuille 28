@@ -1,4 +1,4 @@
-###inverebrate article
+###inverebrate article 
 base<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/Classeur2.csv")
 base=read.csv2("D:/moste/OneDrive/Bureau/Bureau/mostefa inv/FIGURES/data.csv")
 dim(base)
