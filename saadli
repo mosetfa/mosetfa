@@ -1,0 +1,1137 @@
+## Hi there 👋
+##saadali
+saad<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/saadali/saadli.csv")
+saad$BOD5=as.numeric(saad$BOD5)
+saad$COD=as.numeric(saad$COD)
+saad$Months=as.factor(saad$Months)
+str(saad)
+saad$TDS=as.numeric(saad$TDS)
+saad$NO3=as.numeric(saad$NO3)
+str(saad)
+saad$DAM=as.factor(saad$DAM)
+str(saad)
+names(saad)
+s=saad%>%gather(key="Parameters", value="Values",pH,TDS,NO3,NO2,NH4,PO43,BOD5,COD,OM)
+s$=scale(s$Values)
+head(s)
+# Select numeric variables, excluding Months
+vars <- names(saad)[sapply(saad, is.numeric)]
+vars <- setdiff(vars, "Months")
+# Scale the selected variables
+saad_scaled <- saad
+saad_scaled[vars] <- scale(saad[vars])
+s=saad_scaled%>%gather(key="Parameters", value="Values",pH,TDS,NO3,NO2,NH4,PO43,BOD5,COD,OM)
+ggboxplot(s,x="Parameters",y="Values", color="DAM",add="jitter")
+##PCA
+#saad<-read.csv2("D:/moste/OneDrive/Bureau/Bureau/BOUCHERA/saadali/saadli.csv")
+names(saad)
+library(factoextra)
+library(FactoMineR)
+library(corrplot)
+A=saad[1:27,]
+B=saad[28:54,]
+c=saad[55:81,]
+a=saad[,2:10]
+View(a)
+res.pca=PCA(a, graph=TRUE)
+get_eigenvalue(res.pca)
+b=B[,2:10]
+View(b)
+res.pca=PCA(, graph=TRUE)
+get_eigenvalue(res.pca)
+c=A3[,2:10]
+View(c)
+res.pca=PCA(c, graph=TRUE)
+get_eigenvalue(res.pca)
+a=saad[,2:10]
+View(a)
+res.pca=PCA(a, graph=TRUE)
+get_eigenvalue(res.pca)
+###extract the most important variables of each dimension
+var <- get_pca_var(res.pca)
+var
+corrplot(var$contrib, is.corr=FALSE) 
+var$contrib
+### We should consider the correlation matrix to eliminate variables that have high correlation(grather than 0.7) values with each other.
+#TH+NH4+Na+COD+T+TSS+NO3+K
+fviz_contrib(res.pca, choice = "var", axes = 1)
+fviz_contrib(res.pca, choice = "var", axes = 2)
+g=glm(pH~OM+COD+NO3+NO2, data=a, family="gaussian")
+check_collinearity(g)
+cor(a$OM,a$NO2)
+var$contrib["OM",1:2]
+var$contrib["COD",1:2]
+var$contrib["NO3",1:2]
+var$contrib["NO2",1:2]
+#standard limit
+OM=10
+COD=40
+NO3=50
+NO2=0.9
+
+### WQI_D1: PC1 contribution weights
+base1=a
+OM  <- var$contrib["OM", 1]
+COD <- var$contrib["COD", 1]
+NO3 <- var$contrib["NO3", 1]
+NO2 <- var$contrib["NO2", 1]
+
+### Standard limits
+OM_std  <- 10
+COD_std <- 40
+NO3_std <- 50
+NO2_std <- 0.9
+
+### Construct the weight matrix
+df <- data.frame(
+  OM  = rep(OM, 81),
+  COD = rep(COD, 81),
+  NO3 = rep(NO3, 81),
+  NO2 = rep(NO2, 81)
+)
+
+base_D1 <- df
+
+### Normalize weights
+S <- base_D1
+ES <- sum(S[1, ], na.rm = TRUE)
+
+WI <- base_D1 / ES
+head(WI,1)
+### Check that weights sum to 1
+sum(WI[1, ], na.rm = TRUE)
+
+### Calculate quality ratings
+q1 <- data.frame(
+  OM  = base1[, "OM"] / OM_std * 100,
+  COD = base1[, "COD"] / COD_std * 100,
+  NO3 = base1[, "NO3"] / NO3_std * 100,
+  NO2 = base1[, "NO2"] / NO2_std * 100
+)
+
+### Calculate weighted sub-indices
+WQI_D1 <- q1 * WI
+
+### Calculate WQI for each sample
+WQI_D1 <- rowSums(WQI_D1, na.rm = TRUE)
+
+### Final results
+WQI_D1 <- data.frame(WQI_D1)
+summary(WQI_D1)
+head(a)
+head(WQI_D1)
+#WQI_D2
+base1=a
+OM  <- var$contrib["OM", 2]
+COD <- var$contrib["COD", 2]
+NO3 <- var$contrib["NO3", 2]
+NO2 <- var$contrib["NO2", 2]
+
+### Standard limits
+OM_std  <- 10
+COD_std <- 40
+NO3_std <- 50
+NO2_std <- 0.9
+
+### Construct the weight matrix
+df <- data.frame(
+  OM  = rep(OM, 81),
+  COD = rep(COD, 81),
+  NO3 = rep(NO3, 81),
+  NO2 = rep(NO2, 81)
+)
+
+base_D2 <- df
+
+### Normalize weights
+S <- base_D2
+ES <- sum(S[1, ], na.rm = TRUE)
+
+WI <- base_D2 / ES
+head(WI,1)
+### Check that weights sum to 1
+sum(WI[1, ], na.rm = TRUE)
+
+### Calculate quality ratings
+q1 <- data.frame(
+  OM  = base1[, "OM"] / OM_std * 100,
+  COD = base1[, "COD"] / COD_std * 100,
+  NO3 = base1[, "NO3"] / NO3_std * 100,
+  NO2 = base1[, "NO2"] / NO2_std * 100
+)
+
+### Calculate weighted sub-indices
+WQI_D2 <- q1 * WI
+
+### Calculate WQI for each sample
+WQI_D2 <- rowSums(WQI_D2, na.rm = TRUE)
+
+### Final results
+WQI_D2 <- data.frame(WQI_D2)
+summary(WQI_D2)
+head(a)
+head(WQI_D2)
+#
+WQI_P <- ((WQI_D1 * 56.142444) + (WQI_D2 * 13.523779)) / 69.66622
+
+WQI_P <- data.frame(WQI_P)
+summary(WQI_P)
+head(a)
+head(WQI_P)
+#WA_WQI
+OM_std  <- 10
+COD_std <- 40
+NO3_std <- 50
+NO2_std <- 0.9
+### Construct the weight matrix
+df <- data.frame(
+  OM  = rep(OM_std, 81),
+  COD = rep(COD_std, 81),
+  NO3 = rep(NO3_std, 81),
+  NO2 = rep(NO2_std, 81)
+)
+S<-1/df
+head(S)
+ES<-sum(S[1, ], na.rm = TRUE)
+ES
+K<-1/ES
+K
+WI<-K/df
+head(WI,1)
+sum(WI[1, ], na.rm = TRUE)##should be equal to 1
+q1 <- data.frame(
+  OM  = base1[, "OM"] / OM_std * 100,
+  COD = base1[, "COD"] / COD_std * 100,
+  NO3 = base1[, "NO3"] / NO3_std * 100,
+  NO2 = base1[, "NO2"] / NO2_std * 100
+)
+WA_WQI<-q1 * WI
+WA_WQI
+sum(WA_WQI[1, ], na.rm = TRUE)##summarize per sample
+WA_WQI <- rowSums(WA_WQI, na.rm = TRUE)
+WA_WQI
+WA_WQI<-data.frame(WA_WQI)
+head(WA_WQI)
+head(a)
+summary(WA_WQI)
+indices=cbind(WQI_D1, WQI_D2, WQI_P,WA_WQI)
+head(indices)
+dim(indices)
+head(a)
+head(saad)
+str(a)
+str(saad)
+##
+library(dplyr); library(tidyr); library(ggplot2)
+
+vars <- c("pH","TDS","NO3","NO2","NH4","PO43","BOD5","COD","OM")
+lim  <- c(pH=8.5, TDS=1000, NO3=50, NO2=0.9, NH4=1.5, PO43=0.5, BOD5=6, COD=40, OM=10)
+
+long <- saad %>%
+  pivot_longer(all_of(vars), names_to="Parameters", values_to="Values") %>%
+  mutate(limit  = unname(lim[Parameters]),
+         exceed = Values > limit | (Parameters=="pH" & Values < 6.5))
+
+# % of samples exceeding the limit: pooled
+long %>% group_by(Parameters) %>%
+  summarise(n_exc=sum(exceed), pct=round(100*mean(exceed),1))
+
+# % exceeding per dam
+long %>% group_by(Parameters, DAM) %>%
+  summarise(pct=round(100*mean(exceed),1), .groups="drop") %>%
+  pivot_wider(names_from=DAM, values_from=pct)
+
+# do the dams differ? (Kruskal-Wallis, Holm-corrected)
+long %>% group_by(Parameters) %>%
+  summarise(p=kruskal.test(Values~DAM)$p.value) %>%
+  mutate(p_holm=p.adjust(p,"holm"))
+
+# figure: concentration / limit (pH excluded, it has two limits)
+long %>% filter(Parameters!="pH") %>%
+  ggplot(aes(Parameters, Values/limit, color=DAM)) +
+  geom_boxplot(outlier.shape=NA) +
+  geom_point(position=position_jitterdodge(jitter.width=0.1)) +
+  geom_hline(yintercept=1, linetype="dashed") +
+  scale_y_continuous(trans=scales::pseudo_log_trans(0.01)) +
+  theme_classic()
+#3.2
+library(FactoMineR); library(factoextra); library(psych)
+
+a <- saad[, vars]                      # 9 variables
+res <- PCA(a, graph = FALSE)           # pooled, standardized internally
+
+get_eigenvalue(res)                    # eigenvalues and % variance
+fviz_eig(res)
+fviz_pca_biplot(res, habillage = saad$DAM, addEllipses = TRUE,
+                geom.ind = "point", label = "var")
+
+# do PC1/PC2 separate the dams?
+for (k in 1:2) {
+  s <- res$ind$coord[, k]
+  print(tapply(s, saad$DAM, median))
+  print(kruskal.test(s ~ saad$DAM)$p.value)
+}
+
+# components per dam and pooled: Kaiser vs parallel analysis
+grp <- c(list(Pooled = a), split(a, saad$DAM))
+kaiser   <- sapply(grp, function(d) sum(eigen(cor(d))$values > 1))
+parallel <- sapply(grp, function(d)
+  fa.parallel(d, fa = "pc", n.iter = 200, plot = FALSE)$ncomp)
+rbind(kaiser, parallel)
+
+# bootstrap: number of eigenvalues > 1
+set.seed(1)
+boot_k <- function(d, B = 1000)
+  replicate(B, sum(eigen(cor(d[sample(nrow(d), replace = TRUE), ]))$values > 1))
+lapply(grp, function(d) table(boot_k(d)))
+
+# similarity of each dam's loadings to the pooled PC1-PC2 (Tucker)
+by_dam <- lapply(split(a, saad$DAM), PCA, graph = FALSE)
+L <- function(r) r$var$coord[, 1:2]
+sapply(by_dam, function(r)
+  round(apply(abs(factor.congruence(L(res), L(r))), 1, max), 2))
+library(patchwork)
+res <- PCA(a, ncp = 9, graph = FALSE)
+p1 <- fviz_eig(res, choice = "eigenvalue", addlabels = TRUE) + geom_hline(yintercept = 1, linetype = "dashed")
+p2 <- fviz_pca_biplot(res, habillage = saad$DAM, addEllipses = TRUE, ellipse.type = "confidence", geom.ind = "point", label = "var")
+p1 + p2
+
+#3.3
+v4   <- c("OM","COD","NO3","NO2")
+lim4 <- c(OM=10, COD=40, NO3=50, NO2=0.9)
+
+# 1. weights
+ctb <- res$var$contrib[v4, 1:2]
+w <- cbind(D1 = ctb[,1]/sum(ctb[,1]), D2 = ctb[,2]/sum(ctb[,2]))
+w <- cbind(w, P  = (w[,"D1"]*56.142444 + w[,"D2"]*13.523779)/69.66622,
+           WA = (1/lim4)/sum(1/lim4))
+colnames(w) <- c("WQI_D1", "WQI_D2", "WQI_P", "WA_WQI")   # proper index names
+round(w, 3)
+round(1/colSums(w^2), 2)          # effective number of parameters
+
+# indices
+q   <- sweep(saad[, v4], 2, lim4, "/") * 100
+idx <- as.data.frame(as.matrix(q) %*% w)
+head(idx)
+
+# 2. real influence: mean % share of each parameter in each index
+share <- sapply(colnames(w), function(m)
+  colMeans(sweep(q, 2, w[, m], "*") / idx[, m]) * 100)
+round(share, 1)
+round(cor(idx, saad[, v4], method = "spearman"), 2)
+
+# 3. agreement among indices
+round(cor(idx, method = "spearman"), 2)
+
+# figure: mean share of each parameter in each index
+library(tidyr)
+d <- pivot_longer(data.frame(Parameter = rownames(share), share, check.names = FALSE),
+                  -Parameter, names_to = "Index", values_to = "pct")
+d$Index     <- factor(d$Index, levels = c("WQI_D1", "WQI_D2", "WQI_P", "WA_WQI"))
+d$Parameter <- factor(d$Parameter, levels = c("OM", "COD", "NO3", "NO2"))
+ggplot(d, aes(Index, pct, fill = Parameter)) + geom_col() + theme_classic() +
+  labs(x = NULL, y = "Mean contribution to the index (%)")
+w=as.data.frame(w)
+w
+write.xlsx(w, file="D:/moste/OneDrive/Bureau/w.xlsx")
+
+#3.4
+library(psych)
+
+# classes: <25 Excellent, 25-50 Good, 50-75 Poor, 75-100 Very Poor, >=100 Unsuitable
+lab <- c("Excellent","Good","Poor","Very Poor","Unsuitable")
+cls <- as.data.frame(lapply(idx, cut, breaks = c(-Inf,25,50,75,100,Inf), labels = lab, right = FALSE))
+
+# 1. index values and differences among dams
+aggregate(. ~ saad$DAM, idx, function(x) round(median(x), 1))
+sapply(idx, function(x) round(kruskal.test(x ~ saad$DAM)$p.value, 4))
+for (m in names(idx)) print(pairwise.wilcox.test(idx[, m], saad$DAM, p.adjust.method = "holm")$p.value)
+
+# 2. class frequencies (%) overall and per dam
+sapply(cls, function(x) round(100 * prop.table(table(x)), 1))
+lapply(cls, function(x) round(100 * prop.table(table(saad$DAM, x), 1), 1))
+
+# 3. ambiguity: % of samples with the same class, between each pair of indices
+sapply(cls, function(a) sapply(cls, function(b) round(100 * mean(a == b), 1)))
+round(100 * mean(apply(cls, 1, function(r) length(unique(r)) == 1)), 1)   # all four agree
+cohen.kappa(cbind(as.integer(cls$WQI_P), as.integer(cls$WA_WQI)))$weighted.kappa
+
+#    eclipsing: % of samples with >=1 exceeded parameter still classed Excellent/Good
+lim9 <- c(pH=8.5, TDS=1000, NO3=50, NO2=0.9, NH4=1.5, PO43=0.5, BOD5=6, COD=40, OM=10)
+ex <- sweep(saad[, names(lim9)], 2, lim9, ">"); ex[, "pH"] <- ex[, "pH"] | saad$pH < 6.5
+anyex <- rowSums(ex) > 0
+sapply(cls, function(x) round(100 * mean(x[anyex] %in% c("Excellent","Good")), 1))
+
+# 4. time: dates, trend per dam (Kendall tau against time)
+mon <- match(tolower(substr(saad$Months, 1, 3)), tolower(month.abb))
+saad$Date <- as.Date(sprintf("%d-%02d-01", 2000 + as.integer(sub(".*_", "", saad$Months)), mon))
+for (m in names(idx)) for (d in levels(saad$DAM)) {
+  i <- saad$DAM == d
+  t <- cor.test(as.numeric(saad$Date[i]), idx[i, m], method = "kendall", exact = FALSE)
+  cat(m, d, "tau =", round(t$estimate, 2), "p =", signif(t$p.value, 2), "\n") }
+
+# figures
+library(tidyr)
+L <- cbind(saad[, c("DAM","Date")], idx) %>% pivot_longer(names(idx), names_to = "Index", values_to = "Value")
+L$Index <- factor(L$Index, levels = names(idx))
+ggplot(L, aes(DAM, Value, fill = DAM)) + geom_boxplot(alpha = .4) + facet_wrap(~Index, scales = "free_y") +
+  geom_hline(yintercept = c(25,50,75,100), linetype = "dashed", colour = "grey40") +
+  theme_classic() + theme(axis.text.x = element_blank(), legend.position = "top") + labs(x = NULL, y = "Index value")
+ggplot(L, aes(Date, Value, colour = DAM)) + geom_line() + facet_wrap(~Index, scales = "free_y") +
+  theme_classic() + theme(legend.position = "top") + labs(x = NULL, y = "Index value")
+tab2 <- do.call(rbind, lapply(names(cls), function(m) {
+  all <- as.numeric(100 * prop.table(table(cls[[m]])))
+  per <- unclass(100 * prop.table(table(saad$DAM, cls[[m]]), 1))
+  data.frame(Index = m, Dam = c("All dams", levels(saad$DAM)),
+             round(rbind(all, per), 1), check.names = FALSE, row.names = NULL)
+}))
+tab2
+write.xlsx(tab2, file="D:/moste/OneDrive/Bureau/tab2.xlsx")
+sum(anyex)
+
+
+#3.5
+#3.5 Bootstrap
+library(FactoMineR); library(ggplot2)
+vars <- c("pH","TDS","NO3","NO2","NH4","PO43","BOD5","COD","OM")
+lim  <- c(pH=8.5, TDS=1000, NO3=50, NO2=0.9, NH4=1.5, PO43=0.5, BOD5=6, COD=40, OM=10)  # fixed
+a <- saad[, vars]; n <- nrow(a)
+res <- PCA(a, ncp = 9, graph = FALSE)
+v4  <- c("OM","COD","NO3","NO2")
+cls <- function(x) as.integer(cut(x, c(-Inf, 25, 50, 75, 100, Inf), right = FALSE))
+
+pca_idx <- function(d, ctb, ev) {
+  W1 <- ctb[v4, 1] / sum(ctb[v4, 1]); W2 <- ctb[v4, 2] / sum(ctb[v4, 2])
+  WP <- (W1 * ev[1] + W2 * ev[2]) / (ev[1] + ev[2])
+  q  <- sweep(as.matrix(d[, v4]), 2, lim[v4], "/") * 100
+  list(w = c(D1 = W1, D2 = W2, P = WP),
+       v = cbind(WQI_D1 = drop(q %*% W1), WQI_D2 = drop(q %*% W2), WQI_P = drop(q %*% WP)))
+}
+
+ref <- pca_idx(saad, res$var$contrib, res$eig[, 2])
+all.equal(unname(ref$v[, "WQI_P"]), unname(idx$WQI_P), tolerance = 1e-6)   # must be TRUE
+C <- apply(ref$v, 2, cls)
+
+B <- 1000; set.seed(1)
+bi <- array(NA, c(B, n, 3)); bw <- vector("list", B)
+for (b in 1:B) {
+  r <- PCA(a[sample(n, replace = TRUE), ], ncp = 2, graph = FALSE)
+  o <- pca_idx(saad, r$var$contrib, r$eig[, 2])
+  bi[b, , ] <- o$v; bw[[b]] <- o$w
+}
+
+# Table 3: weights (median and 95% interval)
+m  <- do.call(rbind, bw)
+ci <- round(t(apply(m, 2, quantile, c(.025, .5, .975))), 3); ci
+
+# Table 4: class retention
+stab <- sapply(1:3, function(j) 100 * colMeans(
+  sweep(matrix(cls(as.vector(bi[, , j])), B), 2, C[, j], "==")))
+colnames(stab) <- colnames(C)
+round(apply(stab, 2, median), 1)
+round(100 * colMeans(stab >= 90), 1)
+round(sapply(1:3, function(j) median(apply(bi[, , j], 2,
+                                           function(x) diff(quantile(x, c(.025, .975)))))), 1)
+
+# Fig. 7: bootstrap distribution of the weights
+wA <- data.frame(index = sub("\\..*", "", rep(colnames(m), each = B)),
+                 var   = sub(".*\\.", "", rep(colnames(m), each = B)), w = as.vector(m))
+wA$index <- factor(wA$index, c("D1","D2","P"), c("WQI_D1","WQI_D2","WQI_P"))
+ggplot(wA, aes(var, w)) + geom_boxplot() + facet_wrap(~index) +
+  labs(x = NULL, y = "Weight") + theme_classic()
+
+# Fig. 8: class retention against the index value
+d8 <- do.call(rbind, lapply(1:3, function(j) data.frame(
+  index = colnames(C)[j], v = ref$v[, j], p = stab[, j], dam = saad$DAM)))
+ggplot(d8, aes(v, p, colour = dam)) + geom_point() + facet_wrap(~index, scales = "free_x") +
+  geom_vline(xintercept = c(25, 50, 75, 100), linetype = "dashed") +
+  labs(x = "Index value", y = "Resamples keeping the class (%)") + theme_classic()
+write.xlsx(ci, file="D:/moste/OneDrive/Bureau/ci.xlsx")
+write.xlsx(stab, file="D:/moste/OneDrive/Bureau/stab.xlsx")
+low <- stab[, "WQI_P"] < 90
+table(saad$DAM[low])                       # which dams
+round(range(ref$v[low, "WQI_P"]), 1)       # their WQI_P values
+sort(round(ref$v[low, "WQI_P"], 1))
+
+#3.6
+
+# ============================================================
+# 3.6. TRANSFERABILITY OF PCA WEIGHTS ACROSS DAMS
+#
+# Six scenarios:
+# Three single-dam training sets
+# Three two-dam training sets
+#
+# Fixed variables: OM, COD, NO3, NO2
+# Fixed limits: OM=10, COD=40, NO3=50, NO2=0.9
+# Fixed components: PC1 and PC2
+#
+# Evaluation:
+# Spearman correlation
+# Mean absolute error
+# Classification agreement
+#
+# No files saved
+# ============================================================
+
+library(FactoMineR)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# ------------------------------------------------------------
+# 1. DATA PREPARATION
+# ------------------------------------------------------------
+
+v4 <- c("OM", "COD", "NO3", "NO2")
+
+lim4 <- c(
+  OM = 10,
+  COD = 40,
+  NO3 = 50,
+  NO2 = 0.9
+)
+
+# Keep only the four variables and DAM
+dat <- saad[, c("DAM", v4)]
+
+dat$DAM <- as.factor(dat$DAM)
+
+# Ensure numerical variables
+dat[, v4] <- lapply(dat[, v4], as.numeric)
+
+# Remove incomplete observations
+dat <- dat[complete.cases(dat), ]
+
+# Check the number of dams
+dam_levels <- levels(droplevels(dat$DAM))
+
+stopifnot(length(dam_levels) == 3)
+
+cat("Dams:", dam_levels, "\n")
+cat("Observations:", nrow(dat), "\n")
+
+# ------------------------------------------------------------
+# 2. FUNCTION TO CALCULATE PCA WEIGHTS
+# ------------------------------------------------------------
+
+calculate_weights <- function(training_data) {
+  
+  # PCA using only four fixed variables
+  pca <- PCA(
+    training_data[, v4, drop = FALSE],
+    scale.unit = TRUE,
+    ncp = 2,
+    graph = FALSE
+  )
+  
+  # Variable contributions to PC1 and PC2
+  ctb <- pca$var$contrib[
+    v4,
+    1:2,
+    drop = FALSE
+  ]
+  
+  # Eigenvalues
+  ev <- pca$eig[1:2, 1]
+  
+  # Normalize PC1 contributions
+  W1 <- ctb[, 1] / sum(ctb[, 1])
+  
+  # Normalize PC2 contributions
+  W2 <- ctb[, 2] / sum(ctb[, 2])
+  
+  # Combined WQI_P weights
+  WP <- (
+    W1 * ev[1] +
+      W2 * ev[2]
+  ) / sum(ev)
+  
+  # Weight matrix
+  weights <- cbind(
+    WQI_D1 = W1,
+    WQI_D2 = W2,
+    WQI_P = WP
+  )
+  
+  return(
+    list(
+      pca = pca,
+      weights = weights,
+      eigenvalues = ev
+    )
+  )
+}
+
+# ------------------------------------------------------------
+# 3. FUNCTION TO CALCULATE THE THREE PCA INDICES
+# ------------------------------------------------------------
+
+calculate_indices <- function(data, weights) {
+  
+  # Fixed quality ratings
+  q <- sweep(
+    as.matrix(data[, v4, drop = FALSE]),
+    2,
+    lim4[v4],
+    "/"
+  ) * 100
+  
+  # Calculate all three indices
+  result <- as.data.frame(
+    q %*% weights
+  )
+  
+  return(result)
+}
+
+# ------------------------------------------------------------
+# 4. POOLED REFERENCE PCA
+# ------------------------------------------------------------
+
+cat("\nFitting pooled reference PCA...\n")
+
+reference <- calculate_weights(dat)
+
+# Pooled reference weights
+reference_weights <- reference$weights
+
+cat("\nPOOLED REFERENCE WEIGHTS:\n")
+
+print(round(reference_weights, 4))
+
+# Pooled reference indices
+reference_indices <- calculate_indices(
+  dat,
+  reference_weights
+)
+
+head(reference_indices)
+
+# ------------------------------------------------------------
+# 5. DEFINE THE SIX TRAINING SCENARIOS
+# ------------------------------------------------------------
+
+scenarios <- list()
+
+counter <- 1
+
+# Three single-dam scenarios
+for (k in 1:1) {
+  
+  combinations <- combn(
+    dam_levels,
+    k,
+    simplify = FALSE
+  )
+  
+  for (x in combinations) {
+    
+    scenarios[[paste0("S", counter)]] <- x
+    
+    counter <- counter + 1
+  }
+}
+
+# Three two-dam scenarios
+combinations <- combn(
+  dam_levels,
+  2,
+  simplify = FALSE
+)
+
+for (x in combinations) {
+  
+  scenarios[[paste0("S", counter)]] <- x
+  
+  counter <- counter + 1
+}
+
+# Display scenarios
+scenario_design <- data.frame(
+  Scenario = names(scenarios),
+  Training = sapply(
+    scenarios,
+    paste,
+    collapse = " + "
+  ),
+  Testing = sapply(
+    scenarios,
+    function(x) {
+      paste(
+        setdiff(dam_levels, x),
+        collapse = " + "
+      )
+    }
+  )
+)
+
+cat("\nSCENARIO DESIGN:\n")
+
+print(scenario_design)
+
+# ------------------------------------------------------------
+# 6. DEFINE WATER QUALITY CLASSES
+# ------------------------------------------------------------
+
+classify_wqi <- function(x) {
+  
+  cut(
+    x,
+    breaks = c(
+      -Inf, 25, 50, 75, 100, Inf
+    ),
+    labels = c(
+      "Excellent",
+      "Good",
+      "Poor",
+      "Very Poor",
+      "Unsuitable"
+    ),
+    right = FALSE
+  )
+}
+
+# ------------------------------------------------------------
+# 7. DEFINE TRANSFERABILITY METRICS
+# ------------------------------------------------------------
+
+calculate_agreement <- function(reference, transferred) {
+  
+  # Spearman correlation
+  rho <- suppressWarnings(
+    cor(
+      reference,
+      transferred,
+      method = "spearman",
+      use = "complete.obs"
+    )
+  )
+  
+  # Mean absolute error
+  MAE <- mean(
+    abs(reference - transferred),
+    na.rm = TRUE
+  )
+  
+  # Classification agreement
+  reference_class <- classify_wqi(reference)
+  
+  transferred_class <- classify_wqi(transferred)
+  
+  class_agreement <- 100 * mean(
+    reference_class == transferred_class,
+    na.rm = TRUE
+  )
+  
+  return(
+    data.frame(
+      Spearman_rho = rho,
+      MAE = MAE,
+      Class_agreement = class_agreement
+    )
+  )
+}
+
+# ------------------------------------------------------------
+# 8. RUN THE SIX TRANSFERABILITY SCENARIOS
+# ------------------------------------------------------------
+
+weight_results <- list()
+
+agreement_results <- list()
+
+agreement_dam_results <- list()
+
+scenario_indices <- list()
+
+for (s in names(scenarios)) {
+  
+  cat("\n====================================\n")
+  cat("SCENARIO:", s, "\n")
+  cat("====================================\n")
+  
+  # Training and test dams
+  training_dams <- scenarios[[s]]
+  
+  test_dams <- setdiff(
+    dam_levels,
+    training_dams
+  )
+  
+  # Training observations
+  train_data <- dat[
+    dat$DAM %in% training_dams,
+    ,
+    drop = FALSE
+  ]
+  
+  # Test observations
+  test_id <- which(
+    dat$DAM %in% test_dams
+  )
+  
+  test_data <- dat[
+    test_id,
+    ,
+    drop = FALSE
+  ]
+  
+  # ----------------------------------------------------------
+  # Fit PCA on training dams only
+  # ----------------------------------------------------------
+  
+  fitted <- calculate_weights(train_data)
+  
+  weights <- fitted$weights
+  
+  # ----------------------------------------------------------
+  # Apply training weights to test observations
+  # ----------------------------------------------------------
+  
+  transferred_indices <- calculate_indices(
+    test_data,
+    weights
+  )
+  
+  # Reference indices for the same test observations
+  reference_test <- reference_indices[
+    test_id,
+    ,
+    drop = FALSE
+  ]
+  
+  # Store transferred indices
+  scenario_indices[[s]] <- transferred_indices
+  
+  # ----------------------------------------------------------
+  # Table of WQI_P weights
+  # ----------------------------------------------------------
+  
+  weight_results[[s]] <- data.frame(
+    Scenario = s,
+    Training_dams = paste(
+      training_dams,
+      collapse = " + "
+    ),
+    Testing_dams = paste(
+      test_dams,
+      collapse = " + "
+    ),
+    t(
+      weights[, "WQI_P", drop = FALSE]
+    ),
+    check.names = FALSE
+  )
+  
+  # ----------------------------------------------------------
+  # Evaluate all three indices
+  # ----------------------------------------------------------
+  
+  for (index in c(
+    "WQI_D1",
+    "WQI_D2",
+    "WQI_P"
+  )) {
+    
+    # Combined test-dam evaluation
+    metrics <- calculate_agreement(
+      reference_test[[index]],
+      transferred_indices[[index]]
+    )
+    
+    agreement_results[[paste(s, index, sep = "_")]] <-
+      data.frame(
+        Scenario = s,
+        Training_dams = paste(
+          training_dams,
+          collapse = " + "
+        ),
+        Testing_dams = paste(
+          test_dams,
+          collapse = " + "
+        ),
+        Index = index,
+        metrics
+      )
+    
+    # --------------------------------------------------------
+    # Evaluate each test dam separately
+    # --------------------------------------------------------
+    
+    for (d in test_dams) {
+      
+      ii <- which(
+        as.character(test_data$DAM) == d
+      )
+      
+      metrics_dam <- calculate_agreement(
+        reference_test[[index]][ii],
+        transferred_indices[[index]][ii]
+      )
+      
+      agreement_dam_results[[
+        paste(s, d, index, sep = "_")
+      ]] <- data.frame(
+        Scenario = s,
+        Training_dams = paste(
+          training_dams,
+          collapse = " + "
+        ),
+        Test_dam = d,
+        Index = index,
+        metrics_dam
+      )
+    }
+  }
+  
+  cat("\nWQI_P weights:\n")
+  print(round(weights[, "WQI_P"], 4))
+}
+
+# ------------------------------------------------------------
+# 9. TABLE 1: WQI_P WEIGHTS PER TRAINING SCENARIO
+# ------------------------------------------------------------
+
+table_weights <- bind_rows(weight_results)
+
+table_weights <- table_weights %>%
+  mutate(
+    across(
+      all_of(v4),
+      ~ round(.x, 4)
+    )
+  )
+
+cat("\n====================================\n")
+cat("TABLE 1: WQI_P TRANSFERRED WEIGHTS\n")
+cat("====================================\n")
+
+print(table_weights)
+
+# ------------------------------------------------------------
+# 10. TABLE 2: AGREEMENT METRICS
+# ------------------------------------------------------------
+
+table_agreement <- bind_rows(
+  agreement_results
+)
+
+table_agreement <- table_agreement %>%
+  mutate(
+    across(
+      c(Spearman_rho, MAE, Class_agreement),
+      ~ round(.x, 3)
+    )
+  )
+
+cat("\n====================================\n")
+cat("TABLE 2: TRANSFERABILITY METRICS\n")
+cat("====================================\n")
+
+print(table_agreement)
+
+# ------------------------------------------------------------
+# 11. TABLE 3: AGREEMENT FOR EACH TEST DAM
+# ------------------------------------------------------------
+
+table_by_dam <- bind_rows(
+  agreement_dam_results
+)
+
+table_by_dam <- table_by_dam %>%
+  mutate(
+    across(
+      c(Spearman_rho, MAE, Class_agreement),
+      ~ round(.x, 3)
+    )
+  )
+
+cat("\n====================================\n")
+cat("TABLE 3: AGREEMENT BY TEST DAM\n")
+cat("====================================\n")
+
+print(table_by_dam)
+
+# ------------------------------------------------------------
+# 12. RANK THE SIX TRAINING SCENARIOS
+# ------------------------------------------------------------
+
+# Rank each scenario for each index and metric.
+# Higher rho is better.
+# Lower MAE is better.
+# Higher class agreement is better.
+
+ranking <- table_agreement %>%
+  group_by(Index) %>%
+  mutate(
+    Rank_rho = rank(
+      -Spearman_rho,
+      ties.method = "average"
+    ),
+    Rank_MAE = rank(
+      MAE,
+      ties.method = "average"
+    ),
+    Rank_class = rank(
+      -Class_agreement,
+      ties.method = "average"
+    )
+  ) %>%
+  ungroup() %>%
+  group_by(Scenario, Training_dams) %>%
+  summarise(
+    Mean_rho = mean(Spearman_rho, na.rm = TRUE),
+    Mean_MAE = mean(MAE, na.rm = TRUE),
+    Mean_class_agreement = mean(
+      Class_agreement,
+      na.rm = TRUE
+    ),
+    Mean_rank = mean(
+      c(Rank_rho, Rank_MAE, Rank_class),
+      na.rm = TRUE
+    ),
+    .groups = "drop"
+  ) %>%
+  arrange(Mean_rank)
+
+cat("\n====================================\n")
+cat("OVERALL SCENARIO RANKING\n")
+cat("====================================\n")
+
+print(
+  ranking %>%
+    mutate(
+      across(
+        c(
+          Mean_rho,
+          Mean_MAE,
+          Mean_class_agreement,
+          Mean_rank
+        ),
+        ~ round(.x, 3)
+      )
+    )
+)
+
+# ------------------------------------------------------------
+# 13. FIGURE 9: TRANSFERABILITY PERFORMANCE
+# ------------------------------------------------------------
+
+plot_data <- table_agreement %>%
+  pivot_longer(
+    cols = c(
+      Spearman_rho,
+      MAE,
+      Class_agreement
+    ),
+    names_to = "Metric",
+    values_to = "Value"
+  )
+
+plot_data$Metric <- factor(
+  plot_data$Metric,
+  levels = c(
+    "Spearman_rho",
+    "MAE",
+    "Class_agreement"
+  ),
+  labels = c(
+    "Spearman correlation",
+    "Mean absolute error",
+    "Class agreement (%)"
+  )
+)
+
+plot_data$Index <- factor(
+  plot_data$Index,
+  levels = c(
+    "WQI_D1",
+    "WQI_D2",
+    "WQI_P"
+  )
+)
+
+fig9 <- ggplot(
+  plot_data,
+  aes(
+    x = Scenario,
+    y = Value,
+    group = Index,
+    color = Index
+  )
+) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 2.8) +
+  facet_grid(
+    Metric ~ Index,
+    scales = "free_y"
+  ) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    ),
+    strip.background = element_rect(
+      fill = "grey95",
+      color = "grey70"
+    ),
+    strip.text = element_text(
+      face = "bold"
+    )
+  ) +
+  labs(
+    x = "Training scenario",
+    y = NULL
+  )
+
+print(fig9)
+
+# ------------------------------------------------------------
+# 14. OPTIONAL: VISUALIZE WQI_P WEIGHTS
+# ------------------------------------------------------------
+
+weight_plot_data <- table_weights %>%
+  pivot_longer(
+    cols = all_of(v4),
+    names_to = "Parameter",
+    values_to = "Weight"
+  )
+
+weight_plot_data$Parameter <- factor(
+  weight_plot_data$Parameter,
+  levels = v4
+)
+
+fig9_weights <- ggplot(
+  weight_plot_data,
+  aes(
+    x = Scenario,
+    y = Weight,
+    fill = Parameter
+  )
+) +
+  geom_col() +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    )
+  ) +
+  labs(
+    title = "WQI_P weights across training scenarios",
+    x = "Training scenario",
+    y = "WQI_P weight"
+  )
+
+print(fig9_weights)
+write.xlsx(table_by_dam, file="D:/moste/OneDrive/Bureau/table_by_dam.xlsx")
+write.xlsx(table_agreement, file="D:/moste/OneDrive/Bureau/table_agreement.xlsx")
+write.xlsx(table_weights, file="D:/moste/OneDrive/Bureau/table_weights.xlsx")
+# ============================================================
+# END OF SECTION 3.6
+# ============================================================
+#3.7
